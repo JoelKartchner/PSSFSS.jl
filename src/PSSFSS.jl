@@ -47,22 +47,22 @@ using .Rings
 @reexport using .Sheets: Sheet, RWGSheet, read_sheet_data
 using .RWG: setup_rwg, rwgbfft!, RWGData
 using .GSMs: GSM, cascade, cascade!, gsm_electric_gblock, gsm_magnetic_gblock,
-             gsm_slab_interface, translate_gsm!, choose_gblocks, Gblock, pecgsm, pmcgsm
+    gsm_slab_interface, translate_gsm!, choose_gblocks, Gblock, pecgsm, pmcgsm
 using .FillZY: fillz, filly
 using .Modes: zhatcross, choose_layer_modes!, setup_modes!
 using .Constants: twopi, c₀, tdigits, dbmin
 using .Log: pssfss_logger, @logfile
 @reexport using .PSSFSSLen
 @reexport using .Layers: Layer
-@reexport using .Elements: rectstrip, diagstrip, polyring, meander, loadedcross, 
-                           jerusalemcross, pecsheet, pmcsheet
+@reexport using .Elements: rectstrip, diagstrip, polyring, meander, loadedcross,
+    jerusalemcross, pecsheet, pmcsheet
 @reexport using .Outputs: @outputs, extract_result_file, extract_result
 using .Outputs: Result, append_result_data
 
 export analyze
 
 Base.isfile(f::Base.DevNull) = false
-Base.open(f::Base.DevNull,::AbstractString) = f
+Base.open(f::Base.DevNull, ::AbstractString) = f
 
 """
     analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", showprogress::Bool=true)
@@ -112,7 +112,7 @@ Generate output files as specified in `outlist`.
 - `showprogress`: If true (default), then show progress bar during execution.
 
 """
-function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", 
+function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log",
     resultfile="pssfss.res", showprogress::Bool=true)
     tstart = time()
     layers = Layer[deepcopy(s) for s in strata if s isa Layer]
@@ -132,10 +132,10 @@ function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.lo
         freqs::Vector{Float64} = freqstemp
     end
 
-    stkeys::Tuple{Symbol, Symbol} = keys(steering)
+    stkeys::Tuple{Symbol,Symbol} = keys(steering)
     stvaluestemp = [float.(collect(s)) for s in steering]
     stvalues = Vector{Float64}[]
-    for (i,s) in pairs(stvaluestemp)
+    for (i, s) in pairs(stvaluestemp)
         if length(s) < 2
             push!(stvalues, Float64[s])
         else
@@ -143,9 +143,9 @@ function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.lo
         end
     end
 
-    with_logger(pssfss_logger(logfile)) do 
-        _analyze(layers, sheets, junc, freqs, stkeys, stvalues; 
-                 outlist, resultfile, showprogress, tstart)
+    with_logger(pssfss_logger(logfile)) do
+        _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
+            outlist, resultfile, showprogress, tstart)
     end
 end # function
 
@@ -200,24 +200,26 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
 
 - `tstart`: Nanoseconds since epoch at start of program execution.
 """
-function _analyze(layers, sheets, junc, freqs, stkeys, stvalues; 
+function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     outlist=[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time())
     showprogress && println("Beginning PSSFSS Analysis")
     ncount = 0 # Number of analyses performed
     ntotal = length(freqs) * length(stvalues[1]) * length(stvalues[2])
-    showprogress && (progress = Progress(ntotal,1))
+    showprogress && (progress = Progress(ntotal, 1))
     showprogress && update!(progress, 0)
     isfile(resultfile) && rm(resultfile)
-    date, clock = split(string(now()),'T')
+    date, clock = split(string(now()), 'T')
     pssfssv = PkgVersion.Version(PSSFSS)
     ss = "Environment"
-    io=IOBuffer(); versioninfo(io); juliainfo = String(take!(io)) * ss
+    io = IOBuffer()
+    versioninfo(io)
+    juliainfo = String(take!(io)) * ss
     i = findfirst(ss, juliainfo)
     juliainfo = juliainfo[1:first(i)-1]
     juliainfo = juliainfo * "  Threads.nthreads() = $(Threads.nthreads())\n"
     @logfile "\n\nStarting PSSFSS $(pssfssv) analysis on $(date) at $(clock)\n$(juliainfo)\n\n"
     check_inputs(layers, sheets, junc, freqs, stkeys, stvalues, outlist)
-    k0min, k0max = twopi*1e9/c₀ .* extrema(freqs)
+    k0min, k0max = twopi * 1e9 / c₀ .* extrema(freqs)
     gbls = choose_gblocks(layers, sheets, junc, k0min)
     gsm_save = Vector{GSM}(undef, length(gbls)) # Storage for reusable GSMs
     choose_layer_modes!(layers, sheets, junc, gbls, k0max, dbmin)
@@ -238,8 +240,8 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
         if keys(steer)[1] == :ψ₁
             ψ₁, ψ₂ = deg2rad.([steer...]) # radians
             upm::Float64 = ustrip(Float64, sheets[1].units, 1u"m")
-            β₁, β₂ = sheets[1].β₁*upm, sheets[1].β₂*upm
-            β⃗₀₀ = (ψ₁*β₁ + ψ₂*β₂) / twopi # Eq. (2.13b)
+            β₁, β₂ = sheets[1].β₁ * upm, sheets[1].β₂ * upm
+            β⃗₀₀ = (ψ₁ * β₁ + ψ₂ * β₂) / twopi # Eq. (2.13b)
         else
             θ, ϕ = steer # degrees
             st = sind(θ)
@@ -249,22 +251,22 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
         for fghz in freqs
             @logfile "  $(fghz) GHz"
             t_freq = time()
-            k0 = twopi*fghz*1e9/c₀
+            k0 = twopi * fghz * 1e9 / c₀
             if keys(steer)[1] == :θ
                 k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
-                β⃗₀₀ = @SVector([k1*st*cp, k1*st*sp])
+                β⃗₀₀ = @SVector([k1 * st * cp, k1 * st * sp])
             end
             setup_modes!.(layers, k0, Ref(β⃗₀₀))
-            if !(angle(layers[begin].γ[1]) ≈ angle(layers[end].γ[1]) ≈ π/2)
+            if !(angle(layers[begin].γ[1]) ≈ angle(layers[end].γ[1]) ≈ π / 2)
                 @logfile "  Skipping $(fghz) GHz due to cutoff principal modes in ambient medium"
                 continue
             end
             # Initialize overall GSM and propagate it through layer 1's width:
             n1 = length(layers[1].P)
-            gsma = GSM(n1,n1)
-            gsmc = GSM(n1,n1)
+            gsma = GSM(n1, n1)
+            gsmc = GSM(n1, n1)
             cascade!(gsma, layers[1])
-            for (ig,gbl) in pairs(gbls) # Walk through the Gblocks
+            for (ig, gbl) in pairs(gbls) # Walk through the Gblocks
                 i1 = first(gbl.rng) # Index of layer to left of Gblock
                 i2 = 1 + last(gbl.rng) # Index of layer to right of Gblock
                 i_junc = gbl.j # junction where FSS is located, or 0 if no sheet
@@ -277,11 +279,11 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                         sheet = sheets[i_sheet]
                         s = gbl.j - i1 + 1 # sheet interface location within `region`
                         if sheet.class == 'J'
-                            gsmb = calculate_jtype_gsm(region, sheet, uvec[i_sheet], 
-                                                       rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])              
+                            gsmb = calculate_jtype_gsm(region, sheet, uvec[i_sheet],
+                                rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
                         elseif sheet.class == 'M'
                             gsmb = calculate_mtype_gsm(region, sheet, uvec[i_sheet],
-                                                       rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
+                                rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
                         elseif sheet.class == 'E'
                             gsmb = pecgsm(length(region[1].P), length(region[end].P))
                         elseif sheet.class == 'H'
@@ -290,7 +292,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                             error("Illegal sheet class: $(sheet.class)")
                         end
 
-                        gbldup[ig] < 0 && (gsm_save[ig] = deepcopy(gsmb))          
+                        gbldup[ig] < 0 && (gsm_save[ig] = deepcopy(gsmb))
                     end
                     # Apply translations if requested:
                     sheet = sheets[i_sheet]
@@ -307,18 +309,18 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                 end
                 gsmc = cascade(gsma, gsmb)
                 cascade!(gsmc, layers[i2])
-                gsma = gsmc 
+                gsma = gsmc
             end # Gblock loop
-            t_freq = round(time()-t_freq, digits=tdigits)
+            t_freq = round(time() - t_freq, digits=tdigits)
             @logfile "  $(t_freq) seconds total at $(fghz) GHz"
 
-            result = Result(gsmc, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ, 
-            layers[1].β₁, layers[1].β₂, layers[end].ϵᵣ, layers[end].μᵣ, 
-            layers[end].β₁, layers[end].β₂)
+            result = Result(gsmc, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
+                layers[1].β₁, layers[1].β₂, layers[end].ϵᵣ, layers[end].μᵣ,
+                layers[end].β₁, layers[end].β₂)
             push!(results, result)
             ncount += 1
             # Write to output files
-            append_result_data(resultfile,string(ncount),result)
+            append_result_data(resultfile, string(ncount), result)
             for row in eachrow(outlist)
                 if firstoutput
                     open(row[1], "w") do io
@@ -334,7 +336,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
         end # Frequency loop
     end # steering angle loop
 
-    date, clock = split(string(now()),'T')
+    date, clock = split(string(now()), 'T')
     telapsed = round(time() - tstart, digits=1)
     @logfile "\n\n PSSFSS analysis exiting on $(date) at $(clock) ($(telapsed) seconds elapsed time)\n\n"
     return results
@@ -367,11 +369,11 @@ Compute the generalized scattering matrix for a sheet of class `'J'`.
     to currents induced on the sheet surface.
 """
 function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::Float64,
-                                 rwgdat::RWGData, s::Int, k0::Float64, k⃗inc::SVector{2, Float64}, is::Int)
+    rwgdat::RWGData, s::Int, k0::Float64, k⃗inc::SVector{2,Float64}, is::Int)
     one_meter = ustrip(Float64, sheet.units, 1u"m")
     area = norm(sheet.s₁ × sheet.s₂) / one_meter^2 # Unit cell area (m^2).
-    nmodesmax = max(length(layers[begin].P), length(layers[end].P)) 
-    nbf = size(rwgdat.bfe,2) # Number of basis functions
+    nmodesmax = max(length(layers[begin].P), length(layers[end].P))
+    nbf = size(rwgdat.bfe, 2) # Number of basis functions
     if isempty(rwgdat.bfftstore)
         rwgdat.bfftstore = zeros(SArray{Tuple{2},ComplexF64,1,2}, (nbf, 2, nmodesmax))
     end
@@ -379,9 +381,9 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     # Compute area correction factors for the mode normalization constants of 
     # the two end regions:
     tempvec = zeros(2)
-    for (i,l) in enumerate(@view layers[[begin,end]])
-      area_i = twopi * twopi / norm(l.β₁ × l.β₂)
-      tempvec[i] = √(area_i / area)
+    for (i, l) in enumerate(@view layers[[begin, end]])
+        area_i = twopi * twopi / norm(l.β₁ × l.β₂)
+        tempvec[i] = √(area_i / area)
     end
     acf = SVector(tempvec[1], tempvec[2])
 
@@ -394,13 +396,13 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     # Calculate the scattered field partial scattering matrix of the 
     # FSS sheet at this junction. Then add it to GSM already computed 
     # for the dielectric discontinuity...
-    
+
     #  Fill the interaction matrix for the current sheet:
     t_temp = time()
     ψ₁ = k⃗inc ⋅ sheet.s₁ / one_meter
     ψ₂ = k⃗inc ⋅ sheet.s₂ / one_meter
     @logfile "    Beginning matrix fill for sheet $(is)"
-    zmat = fillz(k0,u,layers,s,ψ₁,ψ₂,sheet,rwgdat)
+    zmat = fillz(k0, u, layers, s, ψ₁, ψ₂, sheet, rwgdat)
     t_fill = round(time() - t_temp, digits=tdigits)
     @logfile "      $(t_fill) seconds total matrix fill time for sheet $(is)"
     # Factor the matrix:
@@ -411,19 +413,19 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     t_temp = time()
     # Compute and store the basis function Fourier transforms:
     i_ft = 0
-    for (sr,l) in enumerate(@view layers[[begin,end]]) # loop over possible source regions
-        for qp = 1:length(l.P) 
+    for (sr, l) in enumerate(@view layers[[begin, end]]) # loop over possible source regions
+        for qp = 1:length(l.P)
             kvec = l.β[qp]
             # If desired F.T. has already been computed, then copy it.
             if qp > 1 && kvec ≈ l.β[qp-1]
-                bfftstore[:,sr,qp] = bfftstore[:,sr,qp-1] 
+                bfftstore[:, sr, qp] = bfftstore[:, sr, qp-1]
                 continue
             end
             if sr == 2 && length(layers[1].β) ≥ qp && kvec ≈ layers[1].β[qp]
-                bfftstore[:,2,qp] = bfftstore[:,1,qp] 
+                bfftstore[:, 2, qp] = bfftstore[:, 1, qp]
                 continue
             end
-            bfft = @view bfftstore[:,sr,qp]
+            bfft = @view bfftstore[:, sr, qp]
             rwgbfft!(bfft, rwgdat, sheet, kvec, ψ₁, ψ₂) # Otherwise, compute from scratch
             i_ft += 1
         end
@@ -435,12 +437,12 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     i_extract = 0
     t_solve = 0.0
     imat = rwgdat.rhs
-    for (sr,ls) in enumerate(@view layers[[begin,end]]) # Loop over source regions
+    for (sr, ls) in enumerate(@view layers[[begin, end]]) # Loop over source regions
         for qp in 1:length(ls.P) # Loop over srce reg modes
             # Incident field for source layer in absence of the FSS sheet:
-            sourcevec = vincs[qp,sr] * ls.c[qp] * acf[sr] * ls.tvec[qp]
+            sourcevec = vincs[qp, sr] * ls.c[qp] * acf[sr] * ls.tvec[qp]
             # Compute generalized voltage vector:
-            imat .= (b ⋅ sourcevec for b in bfftstore[:,sr,qp]) # Eq. (7.39)
+            imat .= (b ⋅ sourcevec for b in bfftstore[:, sr, qp]) # Eq. (7.39)
             # Solve the matrix equation
             t_solve1 = time()
             ldiv!(zmatf, imat)
@@ -448,13 +450,13 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             t_solve += t_solve2 - t_solve1
             nsolve += 1
             t_extract1 = time()
-            for (or,lo) in enumerate(@view layers[[begin,end]]) # Loop over obs. regions
-                smat = gsm[or,sr]
+            for (or, lo) in enumerate(@view layers[[begin, end]]) # Loop over obs. regions
+                smat = gsm[or, sr]
                 for q in 1:length(lo.P)  # Loop obs. regn modes
                     # Extract partial scattering parameter due to scattered fields...
-                    FTJ = sum((imat[n] * bfftstore[n,or,q] for n in 1:nbf)) # FT of total current
-                    smat[q,qp] -= (lo.tvec[q] ⋅ FTJ) * (tlgfvi[q,or] / 
-                                                (lo.c[q] * acf[or] * area)) # Eq (6.18)
+                    FTJ = sum((imat[n] * bfftstore[n, or, q] for n in 1:nbf)) # FT of total current
+                    smat[q, qp] -= (lo.tvec[q] ⋅ FTJ) * (tlgfvi[q, or] /
+                                                         (lo.c[q] * acf[or] * area)) # Eq (6.18)
                     i_extract += 1
                 end
             end
@@ -464,7 +466,7 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     end
     #@logfile "      $(round(t_extract,digits=tdigits)) seconds to extract $(i_extract) GSM entries"
     return gsm
-end  
+end
 
 """
     calculate_mtype_gsm(layers, sheet::RWGSheet, u::Real, rwgdat::RWGData, s::Int, k⃗inc, is::Int) -> gsm
@@ -491,11 +493,11 @@ Compute the generalized scattering matrix for a sheet of class `'M'`.
     to magnetic currents induced in the gaps on the sheet surface.
 """
 function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::Float64,
-                                 rwgdat::RWGData, s::Int, k0::Float64, k⃗inc::SVector{2, Float64}, is::Int)
+    rwgdat::RWGData, s::Int, k0::Float64, k⃗inc::SVector{2,Float64}, is::Int)
     one_meter = ustrip(Float64, sheet.units, 1u"m")
     area = norm(sheet.s₁ × sheet.s₂) / one_meter^2 # Unit cell area (m^2).
-    nmodesmax = max(length(layers[begin].P), length(layers[end].P)) 
-    nbf = size(rwgdat.bfe,2) # Number of basis functions
+    nmodesmax = max(length(layers[begin].P), length(layers[end].P))
+    nbf = size(rwgdat.bfe, 2) # Number of basis functions
     if isempty(rwgdat.bfftstore)
         rwgdat.bfftstore = zeros(SArray{Tuple{2},ComplexF64,1,2}, (nbf, 2, nmodesmax))
     end
@@ -503,9 +505,9 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     # Compute area correction factors for the mode normalization constants of 
     # the two end regions:
     tempvec = zeros(2)
-    for (i,l) in enumerate(@view layers[[begin,end]])
-      area_i = twopi * twopi / norm(l.β₁ × l.β₂)
-      tempvec[i] = √(area_i / area)
+    for (i, l) in enumerate(@view layers[[begin, end]])
+        area_i = twopi * twopi / norm(l.β₁ × l.β₂)
+        tempvec[i] = √(area_i / area)
     end
     acf = SVector(tempvec[1], tempvec[2])
 
@@ -519,13 +521,13 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     # Calculate the scattered field partial scattering matrix of the 
     # FSS sheet at this junction. Then add it to GSM already computed 
     # for the dielectric discontinuity...
-    
+
     #  Fill the interaction matrix for the current sheet:
     t_temp = time()
     ψ₁ = k⃗inc ⋅ sheet.s₁ / one_meter
     ψ₂ = k⃗inc ⋅ sheet.s₂ / one_meter
     @logfile "    Beginning matrix fill for sheet $(is)"
-    ymat = filly(k0,u,layers,s,ψ₁,ψ₂,sheet,rwgdat)
+    ymat = filly(k0, u, layers, s, ψ₁, ψ₂, sheet, rwgdat)
     t_fill = round(time() - t_temp, digits=tdigits)
     @logfile "      $(t_fill) seconds total matrix fill time for sheet $(is)"
     # Factor the matrix:
@@ -536,19 +538,19 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     t_temp = time()
     # Compute and store the basis function Fourier transforms:
     i_ft = 0
-    for (sr,l) in enumerate(@view layers[[begin,end]]) # loop over possible source regions
-        for qp = 1:length(l.P) 
+    for (sr, l) in enumerate(@view layers[[begin, end]]) # loop over possible source regions
+        for qp = 1:length(l.P)
             kvec = l.β[qp]
             # If desired F.T. has already been computed, then copy it.
             if qp > 1 && kvec ≈ l.β[qp-1]
-                bfftstore[:,sr,qp] = bfftstore[:,sr,qp-1] 
+                bfftstore[:, sr, qp] = bfftstore[:, sr, qp-1]
                 continue
             end
             if sr == 2 && length(layers[1].β) ≥ qp && kvec ≈ layers[1].β[qp]
-                bfftstore[:,2,qp] = bfftstore[:,1,qp] 
+                bfftstore[:, 2, qp] = bfftstore[:, 1, qp]
                 continue
             end
-            bfft = @view bfftstore[:,sr,qp]
+            bfft = @view bfftstore[:, sr, qp]
             rwgbfft!(bfft, rwgdat, sheet, kvec, ψ₁, ψ₂) # Otherwise, compute from scratch
             i_ft += 1
         end
@@ -561,13 +563,13 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
     vmat = rwgdat.rhs
     i_extract = 0
     σ = -1
-    for (sr,ls) in enumerate(@view layers[[begin,end]]) # Loop over source regions
+    for (sr, ls) in enumerate(@view layers[[begin, end]]) # Loop over source regions
         σ *= -1 # 1 for sr == 1, and -1 for sr == 2
         for qp in 1:length(ls.P) # Loop over srce reg modes
             # Incident field for Region sr (Eq. (7.64))
-            sourcevec = iincs[qp,sr] * ls.c[qp] * ls.Y[qp] * zhatcross(ls.tvec[qp])
+            sourcevec = iincs[qp, sr] * ls.c[qp] * ls.Y[qp] * zhatcross(ls.tvec[qp])
             # Compute generalized current vector:
-            vmat .= (b ⋅ sourcevec for b in bfftstore[:,sr,qp]) # Eq. (7.64)
+            vmat .= (b ⋅ sourcevec for b in bfftstore[:, sr, qp]) # Eq. (7.64)
             # Solve the matrix equation
             t_solve1 = time()
             ldiv!(ymatf, vmat)
@@ -575,13 +577,13 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             t_solve += t_solve2 - t_solve1
             nsolve += 1
             t_extract1 = time()
-            for (or,lo) in enumerate(@view layers[[begin,end]]) # Loop over obs. regions
-                smat = gsm[or,sr]
+            for (or, lo) in enumerate(@view layers[[begin, end]]) # Loop over obs. regions
+                smat = gsm[or, sr]
                 for q in 1:length(lo.P)  # Loop obs. regn. modes
                     # Extract partial scattering parameter due to scattered fields...
-                    FTM = sum((vmat[n] * bfftstore[n,or,q] for n in 1:nbf)) # FT of total mag. current
-                    smat[q,qp] += (zhatcross(lo.tvec[q]) ⋅ FTM) * 
-                                        (σ * tlgfiv[q,or] * lo.c[q]) # Eq. (6.37)
+                    FTM = sum((vmat[n] * bfftstore[n, or, q] for n in 1:nbf)) # FT of total mag. current
+                    smat[q, qp] += (zhatcross(lo.tvec[q]) ⋅ FTM) *
+                                   (σ * tlgfiv[q, or] * lo.c[q]) # Eq. (6.37)
                     i_extract += 1
                 end
             end
@@ -611,26 +613,26 @@ English as `:theta`, `:phi`, `:psi1`, and `:psi2`.
 - `stout` and `stin`: These are the current values of the outer and inner steering variables,
   respectively. 
 """
-function getsttuple(stkeys::Tuple{Symbol, Symbol}, stout::Float64, stin::Float64)
+function getsttuple(stkeys::Tuple{Symbol,Symbol}, stout::Float64, stin::Float64)
     if stkeys[1] ∈ (:phi, :ϕ, :Phi, :PHI, :Φ)
-        return (θ = stin, ϕ = stout)
+        return (θ=stin, ϕ=stout)
     elseif stkeys[2] ∈ (:phi, :ϕ, :Phi, :PHI, :Φ)
-        return (θ = stout, ϕ = stin)
+        return (θ=stout, ϕ=stin)
     elseif stkeys[1] ∈ (:psi1, :Psi1, :PSI1, :ψ₁, :Ψ₁, :ψ1, :Ψ1)
-        return (ψ₁ = stout, ψ₂ = stin)
+        return (ψ₁=stout, ψ₂=stin)
     else
-        return (ψ₁ = stin, ψ₂ = stout)
+        return (ψ₁=stin, ψ₂=stout)
     end
 end
 
 function check_inputs(layers, sheets, junc, freqs, stkeys, stvalues, outlist)
     # Check that input and output media are lossless and the same
-    imag(first(layers).ϵᵣ) == imag(last(layers).ϵᵣ) == 
-    imag(first(layers).μᵣ) == imag(last(layers).μᵣ) == 0 || 
-    error("First and last layers must be lossless")
-    (first(layers).ϵᵣ == last(layers).ϵᵣ) && 
-    (first(layers).μᵣ == last(layers).μᵣ) || 
-    error("First and last layers must have identical electrical parameters")
+    imag(first(layers).ϵᵣ) == imag(last(layers).ϵᵣ) ==
+    imag(first(layers).μᵣ) == imag(last(layers).μᵣ) == 0 ||
+        error("First and last layers must be lossless")
+    (first(layers).ϵᵣ == last(layers).ϵᵣ) &&
+        (first(layers).μᵣ == last(layers).μᵣ) ||
+        error("First and last layers must have identical electrical parameters")
 
     # todo:
 
@@ -653,7 +655,7 @@ function unique_indices(v::Vector)
         ui[io] ≠ io && continue
         for it in io+1:n
             ui[it] ≠ it && continue
-            v[io] === v[it]  && (ui[it] = io)
+            v[io] === v[it] && (ui[it] = io)
         end
     end
     return ui
@@ -681,7 +683,7 @@ present at dielectric interface `i`, or `0` if no sheet is present there.
 """
 function get_gbldup(gbls::Vector{Gblock}, layers::Vector{Layer}, sheets::Vector{RWGSheet}, junc::Vector{Int})
     gbldup = zeros(Int, length(gbls))
-    for (g1,gbl1) in pairs(gbls)
+    for (g1, gbl1) in pairs(gbls)
         (gbldup[g1] ≠ 0 || gbl1.j == 0) && continue
         j1, rng1 = gbl1.j, gbl1.rng
         n1 = length(layers[first(rng1)].P) # modes at left side
@@ -693,7 +695,7 @@ function get_gbldup(gbls::Vector{Gblock}, layers::Vector{Layer}, sheets::Vector{
             j2 = gbl2.j
             (gbldup[g2] ≠ 0 || j2 == 0) && continue
             sheets[junc[j1]] === sheets[junc[j2]] || continue
-            last(rng1)-j1 ≠ last(rng2)-j2 && continue 
+            last(rng1) - j1 ≠ last(rng2) - j2 && continue
             # Check that layers within blocks gbl1 and gbl2 are identical:
             length(rng1) ≠ length(rng2) && continue
             n1 ≠ length(layers[first(rng2)].P) && continue
@@ -701,19 +703,19 @@ function get_gbldup(gbls::Vector{Gblock}, layers::Vector{Layer}, sheets::Vector{
             # Check interior layers:
             rng1test = 1+first(rng1):last(rng1)
             rng2test = 1+first(rng2):last(rng2)
-            all(zip(rng1test,rng2test)) do (i1,i2)
+            all(zip(rng1test, rng2test)) do (i1, i2)
                 layers[i1] == layers[i2]
             end || continue
             # Check layers bounding the Gblocks:
-            rng1test = (first(rng1), 1+last(rng1))
-            rng2test = (first(rng2), 1+last(rng2))
-            all(zip(rng1test,rng2test)) do (i1,i2)
+            rng1test = (first(rng1), 1 + last(rng1))
+            rng2test = (first(rng2), 1 + last(rng2))
+            all(zip(rng1test, rng2test)) do (i1, i2)
                 l1 = layers[i1]
                 l2 = layers[i2]
                 (l1.ϵᵣ == l2.ϵᵣ) && (l1.μᵣ == l2.μᵣ) &&
                     (l1.P == l2.P) && (l1.β₁ == l2.β₁) && (l1.β₂ == l2.β₂)
             end || continue
-            
+
             # If we made it to here, the two Gblocks are identical:
             gbldup[g1] = -1  # Indicate that GSM of Gblock g1 is to be saved
             gbldup[g2] = g1  # GSM of Gblock g2 is obtained from saved GSM of block g1
@@ -721,32 +723,32 @@ function get_gbldup(gbls::Vector{Gblock}, layers::Vector{Layer}, sheets::Vector{
     end
     return gbldup
 end # function
-    
+
 
 function report_layers_sheets(layers, sheets, junc, rwgdat, usi_in)
     origs = unique(usi_in)
     usi = similar(usi_in)
-    for (k,orig) in enumerate(origs)
-        for (j,u) in enumerate(usi_in)
+    for (k, orig) in enumerate(origs)
+        for (j, u) in enumerate(usi_in)
             u == orig && (usi[j] = k)
         end
     end
-    
+
     @logfile "Dielectric layer information... \n"
     @logfile " Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y"
     @logfile " ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------"
-    for (jl,l) in pairs(layers)
+    for (jl, l) in pairs(layers)
         eps = real(l.ϵᵣ)
         tandel = -imag(l.ϵᵣ) / eps
         mu = real(l.μᵣ)
-        mtandel = -imag(l.μᵣ) / mu 
+        mtandel = -imag(l.μᵣ) / mu
         nmode = length(l.P)
         units = string(unit(l.user_width))
         units == "inch" && (units = "in")
         uw_unitless = ustrip(l.user_width)
         str = @sprintf(" %5i %9.4f %3s %7.2f %6.4f %7.2f %6.4f %5i %7.1f %7.1f %7.1f %7.1f",
-              jl,uw_unitless, units, eps, tandel, mu, mtandel, nmode, l.β₁[1], l.β₁[2], 
-              l.β₂[1], l.β₂[2])
+            jl, uw_unitless, units, eps, tandel, mu, mtandel, nmode, l.β₁[1], l.β₁[2],
+            l.β₂[1], l.β₂[2])
         @logfile "$str"
         if jl < length(layers) && junc[jl] ≠ 0
             js = junc[jl]
@@ -763,10 +765,10 @@ function report_layers_sheets(layers, sheets, junc, rwgdat, usi_in)
     @logfile "\n\n\nPSS/FSS sheet information...\n"
     @logfile "Sheet  Loc         Style      Rot  J/M Faces Edges Nodes Unknowns  NUFP"
     @logfile "-----  ---  ---------------- ----- --- ----- ----- ----- -------- ------"
-    for (js,s) in pairs(sheets)
+    for (js, s) in pairs(sheets)
         str = @sprintf("%4i   %3i  %16s %5.1f  %1s  %5i %5i %5i  %6i %7i",
-             usi[js], sint[js], s.style, s.rot, s.class, size(s.fe,2), length(s.e1), 
-             length(s.ρ), size(rwgdat[js].bfe,2), length(rwgdat[js].ufp2fp))
+            usi[js], sint[js], s.style, s.rot, s.class, size(s.fe, 2), length(s.e1),
+            length(s.ρ), size(rwgdat[js].bfe, 2), length(rwgdat[js].ufp2fp))
         @logfile "$str"
     end
     @logfile "\n\n"

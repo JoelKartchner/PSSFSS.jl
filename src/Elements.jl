@@ -10,7 +10,7 @@ using LinearAlgebra: ×, norm, ⋅
 using Printf: @sprintf
 
 macro testpos(var)
-  return:($(esc(var)) > 0 || error($(esc(string(var))) * " must be positive!"))
+    return :($(esc(var)) > 0 || error($(esc(string(var))) * " must be positive!"))
 end
 
 
@@ -24,12 +24,12 @@ zhatcross(t::SV2) = SV2(-t[2], t[1])
 Compute the reciprocal lattice vectors from the direct lattice vectors.
 Inputs and outputs are static 2-vectors from StaticArrays.
 """
-function s₁s₂2β₁β₂(s₁,s₂)
-    s1 = [s₁...,0.0] # 3-vector
-    s2 = [s₂...,0.0] # 3-vector
+function s₁s₂2β₁β₂(s₁, s₂)
+    s1 = [s₁..., 0.0] # 3-vector
+    s2 = [s₂..., 0.0] # 3-vector
     fact = 2π / norm(s1 × s2)
-    β1 = fact .* s2 × [0,0,1]
-    β2 = fact .* [0,0,1] × s1
+    β1 = fact .* s2 × [0, 0, 1]
+    β2 = fact .* [0, 0, 1] × s1
     β₁ = SV2(β1[1:2])
     β₂ = SV2(β2[1:2])
     return β₁, β₂
@@ -43,19 +43,20 @@ Check the validity of the optional keyword arguments passed to one of the
 user-callable, specific sheet constructor functions.  If any of the arguments
 were not passed, assign appropriate default values. 
 """
-function check_optional_kw_arguments!(kwargs:: AbstractDict{Symbol,T} where T)
-    defaults = Dict(:class=>'J', :dx=>0.0, :dy=>0.0, :rot=>0.0, :Rsheet=>0.0, :save=>"", :fufp=>false)
+function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
+    defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, :Rsheet => 0.0, :save => "", :fufp => false)
     validkws = keys(defaults)
 
     badkws = setdiff(keys(kwargs), validkws)
     if !isempty(badkws)
         error("Illegal keywords: ", join(badkws, ", "))
     end
-    for (key,val) in defaults
+    for (key, val) in defaults
         haskey(kwargs, key) || (kwargs[key] = val)
     end
 
-    key = :class; val = kwargs[key]
+    key = :class
+    val = kwargs[key]
     val ≠ 'J' && val ≠ 'M' && error("Illegal value $val for $key")
 
     for key in [:dx, :dy, :rot, :Rsheet]
@@ -64,39 +65,39 @@ function check_optional_kw_arguments!(kwargs:: AbstractDict{Symbol,T} where T)
         key == :Rsheet && val < 0 && error("$key must be nonnegative")
     end
 
-    key = :save; val = kwargs[key]
+    key = :save
+    val = kwargs[key]
     val isa AbstractString || error("$key must be an AbstractString")
 
     return
 end
 
-const optional_kwargs = 
-"""
-## Optional arguments:
-- `class::Char='J'`  Specify the class, either `'J'` or `'M'`.. If `'J'`,  the unknowns are electric surface 
-           currents, as used to model a wire or metallic patch-type FSS.  If `'M'`,  the unknowns are
-           magnetic surface currents, as used to model a slot or aperture in a perfectly conducting plane.
-- `dx::Real=0.0`, `dy::Real=0.0`:  These specify the offsets in the x and y directions applied to the entire 
-           unit cell and its contents.  Length units are as specified in the `units` keyword. 
-- `rot::Real=0.0`:  Counterclockwise rotation angle in degrees applied to the entire unit cell and its contents. 
-           This rotation is applied prior to any offsets specified in `dx` and `dy`.
-- `Rsheet::Real=0.0`:  The surface resistance of the FSS conductor in units of Ohm per square.  
-            This is only meaningful for a sheet of class `'J'`.
-- `fufp::Bool`:  This keyword is not usually required. 
-                `fufp` is mnemonic for "Find Unique Face Pairs".  If true, the code will search the 
-                triangulation for classes of triangle
-                pairs that are the equivalent in the toeplitz sense.  I.e., if triangle pairs (A,B) and (C,D) belong
-                to the same equivalence class,  the six vertices in the pair (A,B) can be made to coincide 
-                with those of pair (C,D) by a simple translation. If there are many such equivalent pairs, 
-                a significant decrease in matrix fill time ensues by exploiting the equivalence.  The tradeoff
-                is the time needed to identify them.  The default value is `true` for the `strip` and 
-                `meander` styles (those employing structured meshes) and `false` for the remaining styles 
-                 (those employing unstructured meshes).
-- `save::String=""` Specifies a file name to which the sheet triangulation and unit cell data is to be written,
-                   typically to be plotted later.
-        
-"""
-        
+const optional_kwargs = """
+                        ## Optional arguments:
+                        - `class::Char='J'`  Specify the class, either `'J'` or `'M'`.. If `'J'`,  the unknowns are electric surface 
+                                   currents, as used to model a wire or metallic patch-type FSS.  If `'M'`,  the unknowns are
+                                   magnetic surface currents, as used to model a slot or aperture in a perfectly conducting plane.
+                        - `dx::Real=0.0`, `dy::Real=0.0`:  These specify the offsets in the x and y directions applied to the entire 
+                                   unit cell and its contents.  Length units are as specified in the `units` keyword. 
+                        - `rot::Real=0.0`:  Counterclockwise rotation angle in degrees applied to the entire unit cell and its contents. 
+                                   This rotation is applied prior to any offsets specified in `dx` and `dy`.
+                        - `Rsheet::Real=0.0`:  The surface resistance of the FSS conductor in units of Ohm per square.  
+                                    This is only meaningful for a sheet of class `'J'`.
+                        - `fufp::Bool`:  This keyword is not usually required. 
+                                        `fufp` is mnemonic for "Find Unique Face Pairs".  If true, the code will search the 
+                                        triangulation for classes of triangle
+                                        pairs that are the equivalent in the toeplitz sense.  I.e., if triangle pairs (A,B) and (C,D) belong
+                                        to the same equivalence class,  the six vertices in the pair (A,B) can be made to coincide 
+                                        with those of pair (C,D) by a simple translation. If there are many such equivalent pairs, 
+                                        a significant decrease in matrix fill time ensues by exploiting the equivalence.  The tradeoff
+                                        is the time needed to identify them.  The default value is `true` for the `strip` and 
+                                        `meander` styles (those employing structured meshes) and `false` for the remaining styles 
+                                         (those employing unstructured meshes).
+                        - `save::String=""` Specifies a file name to which the sheet triangulation and unit cell data is to be written,
+                                           typically to be plotted later.
+                                
+                        """
+
 
 
 """
@@ -146,26 +147,31 @@ All arguments are keyword arguments which can be entered in any order.
     
 $(optional_kwargs)
 """
-function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, units::PSSFSSLength, 
-                kwarg...)::RWGSheet
+function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, units::PSSFSSLength,
+    kwarg...)::RWGSheet
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = true)
     check_optional_kw_arguments!(kwargs)
-    @testpos(Lx); @testpos(Ly); @testpos(Nx); @testpos(Ny); @testpos(Px); @testpos(Py)
+    @testpos(Lx)
+    @testpos(Ly)
+    @testpos(Nx)
+    @testpos(Ny)
+    @testpos(Px)
+    @testpos(Py)
 
     # Setup triangulation:
     x0 = 0.5 * (Px - Lx)  # Center strip in unit cell
     y0 = 0.5 * (Py - Ly)  # Center strip in unit cell
-    rhobl = SV2([x0,y0])    
-    rhotr = SV2([x0+Lx,y0+Ly])
+    rhobl = SV2([x0, y0])
+    rhotr = SV2([x0 + Lx, y0 + Ly])
     sheet = recttri(rhobl, rhotr, Nx, Ny)
     sheet.style = "rectstrip"
     sheet.units = units
 
-    sheet.s₁ = SV2([Px,0.0])
-    sheet.s₂ = SV2([0.0,Py])
+    sheet.s₁ = SV2([Px, 0.0])
+    sheet.s₂ = SV2([0.0, Py])
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
-        
+
     facecount = size(sheet.fv, 2)
     Rsheet = float(kwargs[:Rsheet])
     sheet.fr = fill(Rsheet, facecount)
@@ -175,7 +181,7 @@ function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, u
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
     dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    if dxdy ≠ [0.,0.]
+    if dxdy ≠ [0.0, 0.0]
         sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
     end
 
@@ -219,27 +225,30 @@ function diagstrip(; P::Real, w::Real, orient::Real, Nl::Int, Nw::Int, units::PS
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = true)
     check_optional_kw_arguments!(kwargs)
-    @testpos(P); @testpos(w); @testpos(Nl); @testpos(Nw)
+    @testpos(P)
+    @testpos(w)
+    @testpos(Nl)
+    @testpos(Nw)
     dxdy = [kwargs[:dx], kwargs[:dy]]
-    if dxdy ≠ [0,0]
+    if dxdy ≠ [0, 0]
         error("Translation not allowed for this style of sheet")
     end
 
     abs(orient) == 45 || error("orient must be 45 or -45")
 
     # Setup structured triangulation for central part:
-    Lx = √2*P - w # Length of rectangular portion
-    xbl = w/2 
-    orient < 0 && (xbl -= √2*P)
-    rhobl = SV2([xbl, -w/2])
-    rhotr = rhobl + SV2([√2*P-w, w])
+    Lx = √2 * P - w # Length of rectangular portion
+    xbl = w / 2
+    orient < 0 && (xbl -= √2 * P)
+    rhobl = SV2([xbl, -w / 2])
+    rhotr = rhobl + SV2([√2 * P - w, w])
     sh1 = recttri(rhobl, rhotr, Nl, Nw)
 
     # Right triangular region:
-    sh2 = translate!(rotate!(tritri(w, Nw), 180.0), rhotr[1] + w/2, 0)
+    sh2 = translate!(rotate!(tritri(w, Nw), 180.0), rhotr[1] + w / 2, 0)
     sh3 = combine(sh1, sh2, 'x', rhotr[1])
     # Left triangular region:
-    sh2 = translate!(tritri(w, Nw), xbl - w/2, 0)
+    sh2 = translate!(tritri(w, Nw), xbl - w / 2, 0)
     sh1 = combine(sh3, sh2, 'x', xbl)
     # Final rotation:
     rotate!(sh1, orient)
@@ -261,14 +270,14 @@ function diagstrip(; P::Real, w::Real, orient::Real, Nl::Int, Nw::Int, units::PS
         sheet = combine(sh3, sh1, ' ', 0.0)
     end
 
-    
+
     sheet.style = "diagstrip"
     sheet.units = units
 
-    sheet.s₁ = SV2([P,0.0])
-    sheet.s₂ = SV2([0.0,P])
+    sheet.s₁ = SV2([P, 0.0])
+    sheet.s₂ = SV2([0.0, P])
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
-        
+
     facecount = size(sheet.fv, 2)
     Rsheet = float(kwargs[:Rsheet])
     sheet.fr = fill(Rsheet, facecount)
@@ -294,34 +303,34 @@ a diagonal edge across each square (an exception is the triangle adjacent to the
 where nw is odd). The fields `ρ`, `e1`, `e2`, `fv`, and `fe` are properly initialized upon return.
 """
 function tritri(w::Real, nw::Int)::RWGSheet
-    even = mod(nw,2) == 0
+    even = mod(nw, 2) == 0
     if even
-        k = nw÷2
+        k = nw ÷ 2
         nodecount = (k + 1)^2
-        facecount = k*(k+1)
+        facecount = k * (k + 1)
     else
-        k = (nw+1)÷2
+        k = (nw + 1) ÷ 2
         nodecount = k * (k + 1) + 1
-        facecount = k*k
+        facecount = k * k
     end
     sh = RWGSheet()
-    dxy = w/nw
-    points = zeros(2,nodecount)
+    dxy = w / nw
+    points = zeros(2, nodecount)
     # Set the node coordinates:
     node = 0
     if even
-        for (i,x) in enumerate(range(0.0, w/2, step=dxy))
-            for y in range(-(i-1)*dxy, (i-1)*dxy, step=dxy)
-                node +=1
-                points[1:2,node] .= x,y
+        for (i, x) in enumerate(range(0.0, w / 2, step=dxy))
+            for y in range(-(i - 1) * dxy, (i - 1) * dxy, step=dxy)
+                node += 1
+                points[1:2, node] .= x, y
             end
-        end   
+        end
     else
         for mx in 0:k
-            x = max(0.0, (2mx-1)/2*dxy)
+            x = max(0.0, (2mx - 1) / 2 * dxy)
             for y in range(-x, x, step=dxy)
                 node += 1
-                points[1:2,node] .= x,y
+                points[1:2, node] .= x, y
             end
         end
     end
@@ -330,8 +339,8 @@ function tritri(w::Real, nw::Int)::RWGSheet
     astr = @sprintf("%.14f", area)
     switches = "Da$(astr)q30.0QeYY"
     switches = "Da$(astr)q30.0QeYY"
-    seglist = Array{Int, 2}(undef, 2,0)
-    sh = meshsub(;points, seglist, area, ntri=facecount, switches)::RWGSheet
+    seglist = Array{Int,2}(undef, 2, 0)
+    sh = meshsub(; points, seglist, area, ntri=facecount, switches)::RWGSheet
     return sh
 end
 
@@ -365,32 +374,33 @@ $(optional_kwargs)
            positive x-axis.
 
 """
-function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
-                  sides::Int, ntri::Int, units::PSSFSSLength,
-                  orient::Real=0.0, kwarg...)::RWGSheet
+function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
+    sides::Int, ntri::Int, units::PSSFSSLength,
+    orient::Real=0.0, kwarg...)::RWGSheet
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
-    @testpos(sides); @testpos(ntri)
+    @testpos(sides)
+    @testpos(ntri)
     (length(s1) == length(s2) == 2) || throw(ArgumentError("s1 and s2 must have length 2"))
-    
-                  
+
+
     length(a) ≠ length(b) && throw(ArgumentError("length(a) !== length(b)"))
     nring = length(a)
     for i in 1:nring
         if i < nring || (i == nring && b[nring] > 0)
             a[i] ≥ b[i] && throw(ArgumentError("a[$i] ≥ b[$i]"))
         end
-    end 
+    end
     for i in 1:nring-1
         b[i] ≥ a[i+1] && throw(ArgumentError("b[$i] ≥ a[$(i+1)]"))
         a[i+i] - a[i] ≤ 0 && throw(ArgumentError("Elements of a must be strictly increasing"))
-        b[i+1] - b[i] ≤ 0 && i < nring-1 &&
+        b[i+1] - b[i] ≤ 0 && i < nring - 1 &&
             throw(ArgumentError("All but final element of b must be strictly increasing"))
     end
 
-    
-    if b[nring] < 0 
+
+    if b[nring] < 0
         fillcell = true  # outer ring extends all the way to unit cell boundaries.
         ns1 = Int(-b[nring])  # number of edges along s1 direction.
         norms1, norms2 = (norm(s1), norm(s2))
@@ -405,18 +415,18 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
         fillcell = false # outer ring has finite width.
         #ncvrt = [sides, sides]
     end
-    
+
     ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
-    α = 360/sides
-    
+    α = 360 / sides
+
     # compute area of each ring and total area of all rings:
-    area_factor = sides/2 * sind(α)
+    area_factor = sides / 2 * sind(α)
     area = [(b[i]^2 - a[i]^2) * area_factor for i in 1:nring]
     if fillcell  # need to recompute outer ring's area:
         area[nring] = zhatcross(s1) ⋅ s2 - area_factor * a[nring]^2
     end
     areat = sum(area) # total area of all rings.
-    areatri = areat/ntri # Desired area of a single triangle
+    areatri = areat / ntri # Desired area of a single triangle
 
     ρ = Array{SV2}(undef, 0)
     e1 = Array{Cint}(undef, 0)
@@ -432,12 +442,12 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
             for i = 1:sides
                 node += 1
                 push!(e1, node)
-                push!(e2, node+1)
+                push!(e2, node + 1)
                 push!(segmarkers, boundary)
-                push!(ρ, ρ₀ + b[iring] * SV2([reverse(sincosd(orient+(i-1)*α))...]))
-            end 
+                push!(ρ, ρ₀ + b[iring] * SV2([reverse(sincosd(orient + (i - 1) * α))...]))
+            end
             e2[end] -= sides
-        else 
+        else
             if iring == nring && fillcell
                 # annulus with regular polygon as inner boundary and unit cell as outer:
                 # outer boundary first:
@@ -448,50 +458,50 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
                 for i in i1:i2  # bottom edge
                     node += 1
                     push!(e1, node)
-                    push!(e2, node+1)
+                    push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, (i-i1)/ns1 * s1)
+                    push!(ρ, (i - i1) / ns1 * s1)
                 end
                 i1 = ns1 + 2
-                i2 = ns1 + ns2 + 1 
+                i2 = ns1 + ns2 + 1
                 for i in i1:i2 # right edge
                     node += 1
                     push!(e1, node)
-                    push!(e2, node+1)
+                    push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, s1 + (i-i1+1)/ns2 * s2)
+                    push!(ρ, s1 + (i - i1 + 1) / ns2 * s2)
                 end
-                i1 = ns1 + ns2 + 2 
-                i2 = 2*ns1 + ns2 + 1 
+                i1 = ns1 + ns2 + 2
+                i2 = 2 * ns1 + ns2 + 1
                 for i in i1:i2 # top edge
                     node += 1
                     push!(e1, node)
-                    push!(e2, node+1)
+                    push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, s1 + s2 - (i-i1+1)/ns1 * s1)
+                    push!(ρ, s1 + s2 - (i - i1 + 1) / ns1 * s1)
                 end
-                i1 = 2*ns1 + ns2 + 2
-                i2 = 2*ns1 + 2*ns2 
+                i1 = 2 * ns1 + ns2 + 2
+                i2 = 2 * ns1 + 2 * ns2
                 for i in i1:i2 # left edge
                     node += 1
                     push!(e1, node)
-                    push!(e2, node+1)
+                    push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, s2 - (i-i1+1)/ns2 * s2)
+                    push!(ρ, s2 - (i - i1 + 1) / ns2 * s2)
                 end
                 e2[end] = nodesave
-                          
+
                 # now inner boundary:
                 boundary += 1
-                i1 = 2*(ns1 + ns2) + 1
+                i1 = 2 * (ns1 + ns2) + 1
                 i2 = i1 + sides - 1
-                nodesave = node+1 # first node of inner boundary
+                nodesave = node + 1 # first node of inner boundary
                 for i in i1:i2
                     node += 1
                     push!(e1, node)
-                    push!(e2, node+1)
+                    push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ,  ρ₀ + a[iring] * SV2([reverse(sincosd(orient+(i-i1)*α))...]))
+                    push!(ρ, ρ₀ + a[iring] * SV2([reverse(sincosd(orient + (i - i1) * α))...]))
                 end
                 e2[end] = nodesave
             else
@@ -502,9 +512,9 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
                     for i in 1:sides
                         node += 1
                         push!(e1, node)
-                        push!(e2, node+1)
+                        push!(e2, node + 1)
                         push!(segmarkers, boundary)
-                        push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orient+(i-1)*α))...]))
+                        push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orient + (i - 1) * α))...]))
                     end
                     e2[end] = nodesave
                 end
@@ -515,24 +525,24 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
     # Calculation coordinates of "hole" points
     ρhole = Array{SV2}(undef, 0)
     a[1] > 0 && push!(ρhole, ρ₀)
-    
+
     for i in 1:nring-1
         unitvector = SV2([reverse(sincosd(orient))...])
         r = 0.5 * (b[i] + a[i+1])
         push!(ρhole, ρ₀ + r * unitvector)
     end
-    
+
     # Set up call to meshsub
     points = convert(Matrix{Cdouble}, hcat(ρ...))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     if isempty(ρhole)
-        holes = Array{Cdouble}(undef, 2,0)
+        holes = Array{Cdouble}(undef, 2, 0)
     else
         holes = convert(Matrix{Cdouble}, hcat(ρhole...))
     end
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
-                    holes=holes, area=areatri, ntri=ntri)
-    
+        holes=holes, area=areatri, ntri=ntri)
+
     # Set the face sheet resistance values.
     Rsheet = kwargs[:Rsheet]
     sheet.fr .= Rsheet  # Broadcast value to entire array.
@@ -542,7 +552,7 @@ function polyring(;s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real},
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
     dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    if dxdy ≠ [0.,0.]
+    if dxdy ≠ [0.0, 0.0]
         sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
     end
 
@@ -614,15 +624,20 @@ $(optional_kwargs)
            values are positive or negative multiples of 90.
 
  """
-function meander(;a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
-                  units::PSSFSSLength, orient::Real=0.0, kwarg...)::RWGSheet
-                 
+function meander(; a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
+    units::PSSFSSLength, orient::Real=0.0, kwarg...)::RWGSheet
+
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = true)
     check_optional_kw_arguments!(kwargs)
-    @testpos(a); @testpos(b); @testpos(h); @testpos(w1); @testpos(w2); @testpos(ntri) 
+    @testpos(a)
+    @testpos(b)
+    @testpos(h)
+    @testpos(w1)
+    @testpos(w2)
+    @testpos(ntri)
     orient ≠ 0 && a ≠ b && error("Nonzero orient only allowed for square unit cell")
-    morient = mod(orient, 360) 
+    morient = mod(orient, 360)
     morient ∈ [0, 90, 180, 270] || error("orient must be a multiple of 90")
 
     ρ = Array{SV2}(undef, 0)
@@ -634,43 +649,43 @@ function meander(;a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     # Calculate chopping increment
     t1 = w2 * (a + 2w1) / (2 * (h - 2w2)^2)
     t2 = w1 / (h - 2w2)
-    fny2 = sqrt(ntri/(4*(t1+t2)))
+    fny2 = sqrt(ntri / (4 * (t1 + t2)))
     ny2 = round(Int, fny2)
-    ny2 ≤ 0 &&  (ny2 = 1)
+    ny2 ≤ 0 && (ny2 = 1)
     ny1 = round(Int, fny2 * w2 / (h - 2w2))
     ny1 ≤ 0 && (ny1 = 1)
     nx1 = round(Int, fny2 * (a - 2w1) / (4 * (h - 2w2)))
     nx1 ≤ 0 && (nx1 = 1)
     nx2 = round(Int, fny2 * w1 / (h - 2w2))
     nx2 ≤ 0 && (nx2 = 1)
-    ntotal = 4*(2ny1*(nx1+nx2) + nx2*ny2) # Actual # of triangles
-    
+    ntotal = 4 * (2ny1 * (nx1 + nx2) + nx2 * ny2) # Actual # of triangles
+
     # Triangulate first section:
     yoffset = (b - h) / 2
-    Lx = (a/2 - w1) / 2
+    Lx = (a / 2 - w1) / 2
     Ly = h - 2w2
     ρbl = SV2([0.0, yoffset])
     ρtr = ρbl + SV2([Lx, w2])
-    sh1 = recttri(ρbl,ρtr,nx1,ny1)
+    sh1 = recttri(ρbl, ρtr, nx1, ny1)
     # Triangulate third section:
     ρbl = SV2([Lx, yoffset])
     ρtr = ρbl + SV2([w1, w2])
-    sh2 = recttri(ρbl,ρtr,nx2,ny1)
+    sh2 = recttri(ρbl, ρtr, nx2, ny1)
     # Combine them:
     sh3 = combine(sh1, sh2, 'x', Lx)
     # Add to section 5, store result in sh2:
-    ρbl = SV2([Lx, yoffset+w2])
+    ρbl = SV2([Lx, yoffset + w2])
     ρtr = ρbl + SV2([w1, Ly])
     sh1 = recttri(ρbl, ρtr, nx2, ny2)
     sh2 = combine(sh3, sh1, 'y', ρbl[2])
     #  Add to section 7, store result in sh3
-    ρbl = SV2([Lx, yoffset+w2+Ly])
+    ρbl = SV2([Lx, yoffset + w2 + Ly])
     ρtr = ρbl + SV2([w1, w2])
     sh1 = recttri(ρbl, ρtr, nx2, ny1)
     sh3 = combine(sh2, sh1, 'y', ρbl[2])
     #  Add to sections 9 and 10, store result in sh2
-    ρbl = SV2([Lx+w1, yoffset+w2+Ly])
-    ρtr = ρbl + SV2([2*Lx, w2])
+    ρbl = SV2([Lx + w1, yoffset + w2 + Ly])
+    ρtr = ρbl + SV2([2 * Lx, w2])
     sh1 = recttri(ρbl, ρtr, 2nx1, ny1)
     sh2 = combine(sh3, sh1, 'x', ρbl[1])
     #  Add to section 8, store result in sh3
@@ -679,7 +694,7 @@ function meander(;a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     sh1 = recttri(ρbl, ρtr, nx2, ny1)
     sh3 = combine(sh2, sh1, 'x', ρbl[1])
     # Add to section 6, store result in sh2:
-    ρbl = SV2([ρbl[1], yoffset+w2])
+    ρbl = SV2([ρbl[1], yoffset + w2])
     ρtr = ρbl + SV2([w1, Ly])
     sh1 = recttri(ρbl, ρtr, nx2, ny2)
     sh2 = combine(sh3, sh1, 'y', ρtr[2])
@@ -694,17 +709,17 @@ function meander(;a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     sh1 = recttri(ρbl, ρtr, nx1, ny1)
     sheet = combine(sh3, sh1, 'x', ρbl[1])
     if morient == 90
-        xform = (x,y) -> (b-y, x)
+        xform = (x, y) -> (b - y, x)
     elseif morient == 180
-        xform = (x,y) -> (a-x, b-y)
+        xform = (x, y) -> (a - x, b - y)
     elseif morient == 270
-        xform = (x,y) -> (y, a-x)
+        xform = (x, y) -> (y, a - x)
     end
     if morient ≠ 0
         sheet.ρ = [SV2(xform(ρ...)) for ρ in sheet.ρ]
     end
     # Set the face sheet resistance values.
-    sheet.fr = zeros(size(sheet.fv,2))
+    sheet.fr = zeros(size(sheet.fv, 2))
     Rsheet = kwargs[:Rsheet]
     sheet.fr .= Rsheet  # Broadcast value to entire array.
 
@@ -718,12 +733,12 @@ function meander(;a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
     rotate!(sheet, kwargs[:rot])
     dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    if dxdy ≠ [0.,0.]
+    if dxdy ≠ [0.0, 0.0]
         sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
     end
 
     sheet.ξη_check = true
-    
+
     return sheet
 
 end # function
@@ -791,14 +806,17 @@ $(optional_kwargs)
            vertex of the loaded cross.  The default is to locate the vertex on the
            positive x-axis.
 """
-function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real, w::Real,
-                     ntri::Int, orient::Real=0.0, units::PSSFSSLength, kwarg...)
+function loadedcross(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real, w::Real,
+    ntri::Int, orient::Real=0.0, units::PSSFSSLength, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
-    @testpos(L1); @testpos(L2); @testpos(w); @testpos(ntri)
+    @testpos(L1)
+    @testpos(L2)
+    @testpos(w)
+    @testpos(ntri)
     (length(s1) == length(s2) == 2) || throw(ArgumentError("s1 and s2 must be 2-vectors"))
-    
+
     # Initialization:
     nv = (2w < L2 ? 24 : 12) # Total number of vertices
     ρ₀ = 0.5 * (s1 + s2) # Calculate center of polygon.
@@ -806,14 +824,14 @@ function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real
     e1 = Array{Cint}(undef, nv)
     e2 = Array{Cint}(undef, nv)
     segmarkers = Array{Cint}(undef, nv)
-    holes = Array{Cdouble}(undef, 2,0)
+    holes = Array{Cdouble}(undef, 2, 0)
 
     # Set up the (outer) polygon geometry:
-    ρ[1] = SV2([L2/2, L2/2])
-    ρ[2] = SV2([L1/2, ρ[1][2]]) 
+    ρ[1] = SV2([L2 / 2, L2 / 2])
+    ρ[2] = SV2([L1 / 2, ρ[1][2]])
     ρ[3] = SV2([ρ[2][1], -ρ[2][2]])
     ρ[4] = SV2([ρ[1][1], ρ[3][2]])
-    ρ[5] = SV2([ρ[4][1], -L1/2])
+    ρ[5] = SV2([ρ[4][1], -L1 / 2])
     ρ[6] = SV2([-ρ[5][1], ρ[5][2]])
     ρ[7] = SV2([ρ[6][1], ρ[4][2]])
     ρ[8] = SV2([-ρ[3][1], ρ[7][2]])
@@ -825,19 +843,19 @@ function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real
     e2[1:11] = 2:12
     e2[12] = 1
     segmarkers[1:12] .= 1
-    areat =  2 * (L1 - L2) * L2 # total area for solid cross
-    
+    areat = 2 * (L1 - L2) * L2 # total area for solid cross
+
     if 2w < L2
         #  Set up inner boundary for annulus:
         ρ[13] = ρ[1] .- w
         ρ[14] = ρ[2] .- w
-        ρ[15] = ρ[3] + SV2([-w,w])
-        ρ[16] = ρ[4] + SV2([-w,w])
-        ρ[17] = ρ[5] + SV2([-w,w])
+        ρ[15] = ρ[3] + SV2([-w, w])
+        ρ[16] = ρ[4] + SV2([-w, w])
+        ρ[17] = ρ[5] + SV2([-w, w])
         ρ[18] = ρ[6] .+ w
         ρ[19] = ρ[7] .+ w
         ρ[20] = ρ[8] .+ w
-        ρ[21] = ρ[9] + SV2([w,-w])
+        ρ[21] = ρ[9] + SV2([w, -w])
         ρ[22] = -ρ[16]
         ρ[23] = -ρ[17]
         ρ[24] = -ρ[18]
@@ -847,25 +865,25 @@ function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real
         segmarkers[13:24] .= 2
         holes = [holes ρ₀]
         areat -= 2 * (L1 - L2) * (L2 - 2w)  # Subract inner void
-    end      
+    end
 
     if orient ≠ 0
-        s,c = sincosd(orient)
-        rotmat = SA[c -s;s c]
+        s, c = sincosd(orient)
+        rotmat = SA[c -s; s c]
         for n in eachindex(ρ)
             ρ[n] = rotmat * ρ[n]
         end
     end
 
     ρ = [t + ρ₀ for t in ρ] # Center on the unit cell
-    
+
     # Set up call to meshsub
     areatri = areat / ntri
     points = convert(Matrix{Cdouble}, hcat(ρ...))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
-                    holes=holes, area=areatri, ntri=ntri)
-    
+        holes=holes, area=areatri, ntri=ntri)
+
     # Set the face sheet resistance values.
     Rsheet = kwargs[:Rsheet]
     sheet.fr .= Rsheet  # Broadcast value to entire array.
@@ -875,7 +893,7 @@ function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
     dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    if dxdy ≠ [0.,0.]
+    if dxdy ≠ [0.0, 0.0]
         sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
     end
 
@@ -887,7 +905,7 @@ function loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
     return sheet
-                                   
+
 end # function
 
 
@@ -960,21 +978,27 @@ All arguments are keyword arguments which can be entered in any order.
     
 $(optional_kwargs)
 """
-function jerusalemcross(;P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real,
-                     ntri::Int, units::PSSFSSLength, kwarg...)
+function jerusalemcross(; P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real,
+    ntri::Int, units::PSSFSSLength, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
-    @testpos(A); @testpos(B); @testpos(L1); @testpos(L2); @testpos(w); @testpos(ntri); @testpos(P)
-    
+    @testpos(A)
+    @testpos(B)
+    @testpos(L1)
+    @testpos(L2)
+    @testpos(w)
+    @testpos(ntri)
+    @testpos(P)
 
-    areaouter =  4 * (A*B + ((L1 - L2)/2 - B) * L2) + L2^2   # outer area for solid cross
+
+    areaouter = 4 * (A * B + ((L1 - L2) / 2 - B) * L2) + L2^2   # outer area for solid cross
 
     # Total number of vertices and holes and total area:
     if 2w < L2 && 2w < B
         nv = 28 + 28
         nholes = 1
-        areat = areaouter - 4*((A-2w)*(B-2w) + (L2-2w)*((L1-L2)/2 - B)) - (L2-2w)^2
+        areat = areaouter - 4 * ((A - 2w) * (B - 2w) + (L2 - 2w) * ((L1 - L2) / 2 - B)) - (L2 - 2w)^2
     elseif 2w ≥ L2 && 2w ≥ B
         nv = 28
         nholes = 0
@@ -982,109 +1006,110 @@ function jerusalemcross(;P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real,
     elseif 2w < L2 && 2w ≥ B
         nv = 28 + 12
         nholes = 1
-        areat = areaouter - 4*(L2-2w)*((L1-L2)/2 - B) - (L2-2w)^2
+        areat = areaouter - 4 * (L2 - 2w) * ((L1 - L2) / 2 - B) - (L2 - 2w)^2
     elseif 2w ≥ L2 && 2w < B
-        nv = 28 + 4*4
+        nv = 28 + 4 * 4
         nholes = 4
-        areat = areaouter - 4*(A-2w)*(B-2w) - (L2-2w)^2
+        areat = areaouter - 4 * (A - 2w) * (B - 2w) - (L2 - 2w)^2
     end
 
-    s1 = Cdouble[P, 0.0]; s2 = Cdouble[0.0, P]
+    s1 = Cdouble[P, 0.0]
+    s2 = Cdouble[0.0, P]
     r0 = 0.5 * (s1 + s2) # Calculate center of polygon.
-    r = zeros(Cdouble, 2,nv)
+    r = zeros(Cdouble, 2, nv)
     e1 = Array{Cint}(undef, nv)
     e2 = Array{Cint}(undef, nv)
     segmarkers = Array{Cint}(undef, nv)
-    holes = Array{Cdouble}(undef, 2,nholes)
+    holes = Array{Cdouble}(undef, 2, nholes)
 
     # Set up the (outer) polygon geometry:
-    r[:,1] = [L1/2, A/2]
-    r[:,2] = [L1/2-B, A/2]
-    r[:,3] = [L1/2-B, L2/2]
-    r[:,4] = [L2/2, L2/2]
-    r[:,5] = [L2/2, L1/2-B]
-    r[:,6] = [A/2, L1/2-B]
-    r[:,7] = [A/2, L1/2]
-    r[:,8:14] = reverse([-1 0; 0 1] * r[:,1:7], dims=2)
-    r[:,15:28] = reverse([1 0; 0 -1] * r[:,1:14], dims=2)
+    r[:, 1] = [L1 / 2, A / 2]
+    r[:, 2] = [L1 / 2 - B, A / 2]
+    r[:, 3] = [L1 / 2 - B, L2 / 2]
+    r[:, 4] = [L2 / 2, L2 / 2]
+    r[:, 5] = [L2 / 2, L1 / 2 - B]
+    r[:, 6] = [A / 2, L1 / 2 - B]
+    r[:, 7] = [A / 2, L1 / 2]
+    r[:, 8:14] = reverse([-1 0; 0 1] * r[:, 1:7], dims=2)
+    r[:, 15:28] = reverse([1 0; 0 -1] * r[:, 1:14], dims=2)
     e1[1:28] = 1:28
     e2[1:27] = 2:28
     e2[28] = 1
     segmarkers[1:28] .= 1
-    
+
     if 2w < L2 && 2w < B
         #  Set up inner boundary for annulus:
-        r[:,29] = r[:,1] + [-w,-w]
-        r[:,30] = r[:,2] + [w,-w]
-        r[:,31] = r[:,3] + [w,-w]
-        r[:,32] = r[:,4] + [-w,-w]
-        r[:,33] = r[:,5] + [-w,w]
-        r[:,34] = r[:,6] + [-w,w]
-        r[:,35] = r[:,7] + [-w,-w]
-        r[:,36:42] = reverse([-1 0; 0 1] * r[:,29:35], dims=2)
-        r[:,43:56] = reverse([1 0; 0 -1] * r[:,29:42], dims=2)
+        r[:, 29] = r[:, 1] + [-w, -w]
+        r[:, 30] = r[:, 2] + [w, -w]
+        r[:, 31] = r[:, 3] + [w, -w]
+        r[:, 32] = r[:, 4] + [-w, -w]
+        r[:, 33] = r[:, 5] + [-w, w]
+        r[:, 34] = r[:, 6] + [-w, w]
+        r[:, 35] = r[:, 7] + [-w, -w]
+        r[:, 36:42] = reverse([-1 0; 0 1] * r[:, 29:35], dims=2)
+        r[:, 43:56] = reverse([1 0; 0 -1] * r[:, 29:42], dims=2)
         e1[29:56] = 29:56
         e2[29:55] = 30:56
         e2[56] = 29
         segmarkers[29:56] .= 2
-        holes[:,1] = [0,0] 
+        holes[:, 1] = [0, 0]
     elseif 2w < L2 && 2w ≥ B
-        r[:,29] = [L1/2-B, L2/2-w]
-        r[:,30] = [L2/2-w, L2/2-w]
-        r[:,31] = [L2/2-w, L1/2-B]
-        r[:,32:34] = reverse([-1 0; 0 1] * r[:,29:31], dims=2)
-        r[:,35:40] = reverse([1 0; 0 -1] * r[:,29:34], dims=2)
+        r[:, 29] = [L1 / 2 - B, L2 / 2 - w]
+        r[:, 30] = [L2 / 2 - w, L2 / 2 - w]
+        r[:, 31] = [L2 / 2 - w, L1 / 2 - B]
+        r[:, 32:34] = reverse([-1 0; 0 1] * r[:, 29:31], dims=2)
+        r[:, 35:40] = reverse([1 0; 0 -1] * r[:, 29:34], dims=2)
         e1[29:40] = 29:40
         e2[29:39] = 30:40
         e2[40] = 29
         segmarkers[29:40] .= 2
-        holes[:,1] = [0,0]
+        holes[:, 1] = [0, 0]
     elseif 2w ≥ L2 && 2w < B
-        r[:,29] = [L1/2-B+w, -A/2+w]
-        r[:,30] = [L1/2-w, -A/2+w]
-        r[:,31] = [L1/2-w, A/2-w]
-        r[:,32] = [L1/2-B+w, A/2-w]
+        r[:, 29] = [L1 / 2 - B + w, -A / 2 + w]
+        r[:, 30] = [L1 / 2 - w, -A / 2 + w]
+        r[:, 31] = [L1 / 2 - w, A / 2 - w]
+        r[:, 32] = [L1 / 2 - B + w, A / 2 - w]
         e1[29:32] = 29:32
         e2[29:31] = 30:32
         e2[32] = 29
         segmarkers[29:32] .= 2
-        holes[:,1] = [(L1 - B)/2, 0.0]
+        holes[:, 1] = [(L1 - B) / 2, 0.0]
 
-        r[:,33:36] = [0 1;1 0] * r[:,29:32]
+        r[:, 33:36] = [0 1; 1 0] * r[:, 29:32]
         e1[33:36] = 33:36
         e2[33:35] = 34:36
         e2[36] = 33
         segmarkers[33:36] .= 3
-        holes[:,2] = [0.0, (L1 - B)/2]
+        holes[:, 2] = [0.0, (L1 - B) / 2]
 
-        r[:,37:40] = [-1 0;0 1] * r[:,29:32]
+        r[:, 37:40] = [-1 0; 0 1] * r[:, 29:32]
         e1[37:40] = 37:40
         e2[37:39] = 38:40
         e2[40] = 37
         segmarkers[33:36] .= 4
-        holes[:,3] = -holes[:,1]
+        holes[:, 3] = -holes[:, 1]
 
-        r[:,41:44] = [0 1;1 0] * r[:,37:40]
+        r[:, 41:44] = [0 1; 1 0] * r[:, 37:40]
         e1[41:44] = 41:44
         e2[41:43] = 42:44
         e2[44] = 41
         segmarkers[41:44] .= 5
-        holes[:,4] = -holes[:,2]
-        
-    end      
+        holes[:, 4] = -holes[:, 2]
+
+    end
 
 
 
     r .+= r0 # Center on unit cell
     isempty(holes) || (holes .+= r0)
-    
+
     # Set up call to meshsub
     areatri = areat / ntri
     points = r
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
-                    holes=holes, area=areatri, ntri=ntri)
-    
+        holes=holes, area=areatri, ntri=ntri)
+
     # Set the face sheet resistance values.
     Rsheet = kwargs[:Rsheet]
     sheet.fr .= Rsheet  # Broadcast value to entire array.
@@ -1094,7 +1119,7 @@ function jerusalemcross(;P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real,
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
     dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    if dxdy ≠ [0.,0.]
+    if dxdy ≠ [0.0, 0.0]
         sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
     end
 
@@ -1106,7 +1131,7 @@ function jerusalemcross(;P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real,
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
     return sheet
-                                   
+
 end # function
 
 

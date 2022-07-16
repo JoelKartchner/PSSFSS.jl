@@ -1,4 +1,4 @@
- module Meshsub
+module Meshsub
 
 export meshsub
 
@@ -38,19 +38,19 @@ Triangulate polygonal region(s) and create a sheet object with the triangulation
 #  Return value:
     sheet      A variable of type RWGSheet with fields ρ, e1, e2, fe, and fv properly initialized.
 
-"""    
-function meshsub(;points::Matrix{<:Real}, seglist::Matrix{<:Integer},
-                 segmarkers=Int[],
-                 holes=Array{Float64}(undef,2,0),
-                 area::Real=0.0,
-                 ntri::Int,
-                 switches::String="")::RWGSheet
+"""
+function meshsub(; points::Matrix{<:Real}, seglist::Matrix{<:Integer},
+    segmarkers=Int[],
+    holes=Array{Float64}(undef, 2, 0),
+    area::Real=0.0,
+    ntri::Int,
+    switches::String="")::RWGSheet
 
-    size(points,1) == 2 || throw(ArgumentError("points first dimension must be 2"))
-    size(seglist,1) == 2 || throw(ArgumentError("seglist first dimension must be 2"))
-    isempty(segmarkers) || (length(segmarkers) == size(seglist,2)) ||
+    size(points, 1) == 2 || throw(ArgumentError("points first dimension must be 2"))
+    size(seglist, 1) == 2 || throw(ArgumentError("seglist first dimension must be 2"))
+    isempty(segmarkers) || (length(segmarkers) == size(seglist, 2)) ||
         throw(ArgumentError("wrong length(segmarkers)"))
-    isempty(holes) || (size(holes,1) == 2) ||
+    isempty(holes) || (size(holes, 1) == 2) ||
         throw(ArgumentError("holes first dimension must be 2"))
     minangstr = "30.0" # Angle quality requirement
     if isempty(switches)
@@ -63,8 +63,8 @@ function meshsub(;points::Matrix{<:Real}, seglist::Matrix{<:Integer},
 
     # Set up for call to triangulate:
     triin = TriangulateIO()
-    triin.pointlist=Matrix{Cdouble}(points)
-    triin.segmentlist=Matrix{Cint}(seglist)
+    triin.pointlist = Matrix{Cdouble}(points)
+    triin.segmentlist = Matrix{Cint}(seglist)
     isempty(segmarkers) || (triin.segmentmarkerlist = Vector{Cint}(segmarkers))
     isempty(holes) || (triin.holelist = Matrix{Cdouble}(holes))
 
@@ -72,10 +72,10 @@ function meshsub(;points::Matrix{<:Real}, seglist::Matrix{<:Integer},
     triout = deepcopy(triin) # Establish scope
     for k in 1:iter
         # Perform triangulation:
-        (triout, vorout)=triangulate(switches, triin)
-        ntrinew = size(triout.trianglelist,2)
+        (triout, vorout) = triangulate(switches, triin)
+        ntrinew = size(triout.trianglelist, 2)
         (0.9ntri ≤ ntrinew ≤ 1.1ntri) && break
-        correction = (ntrinew/ntri)^(1/3)
+        correction = (ntrinew / ntri)^(1 / 3)
         areanew = areaold * correction
         astr = @sprintf("%.14f", areanew)
         switches = "pDa$(astr)q$(minangstr)Qe"
@@ -85,20 +85,20 @@ function meshsub(;points::Matrix{<:Real}, seglist::Matrix{<:Integer},
     # Set up the sheet data structures:
     sh = RWGSheet()
     plist = triout.pointlist
-    sh.ρ = [SV2(plist[:,i]) for i in 1:size(plist, 2)]
-    sh.e1 = triout.edgelist[1,:]
-    sh.e2 = triout.edgelist[2,:]
+    sh.ρ = [SV2(plist[:, i]) for i in 1:size(plist, 2)]
+    sh.e1 = triout.edgelist[1, :]
+    sh.e2 = triout.edgelist[2, :]
     sh.fv = copy(triout.trianglelist)
     # Set up sh.fe so that for any triangle, edge 1 connects nodes 1 and 3,
     # edge 2 connects nodes 1 and 2, and edge 3 connects nodes 2 and 3:
     sh.fe = similar(sh.fv) # Preallocation
-    for tri in 1:size(sh.fv,2)
-        n1, n2, n3 = sh.fv[:,tri]
-        for (side, m1, m2) in [(1,n2,n3), (2,n1,n3), (3,n1,n2)]
-                found = false
+    for tri in 1:size(sh.fv, 2)
+        n1, n2, n3 = sh.fv[:, tri]
+        for (side, m1, m2) in [(1, n2, n3), (2, n1, n3), (3, n1, n2)]
+            found = false
             for i in 1:length(sh.e1)
                 if (sh.e1[i] == m1 && sh.e2[i] == m2) || (sh.e1[i] == m2 && sh.e2[i] == m1)
-                    sh.fe[side,tri] = i
+                    sh.fe[side, tri] = i
                     found = true
                     break
                 end
@@ -106,8 +106,8 @@ function meshsub(;points::Matrix{<:Real}, seglist::Matrix{<:Integer},
             !found && error("triangle edge not found connecting vertices $m1 and $m2 for face $tri")
         end
     end
-    sh.fr = zeros(Float64, size(sh.fv,2)) # Face resistance vector
-    return sh               
+    sh.fr = zeros(Float64, size(sh.fv, 2)) # Face resistance vector
+    return sh
 end # function
 
 end # module

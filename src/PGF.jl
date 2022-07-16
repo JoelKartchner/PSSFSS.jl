@@ -13,12 +13,12 @@ using ..Log: @logfile
 
 # Variables used by the spatial routines:
 const jkringmax = 65 # Max. number of rings to sum over
-  
+
 # Variables used by the spectral routines:
 const mmax_list = (32, 2048)
 mg = mmax_list[2] ÷ 2
-const table1g = OffsetArray(zeros(ComplexF64, 2mg+1, 2mg+1), -mg:mg, -mg:mg) 
-const table2g = OffsetArray(zeros(ComplexF64, 2mg+1, 2mg+1), -mg:mg, -mg:mg)
+const table1g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
+const table2g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
 
 
 #=
@@ -71,24 +71,26 @@ function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
     arg = norm(uρ₀₀)
     rterm = exp(-arg)
     ksum = complex(rterm)
-    if extract 
+    if extract
         if arg ≤ small
-            jsum = complex((-arg/6 + 0.5)*arg - 1) # Small argument extraction formula
+            jsum = complex((-arg / 6 + 0.5) * arg - 1) # Small argument extraction formula
         else
             jsum = complex((rterm - 1) / arg)  # Large argument extraction formula
         end
     else
-      jsum = complex(rterm / arg)  # No extraction formula
+        jsum = complex(rterm / arg)  # No extraction formula
     end
-    
+
     # Begin loop over summation lattice rings.
-    rsave = 0; conv = 0.0; converged = false # Establish scope outside loop
-    for r in 1:jkringmax  
+    rsave = 0
+    conv = 0.0
+    converged = false # Establish scope outside loop
+    for r in 1:jkringmax
         rsave = r
         jring = kring = zero(ComplexF64) # Initialize ring sums
-        for (m,n) in Ring(r)
-            arg = norm(uρ₀₀ - (m*us₁ + n*us₂))
-            term = exp(-complex(arg, m*ψ₁ + n*ψ₂))
+        for (m, n) in Ring(r)
+            arg = norm(uρ₀₀ - (m * us₁ + n * us₂))
+            term = exp(-complex(arg, m * ψ₁ + n * ψ₂))
             jring += term / arg
             kring += term
         end
@@ -96,12 +98,12 @@ function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
         ksum += kring
         # Test for convergence if we're far enough along:
         if r > rmin
-            conv = max(abs(jring/jsum), abs(kring/ksum))
+            conv = max(abs(jring / jsum), abs(kring / ksum))
             converged = conv < convtest
             converged && break
         end
     end
-    converged || @warn "Exceeded maximum number of loops." rsave conv maxlog=10
+    converged || @warn "Exceeded maximum number of loops." rsave conv maxlog = 10
     return (jsum, ksum)
 end
 
@@ -116,7 +118,7 @@ case it returns `-sqrt(x)` (i.e., positive pure imaginary).
 mysqrt(x) = sqrt(x)
 function mysqrt(z::Complex)
     ans = sqrt(z)
-    return  real(ans) == 0 && imag(ans) < 0 ? -ans : ans
+    return real(ans) == 0 && imag(ans) < 0 ? -ans : ans
 end
 
 
@@ -135,12 +137,12 @@ square of the units of `u` (or `k0`).
 - `k0` Free-space wavenumber.
 - `u` Smoothing factor.  `k0` and `u` can be of any 
 """
-function c3_calc(k0, u , μ₁, ϵ₁, μ₂, ϵ₂)
-    w1sq = k0*k0 * μ₁*ϵ₁ + u*u    # Eq. (4.25)
-    w2sq = k0*k0 * μ₂*ϵ₂ + u*u    
-    c3 = (μ₁*w2sq + μ₂*w1sq) / (2*(μ₁ + μ₂)) 
+function c3_calc(k0, u, μ₁, ϵ₁, μ₂, ϵ₂)
+    w1sq = k0 * k0 * μ₁ * ϵ₁ + u * u    # Eq. (4.25)
+    w2sq = k0 * k0 * μ₂ * ϵ₂ + u * u
+    c3 = (μ₁ * w2sq + μ₂ * w1sq) / (2 * (μ₁ + μ₂))
 end
-  
+
 
 """
     d3_calc(k0, u , μ₁, ϵ₁, μ₂, ϵ₂)
@@ -154,15 +156,15 @@ square of the units of `u` (or `k0`).
 - `k0` Free-space wavenumber.
 - `u` Smoothing factor.  `k0` and `u` can be of any 
 """
-function d3_calc(k0, u , μ₁, ϵ₁, μ₂, ϵ₂)
-    w1sq = k0*k0 * μ₁*ϵ₁ + u*u  # Eq. (4.25)
-    w2sq = k0*k0 * μ₂*ϵ₂ + u*u
-    d3_num = μ₁*(w2sq*(2*ϵ₁ + ϵ₂) - w1sq*ϵ₁) + μ₂*(w1sq*(2*ϵ₂ + ϵ₁) - w2sq*ϵ₂)       
-    d3 = d3_num / (2*(μ₁ + μ₂)*(ϵ₁ + ϵ₂))  
+function d3_calc(k0, u, μ₁, ϵ₁, μ₂, ϵ₂)
+    w1sq = k0 * k0 * μ₁ * ϵ₁ + u * u  # Eq. (4.25)
+    w2sq = k0 * k0 * μ₂ * ϵ₂ + u * u
+    d3_num = μ₁ * (w2sq * (2 * ϵ₁ + ϵ₂) - w1sq * ϵ₁) + μ₂ * (w1sq * (2 * ϵ₂ + ϵ₁) - w2sq * ϵ₂)
+    d3 = d3_num / (2 * (μ₁ + μ₂) * (ϵ₁ + ϵ₂))
 end
 
-  
-  
+
+
 """
     electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers, s, β₁, β₂, β₀₀, convtest=5e-12) --> (Σm1_func, Σm2_func)
    
@@ -194,13 +196,13 @@ containing the difference of the observation and source point position vectors.
 
 """
 function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{Layer},
-                                             s, β₁, β₂, β₀₀, convtest=5e-12)
+    s, β₁, β₂, β₀₀, convtest=5e-12)
 
     t1 = time_ns()
     nl = length(layers) # Number of layers.
     nl < 2 && error("Too few layers")
     k0sq = k0 * k0
-    β²min = 1e-10*k0sq
+    β²min = 1e-10 * k0sq
     # Compute quantities defined in Eq. (5.20):
     μ̃ = 2 * layers[s].μᵣ * layers[s+1].μᵣ / (layers[s].μᵣ + layers[s+1].μᵣ) # Normalized to μ0.
     ϵ̄ = (layers[s].ϵᵣ + layers[s+1].ϵᵣ) / 2 # Normalized to ϵ0.
@@ -210,8 +212,10 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     d3 = d3_calc(k0, u, layers[s].μᵣ, layers[s].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ)
 
     m = mmax_list[2] ÷ 2
-    table1 = table1g; table1 .= zero(ComplexF64)
-    table2 = table2g; table2 .= zero(ComplexF64)
+    table1 = table1g
+    table1 .= zero(ComplexF64)
+    table2 = table2g
+    table2 .= zero(ComplexF64)
 
     converged = false
     convrepeat = 40 # number of consecutive rings for which convergence must occur
@@ -225,23 +229,23 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
             mmax = 0
             first = false
         else
-            mmax = nextprod([2,3,5], 1 + mmax)
-            while 0 ≠ rem(mmax,2)
-                mmax = nextprod([2,3,5], 1 + mmax)
+            mmax = nextprod([2, 3, 5], 1 + mmax)
+            while 0 ≠ rem(mmax, 2)
+                mmax = nextprod([2, 3, 5], 1 + mmax)
             end
         end
-        mmaxo2 = mmax÷2
-        mmax_oldo2 = mmax_old÷2
+        mmaxo2 = mmax ÷ 2
+        mmax_oldo2 = mmax_old ÷ 2
         # Fill the tables:
         Threads.@threads for r in (mmax_oldo2+1):mmaxo2
             ringsum1 = zero(eltype(table1))
             ringsum2 = zero(eltype(table2))
-            for (m,n) in Ring(r)
-                βmn = β₀₀ + m*β₁ + n*β₂   # Modal transverse wave vector
+            for (m, n) in Ring(r)
+                βmn = β₀₀ + m * β₁ + n * β₂   # Modal transverse wave vector
                 β² = βmn ⋅ βmn # magnitude squared
                 β² = max(β², β²min)  # Avoid singularity
-                κmn² = β² + u*u #  Eq. (4.24)
-                κmn = sqrt(κmn²) 
+                κmn² = β² + u * u #  Eq. (4.24)
+                κmn = sqrt(κmn²)
                 # Compute region 1 mode parameters:
                 γ = mysqrt(β² - k0sq * layers[1].ϵᵣ * layers[1].μᵣ)
                 # Calculate TE modal impedance of Region 1, divided by (jωμ₀):
@@ -255,8 +259,8 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
                     Z0TM = γ / layers[i].ϵᵣ  # TM modal impedance (normalized)
                     tanhi = tanh(layers[i].width * γ)
                     # Eq. (5.14b):
-                    ZleftTE = Z0TE * (ZleftTE + Z0TE*tanhi) / (Z0TE + ZleftTE*tanhi)
-                    ZleftTM = Z0TM * (ZleftTM + Z0TM*tanhi) / (Z0TM + ZleftTM*tanhi)
+                    ZleftTE = Z0TE * (ZleftTE + Z0TE * tanhi) / (Z0TE + ZleftTE * tanhi)
+                    ZleftTM = Z0TM * (ZleftTM + Z0TM * tanhi) / (Z0TM + ZleftTM * tanhi)
                 end
                 # Compute region nl mode parameters:
                 γ = mysqrt(β² - k0sq * layers[end].ϵᵣ * layers[end].μᵣ)
@@ -266,30 +270,30 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
                 for i in nl-1:-1:s+1
                     γ = mysqrt(β² - k0sq * layers[i].ϵᵣ * layers[i].μᵣ)
                     Z0TE = layers[i].μᵣ / γ
-                    Z0TM = γ / layers[i].ϵᵣ  
-                    tanhi = tanh(layers[i].width * γ) 
-                    ZrightTE = Z0TE * (ZrightTE + Z0TE*tanhi) / (Z0TE + ZrightTE*tanhi)
-                    ZrightTM = Z0TM * (ZrightTM + Z0TM*tanhi) / (Z0TM + ZrightTM*tanhi)
+                    Z0TM = γ / layers[i].ϵᵣ
+                    tanhi = tanh(layers[i].width * γ)
+                    ZrightTE = Z0TE * (ZrightTE + Z0TE * tanhi) / (Z0TE + ZrightTE * tanhi)
+                    ZrightTM = Z0TM * (ZrightTM + Z0TM * tanhi) / (Z0TM + ZrightTM * tanhi)
                 end
                 # Compute (normalized) TLGF's using Eq. (5.13):
                 ViTE = ZleftTE * ZrightTE / (ZleftTE + ZrightTE) # divided by jωμ₀
                 ViTM = ZleftTM * ZrightTM / (ZleftTM + ZrightTM) # multiplied by jωϵ₀
                 # Compute summands (apart from phase factor and 1/(2A) factor):
                 ViTE = 2 * ViTE / μ̃ # 1st quantity in square brackets in (5.19a)
-                table1[m,n] = ViTE - (1 + c3/κmn²) / κmn  # Eq. (5.19a)
-                ringsum1 += table1[m,n]
+                table1[m, n] = ViTE - (1 + c3 / κmn²) / κmn  # Eq. (5.19a)
+                ringsum1 += table1[m, n]
                 ViTM = 2 * ϵ̄ * ViTM # 1st quantity in square brackets in (5.19b)
-                table2[m,n] = (ViTM + k0sq*ϵ̄*μ̃*ViTE) / β² - (1 + d3/κmn²) / κmn  # Eq. (5.19b)
-                ringsum2 += table2[m,n]
+                table2[m, n] = (ViTM + k0sq * ϵ̄ * μ̃ * ViTE) / β² - (1 + d3 / κmn²) / κmn  # Eq. (5.19b)
+                ringsum2 += table2[m, n]
             end
             # Check for convergence of this ring
-            test1 = abs(ringsum1/table1[0,0])
-            test2 = abs(ringsum2/table2[0,0])
+            test1 = abs(ringsum1 / table1[0, 0])
+            test2 = abs(ringsum2 / table2[0, 0])
             convlist[r] = test1 < convtest && test2 < convtest
         end
-        
+
         #  Check for convergence
-        if mmaxo2 ≥ convrepeat && all(@view convlist[(mmaxo2 - convrepeat + 1):mmaxo2])
+        if mmaxo2 ≥ convrepeat && all(@view convlist[(mmaxo2-convrepeat+1):mmaxo2])
             converged = true
             break
         else
@@ -297,10 +301,10 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
         end
     end
 
-    !converged && @warn "Inadequate Convergence" test1 test2 convtest mmax maxlog=5
+    !converged && @warn "Inadequate Convergence" test1 test2 convtest mmax maxlog = 5
 
     # Create proper sized storage arrays for FFT routine:
-    mmaxo2 = mmax÷2
+    mmaxo2 = mmax ÷ 2
     #t1vec = zeros(ComplexF64, (mmax+2)^2)
     #table1t = reshape(view(t1vec,1:mmax^2), mmax, mmax)
     #table1t .= @view table1[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
@@ -308,18 +312,18 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     #table2t = reshape(view(t2vec,1:mmax^2), mmax, mmax)
     #table2t .= @view table2[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
 
-    table1t = table1[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
-    table2t = table2[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
+    table1t = table1[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    table2t = table2[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
     fft!(table1t::Matrix{ComplexF64})
-    fft!(table2t::Matrix{ComplexF64}) 
+    fft!(table2t::Matrix{ComplexF64})
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/(2*area)
     for q in 0:mmax-1
-        qterm = q * (π - ψ₂/mmax)
+        qterm = q * (π - ψ₂ / mmax)
         for p in 0:mmax-1
-            pterm = p * (π - ψ₁/mmax)
-            cfact = cis(pterm+qterm) / (2*area)
-            table1t[p+1,q+1] *= cfact
-            table2t[p+1,q+1] *= cfact
+            pterm = p * (π - ψ₁ / mmax)
+            cfact = cis(pterm + qterm) / (2 * area)
+            table1t[p+1, q+1] *= cfact
+            table2t[p+1, q+1] *= cfact
         end
     end
     # Create proper sized interpolation array---Note that we add an extra row
@@ -327,8 +331,8 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     # for extra points needed in the interpolation scheme.
     #tab1e1 = OffsetArray(reshape(t1vec, mmax+2, mmax+2), -1:mmax, -1:mmax)
     #tab1e2 = OffsetArray(reshape(t2vec, mmax+2, mmax+2), -1:mmax, -1:mmax)
-    table1 = OffsetArray(zeros(ComplexF64,mmax+2,mmax+2), -1:mmax, -1:mmax)
-    table2 = OffsetArray(zeros(ComplexF64,mmax+2,mmax+2), -1:mmax, -1:mmax)
+    table1 = OffsetArray(zeros(ComplexF64, mmax + 2, mmax + 2), -1:mmax, -1:mmax)
+    table2 = OffsetArray(zeros(ComplexF64, mmax + 2, mmax + 2), -1:mmax, -1:mmax)
     #@inbounds for k = mmax:-1:1, j in mmax:-1:1  # Copy without inadvertent overwriting
     #    table1[j-1,k-1] = table1t[j,k]
     #    table2[j-1,k-1] = table2t[j,k]
@@ -336,17 +340,20 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     table1[0:mmax-1, 0:mmax-1] .= table1t
     table2[0:mmax-1, 0:mmax-1] .= table2t
     # Fill extra row and column to cover all the way to ξ=1 and η=1:
-    cis1 = cis(-ψ₁); cis2 = cis(-ψ₂); cis12 = cis1 * cis2
+    cis1 = cis(-ψ₁)
+    cis2 = cis(-ψ₂)
+    cis12 = cis1 * cis2
     @inbounds for k in 0:mmax-1
         table1[mmax, k] = cis1 * table1[0, k]
         table1[k, mmax] = cis2 * table1[k, 0]
         table2[mmax, k] = cis1 * table2[0, k]
         table2[k, mmax] = cis2 * table2[k, 0]
     end
-    table1[mmax, mmax] = cis12 * table1[0,0]
-    table2[mmax, mmax] = cis12 * table2[0,0]
+    table1[mmax, mmax] = cis12 * table1[0, 0]
+    table2[mmax, mmax] = cis12 * table2[0, 0]
     # Fill in extra row and column to cover all the way to ξ=-1/mmax and η=-1/mmax:
-    cis1 = 1/cis1; cis2 = 1/cis2
+    cis1 = 1 / cis1
+    cis2 = 1 / cis2
     @inbounds for k in 0:mmax
         table1[-1, k] = cis1 * table1[mmax-1, k]
         table2[-1, k] = cis1 * table2[mmax-1, k]
@@ -359,10 +366,10 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     Σm1_func = make_Σm_func(table1, β₁, β₂, ψ₁, ψ₂)
     Σm2_func = make_Σm_func(table2, β₁, β₂, ψ₁, ψ₂)
     t2 = time_ns()
-    tsec = round((t2-t1)/1e9; digits=tdigits)
+    tsec = round((t2 - t1) / 1e9; digits=tdigits)
     @logfile "      $tsec seconds to compute $mmax × $mmax electric modal tables"
     return (Σm1_func, Σm2_func)
-end    
+end
 
 
 
@@ -390,11 +397,11 @@ using a 6-point interpolation into a precomputed table.
 
 """
 function make_Σm_func(table::AbstractArray, β₁::SV2, β₂::SV2, ψ₁::Real, ψ₂::Real)
-    axes(table,1) == axes(table,2) || error("Non-square table")
-    mmax = maximum(axes(table,1))
+    axes(table, 1) == axes(table, 2) || error("Non-square table")
+    mmax = maximum(axes(table, 1))
     twopi = 2π
     function Σm_func(ρdif)::eltype(table)
-        let table=table, β₁=β₁, β₂=β₂, ψ₁=ψ₁, ψ₂=ψ₂, mmax=mmax, twopi=twopi
+        let table = table, β₁ = β₁, β₂ = β₂, ψ₁ = ψ₁, ψ₂ = ψ₂, mmax = mmax, twopi = twopi
             # Obtain ξ₁ and ξ₂ using Equation (2.10) or (5.31) of the theory docs:
             ξ₁_orig = (β₁ ⋅ ρdif) / twopi
             ξ₁_orig = abs(ξ₁_orig) < 1e-8 ? 0.0 : ξ₁_orig
@@ -410,31 +417,31 @@ function make_Σm_func(table::AbstractArray, β₁::SV2, β₂::SV2, ψ₁::Real
             # bounded by (m/mmax,n/mmax) and ((m+1)/mmax,(n+1)/mmax2) with p and q
             # the fractional distances along the square:
             m = trunc(Int, mmax * ξ₁)
-            p = mmax * ξ₁ - m 
+            p = mmax * ξ₁ - m
             n = trunc(Int, mmax * ξ₂)
-            q = mmax * ξ₂ - n 
+            q = mmax * ξ₂ - n
 
-            p² = p*p
-            q² = q*q
-            pq = p*q
+            p² = p * p
+            q² = q * q
+            pq = p * q
 
             # Perform the interpolation using formula 25.2.67 of AMS-55:
-            @inbounds Σm = 0.5*(q² - q) * table[m,n-1] +
-                 0.5*(p² - p) * table[m-1,n] + 
-                (1 + pq - p² - q²) * table[m,n] +
-                0.5*(p² - 2pq + p) * table[m+1,n] +
-                0.5*(q² - 2pq + q) * table[m,n+1] +
-                pq * table[m+1,n+1] 
-#=                Σm = q*(q-1)/2 * table[m,n-1] +
-                p*(p-1)/2 * table[m-1,n] + 
-               (1 + p*q - p*p - q*q) * table[m,n] +
-               p*(p - 2*q + 1)/2 * table[m+1,n] +
-               q*(q - 2*p + 1)/2 * table[m,n+1] +
-               p*q * table[m+1,n+1] 
-=#
-           # Add any phase shift due to range:
+            @inbounds Σm = 0.5 * (q² - q) * table[m, n-1] +
+                           0.5 * (p² - p) * table[m-1, n] +
+                           (1 + pq - p² - q²) * table[m, n] +
+                           0.5 * (p² - 2pq + p) * table[m+1, n] +
+                           0.5 * (q² - 2pq + q) * table[m, n+1] +
+                           pq * table[m+1, n+1]
+            #=                Σm = q*(q-1)/2 * table[m,n-1] +
+                            p*(p-1)/2 * table[m-1,n] + 
+                           (1 + p*q - p*p - q*q) * table[m,n] +
+                           p*(p - 2*q + 1)/2 * table[m+1,n] +
+                           q*(q - 2*p + 1)/2 * table[m,n+1] +
+                           p*q * table[m+1,n+1] 
+            =#
+            # Add any phase shift due to range:
             if mshift ≠ 0 || nshift ≠ 0
-                Σm *= cis(-(mshift*ψ₁ + nshift*ψ₂)) # Eq. (5.30)
+                Σm *= cis(-(mshift * ψ₁ + nshift * ψ₂)) # Eq. (5.30)
             end
             return Σm
         end # let block
@@ -476,12 +483,12 @@ containing the difference of the observation and source point position vectors.
 
 """
 function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{Layer},
-                                            s, β₁, β₂, β₀₀, convtest=5e-12)
+    s, β₁, β₂, β₀₀, convtest=5e-12)
     t1 = time_ns()
     nl = length(layers) # Number of layers.
     nl < 2 && error("Too few layers")
     k0sq = k0 * k0
-    β²min = 1e-10*k0sq
+    β²min = 1e-10 * k0sq
     # Compute quantities defined in (5.20):
     μ̃ = 2 * layers[s].μᵣ * layers[s+1].μᵣ / (layers[s].μᵣ + layers[s+1].μᵣ) # Normalized to μ0.
     ϵ̄ = (layers[s].ϵᵣ + layers[s+1].ϵᵣ) / 2 # Normalized to ϵ0.
@@ -491,7 +498,7 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     c3sp1 = c3_calc(k0, u, layers[s+1].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ, layers[s+1].μᵣ)
     d3s = d3_calc(k0, u, layers[s].ϵᵣ, layers[s].μᵣ, layers[s].ϵᵣ, layers[s].μᵣ)
     d3sp1 = d3_calc(k0, u, layers[s+1].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ, layers[s+1].μᵣ)
-    
+
     # Factors used in summands:
     f1 = 2 * ϵ̄
     f3 = layers[s].ϵᵣ * c3s + layers[s+1].ϵᵣ * c3sp1
@@ -499,8 +506,10 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     p3 = d3s / layers[s].μᵣ + d3sp1 / layers[s+1].μᵣ
 
     m = mmax_list[2] ÷ 2
-    table1 = table1g; table1 .= zero(ComplexF64)
-    table2 = table2g; table2 .= zero(ComplexF64)
+    table1 = table1g
+    table1 .= zero(ComplexF64)
+    table2 = table2g
+    table2 .= zero(ComplexF64)
 
     converged = false
     convrepeat = 40 # number of consecutive rings for which convergence must occur
@@ -514,27 +523,27 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
             mmax = 0
             first = false
         else
-            mmax = nextprod([2,3,5], 1 + mmax)
-            while 0 ≠ rem(mmax,2)
-                mmax = nextprod([2,3,5], 1 + mmax)
+            mmax = nextprod([2, 3, 5], 1 + mmax)
+            while 0 ≠ rem(mmax, 2)
+                mmax = nextprod([2, 3, 5], 1 + mmax)
             end
         end
-        mmaxo2 = mmax÷2
-        mmax_oldo2 = mmax_old÷2
+        mmaxo2 = mmax ÷ 2
+        mmax_oldo2 = mmax_old ÷ 2
         # Fill the tables:
         Threads.@threads for r in (mmax_oldo2+1):mmaxo2
             ringsum1 = zero(eltype(table1))
             ringsum2 = zero(eltype(table1))
-            for (m,n) in Ring(r)
-                βmn = β₀₀ + m*β₁ + n*β₂   # Modal transverse wave vector
+            for (m, n) in Ring(r)
+                βmn = β₀₀ + m * β₁ + n * β₂   # Modal transverse wave vector
                 β² = βmn ⋅ βmn # magnitude squared
                 β² = max(β², β²min)  # Avoid singularity
-                κmn² = β² + u*u #  Eq. (4.24)
-                κmn = sqrt(κmn²) 
+                κmn² = β² + u * u #  Eq. (4.24)
+                κmn = sqrt(κmn²)
                 # Compute region 1 mode parameters:
                 γ = mysqrt(β² - k0sq * layers[1].ϵᵣ * layers[1].μᵣ)
                 # Calculate TE modal admittance of Region 1, multiplied by jωμ₀:
-                YleftTE = γ / layers[1].μᵣ 
+                YleftTE = γ / layers[1].μᵣ
                 # Calculate TM modal admittance of Region 1, divided by jωϵ₀:
                 YleftTM = layers[1].ϵᵣ / γ
                 # Step left-looking impedances up to junction s using Eq. (5.24):
@@ -543,8 +552,8 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
                     Y0TE = γ / layers[i].μᵣ  # TE modal admittance (normalized)
                     Y0TM = layers[i].ϵᵣ / γ  # TM modal admittance (normalized)
                     tanhi = tanh(layers[i].width * γ)
-                    YleftTE = Y0TE * (YleftTE + Y0TE*tanhi) / (Y0TE + YleftTE * tanhi)  # Eq. (5.24d)
-                    YleftTM = Y0TM * (YleftTM + Y0TM*tanhi) / (Y0TM + YleftTM * tanhi)  # Eq. (5.24d)
+                    YleftTE = Y0TE * (YleftTE + Y0TE * tanhi) / (Y0TE + YleftTE * tanhi)  # Eq. (5.24d)
+                    YleftTM = Y0TM * (YleftTM + Y0TM * tanhi) / (Y0TM + YleftTM * tanhi)  # Eq. (5.24d)
                 end
                 # Compute region nl mode parameters:
                 γ = mysqrt(β² - k0sq * layers[nl].ϵᵣ * layers[nl].μᵣ)
@@ -555,25 +564,25 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
                     γ = mysqrt(β² - k0sq * layers[i].ϵᵣ * layers[i].μᵣ)
                     Y0TE = γ / layers[i].μᵣ # TE modal admittance (normalized)
                     Y0TM = layers[i].ϵᵣ / γ # TM modal admittance (normalized)
-                    tanhi = tanh(layers[i].width * γ) 
-                    YrightTE = Y0TE * (YrightTE + Y0TE*tanhi) / (Y0TE + YrightTE * tanhi)
-                    YrightTM = Y0TM * (YrightTM + Y0TM*tanhi) / (Y0TM + YrightTM * tanhi)
+                    tanhi = tanh(layers[i].width * γ)
+                    YrightTE = Y0TE * (YrightTE + Y0TE * tanhi) / (Y0TE + YrightTE * tanhi)
+                    YrightTM = Y0TM * (YrightTM + Y0TM * tanhi) / (Y0TM + YrightTM * tanhi)
                 end
                 # Compute summands (apart from phase factor and 1/A factor):
-                table1[m,n] = YleftTM + YrightTM  - (f1 + f3/κmn²) / κmn  # Eq. (5.26a)
-                ringsum1 += table1[m,n]
-                table2[m,n] = ((YleftTM+YrightTM)*k0sq + YleftTE + YrightTE) / β² - 
-                              (p1 + p3/κmn²) / κmn  # Eq. (5.26b)
-                ringsum2 += table2[m,n]
+                table1[m, n] = YleftTM + YrightTM - (f1 + f3 / κmn²) / κmn  # Eq. (5.26a)
+                ringsum1 += table1[m, n]
+                table2[m, n] = ((YleftTM + YrightTM) * k0sq + YleftTE + YrightTE) / β² -
+                               (p1 + p3 / κmn²) / κmn  # Eq. (5.26b)
+                ringsum2 += table2[m, n]
             end
             # Check for convergence of this ring
-            test1 = abs(ringsum1/table1[0,0])
-            test2 = abs(ringsum2/table2[0,0])
+            test1 = abs(ringsum1 / table1[0, 0])
+            test2 = abs(ringsum2 / table2[0, 0])
             convlist[r] = test1 < convtest && test2 < convtest
         end
 
         #  Check for convergence
-        if mmaxo2 ≥ convrepeat && all(@view convlist[(mmaxo2 - convrepeat + 1):mmaxo2])
+        if mmaxo2 ≥ convrepeat && all(@view convlist[(mmaxo2-convrepeat+1):mmaxo2])
             converged = true
             break
         else
@@ -581,39 +590,39 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
         end
     end
 
-    !converged && @warn "Inadequate Convergence" test1 test2 convtest mmax maxlog=5
+    !converged && @warn "Inadequate Convergence" test1 test2 convtest mmax maxlog = 5
 
     # Create proper sized storage arrays for FFT routine:
-    mmaxo2 = mmax÷2
-    table1t::Matrix{ComplexF64} = table1[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
-    table2t::Matrix{ComplexF64} = table2[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
+    mmaxo2 = mmax ÷ 2
+    table1t::Matrix{ComplexF64} = table1[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    table2t::Matrix{ComplexF64} = table2[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
     fft!(table1t)
-    fft!(table2t) 
+    fft!(table2t)
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/area:
     @inbounds for q in 0:mmax-1
-        qterm = q * (π - ψ₂/mmax)
+        qterm = q * (π - ψ₂ / mmax)
         @inbounds for p in 0:mmax-1
-            pterm = p * (π - ψ₁/mmax)
-            cfact = cis(pterm+qterm) / area
-            table1t[p+1,q+1] *= cfact
-            table2t[p+1,q+1] *= cfact
+            pterm = p * (π - ψ₁ / mmax)
+            cfact = cis(pterm + qterm) / area
+            table1t[p+1, q+1] *= cfact
+            table2t[p+1, q+1] *= cfact
         end
     end
-    
+
     # Create proper sized interpolation array---Note that we add an extra row
     # and extra column at both the beginning and end of each table to allow 
     # for extra points needed in the interpolation scheme.
-    table1 = OffsetArray(zeros(ComplexF64, mmax+2, mmax+2), -1:mmax, -1:mmax)
+    table1 = OffsetArray(zeros(ComplexF64, mmax + 2, mmax + 2), -1:mmax, -1:mmax)
     table1[0:mmax-1, 0:mmax-1] = table1t
-    table2 = OffsetArray(zeros(ComplexF64, mmax+2, mmax+2), -1:mmax, -1:mmax)
+    table2 = OffsetArray(zeros(ComplexF64, mmax + 2, mmax + 2), -1:mmax, -1:mmax)
     table2[0:mmax-1, 0:mmax-1] = table2t
     # Add extra row and column to cover all the way to ξ=1 and η=1:
     table1[mmax, 0:mmax-1] = cis(-ψ₁) * table1[0, 0:mmax-1]
     table1[0:mmax-1, mmax] = cis(-ψ₂) * table1[0:mmax-1, 0]
-    table1[mmax, mmax] = cis(-(ψ₁+ψ₂)) * table1[0,0]
+    table1[mmax, mmax] = cis(-(ψ₁ + ψ₂)) * table1[0, 0]
     table2[mmax, 0:mmax-1] = cis(-ψ₁) * table2[0, 0:mmax-1]
     table2[0:mmax-1, mmax] = cis(-ψ₂) * table2[0:mmax-1, 0]
-    table2[mmax, mmax] = cis(-(ψ₁+ψ₂)) * table2[0,0]
+    table2[mmax, mmax] = cis(-(ψ₁ + ψ₂)) * table2[0, 0]
     # Add extra row and column to cover all the way to ξ=-1/mmax and η=-1/mmax:
     table1[-1, 0:mmax] = cis(ψ₁) * table1[mmax-1, 0:mmax]
     table1[-1:mmax-1, -1] = cis(ψ₂) * table1[-1:mmax-1, mmax-1]
@@ -623,7 +632,7 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     Σpm1_func = make_Σm_func(table1, β₁, β₂, ψ₁, ψ₂)
     Σpm2_func = make_Σm_func(table2, β₁, β₂, ψ₁, ψ₂)
     t2 = time_ns()
-    tsec = round((t2-t1)/1e9; digits=tdigits)
+    tsec = round((t2 - t1) / 1e9; digits=tdigits)
     @logfile "      $tsec seconds to compute $mmax × $mmax magnetic modal tables"
     return (Σpm1_func, Σpm2_func)
 end
@@ -663,13 +672,13 @@ It is only used for comparison and testing purposes.
                for `Σm2`.
 """
 function direct_electric_modal_series(k0, u, ψ₁, ψ₂,
-                                      layers::Vector{Layer}, s, β₁,β₂,β₀₀, ρdif)
+    layers::Vector{Layer}, s, β₁, β₂, β₀₀, ρdif)
     max_rings = 3100 # Max number of rings for direct_modal_series.
-    Σm1 = OffsetArray(zeros(ComplexF64, max_rings+1), 0:max_rings) 
-    Σm2 = OffsetArray(zeros(ComplexF64, max_rings+1), 0:max_rings) 
+    Σm1 = OffsetArray(zeros(ComplexF64, max_rings + 1), 0:max_rings)
+    Σm2 = OffsetArray(zeros(ComplexF64, max_rings + 1), 0:max_rings)
 
-    mmax =  32 # Initial trial value
-    mmax_old = 0 
+    mmax = 32 # Initial trial value
+    mmax_old = 0
     converged = false
     k0sq = k0 * k0
     nl = length(layers)
@@ -682,13 +691,13 @@ function direct_electric_modal_series(k0, u, ψ₁, ψ₂,
     c3 = c3_calc(k0, u, layers[s].μᵣ, layers[s].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ)
     d3 = d3_calc(k0, u, layers[s].μᵣ, layers[s].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ)
 
-    function summands(m,n)
-        let β₀₀=β₀₀, u=u, layers=layers, s=s, nl=nl, k0sq=k0sq, c3=c3, d3=d3, ϵ̄=ϵ̄, μ̃=μ̃, β₁=β₁, β₂=β₂
-            βmn = β₀₀ + m*β₁ + n*β₂ 
+    function summands(m, n)
+        let β₀₀ = β₀₀, u = u, layers = layers, s = s, nl = nl, k0sq = k0sq, c3 = c3, d3 = d3, ϵ̄ = ϵ̄, μ̃ = μ̃, β₁ = β₁, β₂ = β₂
+            βmn = β₀₀ + m * β₁ + n * β₂
             β² = βmn ⋅ βmn
-            β²min = 1e-10*k0sq
+            β²min = 1e-10 * k0sq
             β² = max(β², β²min)  # Avoid singularity
-            κmn² = β² + u*u 
+            κmn² = β² + u * u
             κmn = sqrt(κmn²)
             # Compute region 1 mode parameters:
             γ = mysqrt(β² - k0sq * layers[1].ϵᵣ * layers[1].μᵣ)
@@ -703,8 +712,8 @@ function direct_electric_modal_series(k0, u, ψ₁, ψ₂,
                 Z0TM = γ / layers[i].ϵᵣ  # TM modal impedance (normalized)
                 tanhi = tanh(layers[i].width * γ)
                 # Eq. (5.14b):
-                ZleftTE = Z0TE * (ZleftTE + Z0TE*tanhi) / (Z0TE + ZleftTE*tanhi)
-                ZleftTM = Z0TM * (ZleftTM + Z0TM*tanhi) / (Z0TM + ZleftTM*tanhi)
+                ZleftTE = Z0TE * (ZleftTE + Z0TE * tanhi) / (Z0TE + ZleftTE * tanhi)
+                ZleftTM = Z0TM * (ZleftTM + Z0TM * tanhi) / (Z0TM + ZleftTM * tanhi)
             end
             # Compute region nl mode parameters:
             γ = mysqrt(β² - k0sq * layers[end].ϵᵣ * layers[end].μᵣ)
@@ -714,46 +723,46 @@ function direct_electric_modal_series(k0, u, ψ₁, ψ₂,
             for i in nl-1:-1:s+1
                 γ = mysqrt(β² - k0sq * layers[i].ϵᵣ * layers[i].μᵣ)
                 Z0TE = layers[i].μᵣ / γ
-                Z0TM = γ / layers[i].ϵᵣ  
-                tanhi = tanh(layers[i].width * γ) 
-                ZrightTE = Z0TE * (ZrightTE + Z0TE*tanhi) / (Z0TE + ZrightTE*tanhi)
-                ZrightTM = Z0TM * (ZrightTM + Z0TM*tanhi) / (Z0TM + ZrightTM*tanhi)
+                Z0TM = γ / layers[i].ϵᵣ
+                tanhi = tanh(layers[i].width * γ)
+                ZrightTE = Z0TE * (ZrightTE + Z0TE * tanhi) / (Z0TE + ZrightTE * tanhi)
+                ZrightTM = Z0TM * (ZrightTM + Z0TM * tanhi) / (Z0TM + ZrightTM * tanhi)
             end
             # Compute (normalized) TLGF's using Eq. (5.13):
             ViTE = ZleftTE * ZrightTE / (ZleftTE + ZrightTE)
             ViTM = ZleftTM * ZrightTM / (ZleftTM + ZrightTM)
             # Compute summands (apart from phase factor and 1/(2A) factor):
-            ViTE *= 2 / μ̃ 
-            summand1 = ViTE - (1 + c3/κmn²) / κmn 
-            ViTM *= 2 * ϵ̄ 
-            summand2 = (ViTM + (k0sq * ϵ̄ * μ̃) * ViTE) / β² - (1 + d3/κmn²) / κmn
+            ViTE *= 2 / μ̃
+            summand1 = ViTE - (1 + c3 / κmn²) / κmn
+            ViTM *= 2 * ϵ̄
+            summand2 = (ViTM + (k0sq * ϵ̄ * μ̃) * ViTE) / β² - (1 + d3 / κmn²) / κmn
             return summand1, summand2
         end
     end
 
 
-    Σ1, Σ2 = summands(0,0)
+    Σ1, Σ2 = summands(0, 0)
     Σm1[0] = Σ1 * cis(-(β₀₀ ⋅ ρdif))
     Σm2[0] = Σ2 * cis(-(β₀₀ ⋅ ρdif))
-    
+
     # Begin loop over summation lattice rings.
     for r in 1:max_rings
         sumring1 = zero(ComplexF64)
         sumring2 = zero(ComplexF64)
-        for (m,n) in Ring(r)
-            cfact = cis(-((β₀₀ + m*β₁ + n*β₂) ⋅ ρdif))
-            Σ1, Σ2 = summands(m,n)
+        for (m, n) in Ring(r)
+            cfact = cis(-((β₀₀ + m * β₁ + n * β₂) ⋅ ρdif))
+            Σ1, Σ2 = summands(m, n)
             sumring1 += Σ1 * cfact
             sumring2 += Σ2 * cfact
         end
         # Done with ring r.  Add ring contributions to sums.
         #Σm1[r] = Σm1[r-1] + sumring1 
         #Σm2[r] = Σm2[r-1] + sumring2 
-        Σm1[r] = sumring1 
-        Σm2[r] = sumring2 
+        Σm1[r] = sumring1
+        Σm2[r] = sumring2
     end
-#    cumsum!(Σm1, Σm1)
-#    cumsum!(Σm2, Σm2)
+    #    cumsum!(Σm1, Σm1)
+    #    cumsum!(Σm2, Σm2)
     Σm1 /= (2 * area)
     Σm2 /= (2 * area)
     return Σm1, Σm2
@@ -793,10 +802,10 @@ numerically efficient. It is only used for comparison and testing purposes.
                  for `Σm2`.
 """
 function direct_magnetic_modal_series(k0, u, ψ₁, ψ₂,
-                                      layers::Vector{Layer}, s, β₁,β₂,β₀₀, ρdif)
+    layers::Vector{Layer}, s, β₁, β₂, β₀₀, ρdif)
     max_rings = 3100 # Max number of rings for direct_modal_series.
-    Σm1 = OffsetArray(zeros(ComplexF64, max_rings+1), 0:max_rings) 
-    Σm2 = OffsetArray(zeros(ComplexF64, max_rings+1), 0:max_rings) 
+    Σm1 = OffsetArray(zeros(ComplexF64, max_rings + 1), 0:max_rings)
+    Σm2 = OffsetArray(zeros(ComplexF64, max_rings + 1), 0:max_rings)
 
     k0sq = k0 * k0
     nl = length(layers)
@@ -810,7 +819,7 @@ function direct_magnetic_modal_series(k0, u, ψ₁, ψ₂,
     c3sp1 = c3_calc(k0, u, layers[s+1].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ, layers[s+1].μᵣ)
     d3s = d3_calc(k0, u, layers[s].ϵᵣ, layers[s].μᵣ, layers[s].ϵᵣ, layers[s].μᵣ)
     d3sp1 = d3_calc(k0, u, layers[s+1].ϵᵣ, layers[s+1].μᵣ, layers[s+1].ϵᵣ, layers[s+1].μᵣ)
-    
+
     # Factors used in summands:
     f1 = 2 * ϵ̄
     f3 = layers[s].ϵᵣ * c3s + layers[s+1].ϵᵣ * c3sp1
@@ -818,21 +827,21 @@ function direct_magnetic_modal_series(k0, u, ψ₁, ψ₂,
     p3 = d3s / layers[s].μᵣ + d3sp1 / layers[s+1].μᵣ
 
 
-    function summands(m,n)
-        let β₀₀=β₀₀, u=u, layers=layers, s=s, nl=nl, k0sq=k0sq, c3s=
-            c3s, c3sp1=c3sp1, d3s=d3s, d3sp1=d3sp1, f1=f1, f3=f3, p1=p1, p3=p3,
-            β₁=β₁, β₂=β₂
-            
-            βmn = β₀₀ + m*β₁ + n*β₂ 
+    function summands(m, n)
+        let β₀₀ = β₀₀, u = u, layers = layers, s = s, nl = nl, k0sq = k0sq, c3s =
+                c3s, c3sp1 = c3sp1, d3s = d3s, d3sp1 = d3sp1, f1 = f1, f3 = f3, p1 = p1, p3 = p3,
+            β₁ = β₁, β₂ = β₂
+
+            βmn = β₀₀ + m * β₁ + n * β₂
             β² = βmn ⋅ βmn
-            β²min = 1e-10*k0sq
+            β²min = 1e-10 * k0sq
             β² = max(β², β²min)  # Avoid singularity
-            κmn² = β² + u*u 
+            κmn² = β² + u * u
             κmn = sqrt(κmn²)
             # Compute region 1 mode parameters:
             γ = mysqrt(β² - k0sq * layers[1].ϵᵣ * layers[1].μᵣ)
             # Calculate TE modal admittance of Region 1, multiplied by jωμ₀:
-            YleftTE = γ / layers[1].μᵣ 
+            YleftTE = γ / layers[1].μᵣ
             # Calculate TM modal admittance of Region 1, divided by jωϵ₀:
             YleftTM = layers[1].ϵᵣ / γ
             # Step left-looking impedances up to junction s using Eq. (5.24):
@@ -841,8 +850,8 @@ function direct_magnetic_modal_series(k0, u, ψ₁, ψ₂,
                 Y0TE = γ / layers[i].μᵣ  # TE modal admittance (normalized)
                 Y0TM = layers[i].ϵᵣ / γ  # TM modal admittance (normalized)
                 tanhi = tanh(layers[i].width * γ)
-                YleftTE = Y0TE * (YleftTE + Y0TE*tanhi) / (Y0TE + YleftTE * tanhi)  # Eq. (5.24d)
-                YleftTM = Y0TM * (YleftTM + Y0TM*tanhi) / (Y0TM + YleftTM * tanhi)  # Eq. (5.24d)
+                YleftTE = Y0TE * (YleftTE + Y0TE * tanhi) / (Y0TE + YleftTE * tanhi)  # Eq. (5.24d)
+                YleftTM = Y0TM * (YleftTM + Y0TM * tanhi) / (Y0TM + YleftTM * tanhi)  # Eq. (5.24d)
             end
             # Compute region nl mode parameters:
             γ = mysqrt(β² - k0sq * layers[nl].ϵᵣ * layers[nl].μᵣ)
@@ -853,37 +862,37 @@ function direct_magnetic_modal_series(k0, u, ψ₁, ψ₂,
                 γ = mysqrt(β² - k0sq * layers[i].ϵᵣ * layers[i].μᵣ)
                 Y0TE = γ / layers[i].μᵣ # TE modal admittance (normalized)
                 Y0TM = layers[i].ϵᵣ / γ # TM modal admittance (normalized)
-                tanhi = tanh(layers[i].width * γ) 
-                YrightTE = Y0TE * (YrightTE + Y0TE*tanhi) / (Y0TE + YrightTE * tanhi)
-                YrightTM = Y0TM * (YrightTM + Y0TM*tanhi) / (Y0TM + YrightTM * tanhi)
+                tanhi = tanh(layers[i].width * γ)
+                YrightTE = Y0TE * (YrightTE + Y0TE * tanhi) / (Y0TE + YrightTE * tanhi)
+                YrightTM = Y0TM * (YrightTM + Y0TM * tanhi) / (Y0TM + YrightTM * tanhi)
             end
             # Compute summands (apart from phase factor and 1/A factor):
-            summand1 = YleftTM + YrightTM  - (f1 + f3/κmn²) / κmn  # Eq. (5.26a)
-            summand2 = ((YleftTM+YrightTM)*k0sq + YleftTE + YrightTE) / β² - 
-                                             (p1 + p3/κmn²) / κmn  # Eq. (5.26b)
+            summand1 = YleftTM + YrightTM - (f1 + f3 / κmn²) / κmn  # Eq. (5.26a)
+            summand2 = ((YleftTM + YrightTM) * k0sq + YleftTE + YrightTE) / β² -
+                       (p1 + p3 / κmn²) / κmn  # Eq. (5.26b)
             return summand1, summand2
         end
     end
 
 
-    Σ1, Σ2 = summands(0,0)
+    Σ1, Σ2 = summands(0, 0)
     Σm1[0] = Σ1 * cis(-(β₀₀ ⋅ ρdif))
     Σm2[0] = Σ2 * cis(-(β₀₀ ⋅ ρdif))
     # Begin loop over summation lattice rings.
     for r in 1:max_rings
         sumring1 = zero(ComplexF64)
         sumring2 = zero(ComplexF64)
-        for (m,n) in Ring(r)
-            cfact = cis(-((β₀₀ + m*β₁ + n*β₂) ⋅ ρdif))
-            Σ1, Σ2 = summands(m,n)
+        for (m, n) in Ring(r)
+            cfact = cis(-((β₀₀ + m * β₁ + n * β₂) ⋅ ρdif))
+            Σ1, Σ2 = summands(m, n)
             sumring1 += Σ1 * cfact
             sumring2 += Σ2 * cfact
         end
         # Done with ring r.  Add ring contributions to sums.
         #Σm1[r] = Σm1[r-1] + sumring1 
         #Σm2[r] = Σm2[r-1] + sumring2 
-        Σm1[r] = sumring1 
-        Σm2[r] = sumring2 
+        Σm1[r] = sumring1
+        Σm2[r] = sumring2
     end
     Σm1 /= area
     Σm2 /= area

@@ -21,23 +21,23 @@ function newlevels_filter(log_args)
 end
 
 function notnew_filter(log_args)
-    log_args.level ∉ (ScreenLevel,FileLevel)
+    log_args.level ∉ (ScreenLevel, FileLevel)
 end
 
 function plain_logger(logfile)
-    isfile(logfile) && rm(logfile) 
+    isfile(logfile) && rm(logfile)
     FormatLogger() do io, args
-        open(logfile,"a") do f
+        open(logfile, "a") do f
             println(f, args.message)
         end
         args.level == ScreenLevel && println(args.message)
     end
 end
 
-pssfss_logger(logfile) = 
+pssfss_logger(logfile) =
     TeeLogger(
-        EarlyFilteredLogger(notnew_filter, global_logger()), 
+        EarlyFilteredLogger(notnew_filter, global_logger()),
         EarlyFilteredLogger(newlevels_filter, plain_logger(logfile))
-             )
+    )
 
 end # module

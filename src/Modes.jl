@@ -47,10 +47,10 @@ will have fields `β₁` and `β₂` appropriately set, and will have the arrays
 - `dbmin`  Minimum attenuation any neglected mode must incur (dB > 0).
 """
 function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, junc::Vector{Int},
-                                                 gbl::Vector{Gblock}, k0max::Float64, dbmin::Float64=dbmin)
+    gbl::Vector{Gblock}, k0max::Float64, dbmin::Float64=dbmin)
 
     nl = length(layers)
-    nj = nl-1 # number of dielectric junctions
+    nj = nl - 1 # number of dielectric junctions
     ns = length(sheets)
     ngbl = length(gbl)
 
@@ -74,11 +74,11 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
 
     pure_radome = true
     for isht in junc
-      if isht ≠ 0 && sheets[isht].style ≠ "NULL"
-        pure_radome = false 
-        break
-      end
-    end 
+        if isht ≠ 0 && sheets[isht].style ≠ "NULL"
+            pure_radome = false
+            break
+        end
+    end
 
     if pure_radome
         for l in layers
@@ -98,7 +98,7 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
         first_sheet = junc[gbl[first_gbl].j] # sheet index 
         # Assign equivalence class numbers to the interfaces based on the 
         # unit cell of the sheet located there:
-        upa = find_unique_periods(junc, sheets) 
+        upa = find_unique_periods(junc, sheets)
         # Treat all unassigned layers that are adjacent to a gbl containing an FSS screen:
         for igbl in 1:ngbl
             g = gbl[igbl]
@@ -113,12 +113,12 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
             i1 = g.rng[1] # Index of layer to left of current GBLOCK.
             i2 = 1 + g.rng[end] # Index of layer to right of current GBLOCK.
             for i in [i1, i2]
-                (i==1 || i==nl) && continue  # Skip boundary layers.
+                (i == 1 || i == nl) && continue  # Skip boundary layers.
                 # Determine neighboring gblock to the outside: 
                 if i == i1
-                    igbl_other = max(igbl-1, 1)
+                    igbl_other = max(igbl - 1, 1)
                 else
-                    igbl_other = min(igbl+1, ngbl)
+                    igbl_other = min(igbl + 1, ngbl)
                 end
                 ijunc_other = gbl[igbl_other].j
                 if ijunc_other ≠ 0
@@ -133,14 +133,14 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                     # These values must be changed to 0 if there is also another GBLOCK
                     # adjacent to layer i containing a nonnull sheet with a different periodicity:
                     if ijunc_other ≠ 0 && upa[ijunc] ≠ upa[ijunc_other] &&
-                       sheets[isht_other].style ≠ "NULL" 
-                        @logfile    """
-                                    ******************* Warning ***********************
-                                       Unequal unit cells in sheets $(isht) and $(isht_other)
-                                       Setting #modes in dividing layer $(i) to 2
-                                    ******************* Warning ***********************
-                                  
-                                    """
+                       sheets[isht_other].style ≠ "NULL"
+                        @logfile """
+                                 ******************* Warning ***********************
+                                    Unequal unit cells in sheets $(isht) and $(isht_other)
+                                    Setting #modes in dividing layer $(i) to 2
+                                 ******************* Warning ***********************
+
+                                 """
                         MNmax = 0
                     end
                     # Select the mode indices for layer i:
@@ -151,7 +151,7 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                     # IF the periodicity of that FSS is inconsistent with that of the current gblock
                     # then we can't satisfy both requirements, so abort.
                     if ijunc_other ≠ 0 && upa[ijunc] ≠ upa[ijunc_other] && length(layers[i].P) ≠ 2 &&
-                        sheets[isht_other].style ≠ "NULL"
+                       sheets[isht_other].style ≠ "NULL"
                         error("""
                         Unequal unit cells in sheets $(isht) and $(isht_other).
                                Try dividing layer $(i) into 2 halves. """)
@@ -159,7 +159,7 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                 end
             end
         end # for
-    
+
 
         # At this point, all layers adjacent to a Gblock containing an FSS sheet have 
         # been assigned modes.  Now we assign mode index values to the remaining layers 
@@ -170,7 +170,7 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                 mset[i] && continue
                 if mset[i-1] && mset[i+1]
                     # Both adjacent layers have been assigned.
-                    if equal_layer_periodicity(layers[i-1],layers[i+1])
+                    if equal_layer_periodicity(layers[i-1], layers[i+1])
                         # The two adjacent layers have the same periodicity.  Choose
                         # the accessible modes from among the two sets of adjacent ones.
                         layers[i].β₁ = copy(layers[i+1].β₁)
@@ -198,19 +198,19 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                                 Setting # modes in Layer $(i) to 2 due to 
                                 unequal unit cells in surrounding FSS sheets 
                             ******************* Warning ***********************
-                          
+
                             """
                         end
                     end
-                elseif  mset[i-1] && !mset[i+1]
+                elseif mset[i-1] && !mset[i+1]
                     # Only layer to the left has been assigned.
-                    i-1 == 1 && @goto nextouter # Don't rely on end layer.
+                    i - 1 == 1 && @goto nextouter # Don't rely on end layer.
                     copy_βs_pmn!(layers[i], layers[i-1])
                     select_pmn!(layers[i], k0max, dbmin)
                     mset[i] = true
                 elseif !mset[i-1] && mset[i+1]
                     # Only layer to the right has been assigned.
-                    i+1 == nl && @goto nextouter # Don't rely on end layer.
+                    i + 1 == nl && @goto nextouter # Don't rely on end layer.
                     copy_βs_pmn!(layers[i], layers[i+1])
                     select_pmn!(layers[i], k0max, dbmin)
                     mset[i] = true
@@ -238,7 +238,7 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
             il = notinablock[i] # layers[il] and layers[il+1] are adjacent
             equal_layer_periodicity(layers[il], layers[il+1]) && continue
             for l in layers[il:il+1]
-                l.P = [TE,TM]
+                l.P = [TE, TM]
                 l.M = [0, 0]
                 l.N = [0, 0]
             end
@@ -247,28 +247,28 @@ function choose_layer_modes!(layers::Vector{Layer}, sheets::Vector{RWGSheet}, ju
                 Setting # modes in layers $(il) and $(il+1) to 2 due
                 to unequal unit cells in surrounding FSS sheets 
             ******************* Warning ***********************
-          
+
             """
         end
     end # if
 
 
     # Now we allocate the other Layer field vectors
-    maxmodes = 2*(2*MNmax_default+1)^2
+    maxmodes = 2 * (2 * MNmax_default + 1)^2
     for i in notinablock
         layer = layers[i]
         nmodes = length(layer.P)
         for field in (:β, :γ, :Y, :c, :tvec)
-            setfield!(layer, field, zeros(eltype(getfield(layer,field)), nmodes))
+            setfield!(layer, field, zeros(eltype(getfield(layer, field)), nmodes))
         end
-        nmodes == maxmodes &&  @logfile """
-        ******************* Warning ************************
-        Maximum number of modes reached. GSM results may not
-        be accurate.  Consider increasing MNmax_default from
-        its current value of $(MNmax_default)
-        ******************* Warning ************************
-      
-        """
+        nmodes == maxmodes && @logfile """
+       ******************* Warning ************************
+       Maximum number of modes reached. GSM results may not
+       be accurate.  Consider increasing MNmax_default from
+       its current value of $(MNmax_default)
+       ******************* Warning ************************
+
+       """
     end
 
     return nothing
@@ -301,18 +301,18 @@ function setup_modes!(layer::Layer, k0::Real, kvec::AbstractVector)
     area = twopi^2 / norm(β₁ × β₂)
     ksq = k0^2 * layer.ϵᵣ * layer.μᵣ
     for mode in 1:length(layer.M)
-        m,n,p = layer.M[mode], layer.N[mode], layer.P[mode]
-        β = β₀₀ + m*β₁ + n*β₂
+        m, n, p = layer.M[mode], layer.N[mode], layer.P[mode]
+        β = β₀₀ + m * β₁ + n * β₂
         β² = β ⋅ β
-        β̂ = β²*area < 1e-14 ? SVector(1.0, 0.0) : β/norm(β)
+        β̂ = β² * area < 1e-14 ? SVector(1.0, 0.0) : β / norm(β)
         layer.β[mode] = β
         layer.γ[mode] = γ = mysqrt(β² - ksq)
         if p == TE
-            Y = γ / (im * (k0*η₀) * layer.μᵣ)
+            Y = γ / (im * (k0 * η₀) * layer.μᵣ)
             tvec = zhatcross(β̂)
         else
-          Y = im * (k0/η₀) * layer.ϵᵣ / γ
-          tvec = β̂
+            Y = im * (k0 / η₀) * layer.ϵᵣ / γ
+            tvec = β̂
         end
         layer.Y[mode] = Y
         layer.tvec[mode] = tvec
@@ -321,7 +321,7 @@ function setup_modes!(layer::Layer, k0::Real, kvec::AbstractVector)
     return nothing
 end
 
-function zhatcross(x::T) where T
+function zhatcross(x::T) where {T}
     T([-x[2], x[1]])
 end
 
@@ -366,15 +366,15 @@ mode lattice to consider.
 """
 function fill_mmax_pmn!(layer::Layer, MNmax::Int, k0max, dbmin)
     MNmax ≥ 0 || error("MNmax must be nonnegative")
-    n = 2 * (2MNmax+1)^2
+    n = 2 * (2MNmax + 1)^2
     layer.M = zeros(Int, n)
     layer.N = zeros(Int, n)
     layer.P = [TE for _ in 1:n]
     mode = 1
-    for ring in 0:MNmax, (m,n) in Ring(ring)
+    for ring in 0:MNmax, (m, n) in Ring(ring)
         layer.M[mode:mode+1] .= m
         layer.N[mode:mode+1] .= n
-        layer.P[mode:mode+1] .= (TE,TM)
+        layer.P[mode:mode+1] .= (TE, TM)
         mode += 2
     end
     select_pmn!(layer, k0max, dbmin)
@@ -398,24 +398,24 @@ propagating modes
 """
 function select_pmn!(layer::Layer, k0max, dbmin=-Inf)
     β₁, β₂ = layer.β₁, layer.β₂  # Reciprocal lattice vectors (1/m)
-    kmaxsq = k0max^2  * (layer.ϵᵣ * layer.μᵣ)
+    kmaxsq = k0max^2 * (layer.ϵᵣ * layer.μᵣ)
     if isfinite(dbmin)
         αh_test = dbmin / 8.6859 # Convert from dB to nepers
         keep = map(1:length(layer.P)) do mode
             (layer.M[mode] == layer.N[mode] == 0) && (return true)
             # Obtain min value of ||βₘₙ|| for this mode for any angle of incidence
-            β = norm(layer.M[mode]*β₁ + layer.N[mode]*β₂)
+            β = norm(layer.M[mode] * β₁ + layer.N[mode] * β₂)
             βmin = β ≤ k0max ? 0.0 : β - k0max
             γ = mysqrt(βmin^2 - kmaxsq) # modal complex atten. constant
             αh = real(γ) * layer.width
-            return  αh < αh_test
+            return αh < αh_test
         end
     else
         keep = map(1:length(layer.P)) do mode
-            βvec = layer.M[mode]*β₁ + layer.N[mode]*β₂
+            βvec = layer.M[mode] * β₁ + layer.N[mode] * β₂
             β² = βvec ⋅ βvec
             γ = mysqrt(β² - kmaxsq) # modal complex atten. constant
-            return  imag(γ) ≥ real(γ)
+            return imag(γ) ≥ real(γ)
         end
     end
     layer.M = layer.M[keep]
@@ -423,10 +423,10 @@ function select_pmn!(layer::Layer, k0max, dbmin=-Inf)
     layer.P = layer.P[keep]
 
     # Eliminate possible duplicate mode triples (p,m,n)
-    MN = repeat(unique([layer.M  layer.N], dims=1), inner=(2,1))
-    layer.M = MN[:,1]
-    layer.N = MN[:,2]
-    layer.P = repeat([TE,TM], outer=length(layer.M)÷2)
+    MN = repeat(unique([layer.M layer.N], dims=1), inner=(2, 1))
+    layer.M = MN[:, 1]
+    layer.N = MN[:, 2]
+    layer.P = repeat([TE, TM], outer=length(layer.M) ÷ 2)
     return nothing
 end
 

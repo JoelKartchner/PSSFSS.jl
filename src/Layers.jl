@@ -10,7 +10,7 @@ using StaticArrays: SVector
 
 export Layer, Gblock, TEorTM, TE, TM
 
-@enum TEorTM TE=1 TM=2
+@enum TEorTM TE = 1 TM = 2
 
 """
     Layer <: Any
@@ -68,30 +68,30 @@ mutable struct Layer
     Y::Vector{ComplexF64} # Modal admittances (Siemens)
     c::Vector{ComplexF64} # Modal normalization constants (volts/meter)
     tvec::Vector{SVector{2,Float64}} # Modal unit electric field vectors (unitless)
-    
+
     # Interior constructor:
-    function Layer(;name="Layer", width::Unitful.Length=0u"mm", ϵᵣ::Real=1.0, epsr::Real=1.0,
-                   tanδ::Real=0.0, tandel::Real=0.0, μᵣ::Real=1.0, mur::Real=1.0,
-                   mtanδ::Real=0.0, mtandel::Real=0.0)
-        epsr ≠ 1.0 && (ϵᵣ=epsr)
-        mur ≠ 1.0 && (μᵣ=mur)
-        tandel ≠ 0.0 && (tanδ=tandel)
-        mtandel ≠ 0.0 && (mtanδ=mtandel)
+    function Layer(; name="Layer", width::Unitful.Length=0u"mm", ϵᵣ::Real=1.0, epsr::Real=1.0,
+        tanδ::Real=0.0, tandel::Real=0.0, μᵣ::Real=1.0, mur::Real=1.0,
+        mtanδ::Real=0.0, mtandel::Real=0.0)
+        epsr ≠ 1.0 && (ϵᵣ = epsr)
+        mur ≠ 1.0 && (μᵣ = mur)
+        tandel ≠ 0.0 && (tanδ = tandel)
+        mtandel ≠ 0.0 && (mtanδ = mtandel)
         cϵᵣ = ϵᵣ * complex(1.0, -tanδ)
-        cμᵣ = μᵣ * complex(1.0, -mtanδ) 
+        cμᵣ = μᵣ * complex(1.0, -mtanδ)
         new(name, cϵᵣ, cμᵣ, width, float(ustrip(u"m", width)),
-            TEorTM[], Int[], Int[], SVector{2}([0.,0.]), SVector{2}([0.,0.]), 
-            SVector{2,Float64}[], ComplexF64[], ComplexF64[], ComplexF64[], 
+            TEorTM[], Int[], Int[], SVector{2}([0.0, 0.0]), SVector{2}([0.0, 0.0]),
+            SVector{2,Float64}[], ComplexF64[], ComplexF64[], ComplexF64[],
             SVector{2,Float64}[])
     end # function
 end # struct
 
-Base.:(==)(l1::Layer, l2::Layer) = 
-             all(f -> getfield(l1, f) == getfield(l2, f), 1:nfields(l1))
+Base.:(==)(l1::Layer, l2::Layer) =
+    all(f -> getfield(l1, f) == getfield(l2, f), 1:nfields(l1))
 
 Base.show(io::IO, ::MIME"text/plain", l::Layer) =
-    print(io, l.name, ": width=", l.user_width, ", ϵᵣ=", real(l.ϵᵣ), ", tanδ=", -imag(l.ϵᵣ)/real(l.ϵᵣ),
-            ", μᵣ=", real(l.μᵣ), ", mtanδ=", -imag(l.μᵣ)/real(l.μᵣ), ", ", length(l.P), " modes" )
+    print(io, l.name, ": width=", l.user_width, ", ϵᵣ=", real(l.ϵᵣ), ", tanδ=", -imag(l.ϵᵣ) / real(l.ϵᵣ),
+        ", μᵣ=", real(l.μᵣ), ", mtanδ=", -imag(l.μᵣ) / real(l.μᵣ), ", ", length(l.P), " modes")
 
 
 

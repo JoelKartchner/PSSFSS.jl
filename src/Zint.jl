@@ -53,15 +53,15 @@ the generalized impedance matrix.
 """
 function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
     ξ = SVector(0.33333333333333330, 0.10128650732345633, 0.79742698535308730,
-                0.10128650732345633, 0.47014206410511505, 0.05971587178976989,
-                0.47014206410511505)
+        0.10128650732345633, 0.47014206410511505, 0.05971587178976989,
+        0.47014206410511505)
     η = SVector(0.33333333333333333, 0.79742698535308730, 0.10128650732345633,
-                0.10128650732345633, 0.05971587178976989, 0.47014206410511505,
-                0.47014206410511505)
+        0.10128650732345633, 0.05971587178976989, 0.47014206410511505,
+        0.47014206410511505)
     wght = SVector(0.1125, 0.06296959027241358, 0.06296959027241358, 0.06296959027241358,
-                   0.06619707639425308, 0.06619707639425308, 0.06619707639425308)
+        0.06619707639425308, 0.06619707639425308, 0.06619707639425308)
 
-    next = (2, 3, 1) 
+    next = (2, 3, 1)
 
     nface = size(metal.fe, 2) # Number of faces in triangulated sheet.
     nedge = length(metal.e1) # Number of edges in triangulated sheet.
@@ -72,10 +72,10 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
     K = zeros(ComplexF64, nufp)
     K_ξ = zeros(ComplexF64, nufp)
     K_η = zeros(ComplexF64, nufp)
-    ρ_r = zeros(typeof(SV2(0.,0.)), nufp)
-    rinv = zeros(Float64, nufp) 
+    ρ_r = zeros(typeof(SV2(0.0, 0.0)), nufp)
+    rinv = zeros(Float64, nufp)
 
-    i2s = CartesianIndices((nface,nface))
+    i2s = CartesianIndices((nface, nface))
 
     ulocal = metal.u  # Obtain smoothing parameter in units that
     #                 # are consistent with metal's length units.
@@ -86,8 +86,8 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         ifmifs = rwgdat.ufp2fp[iufp][1]  # Obtain index into face/face matrix
         rowcol = i2s[ifmifs]
         ifm, ifs = rowcol[1], rowcol[2] # indices of match and source triangles
-        is = @view metal.fe[:,ifs]     # Obtain the three edges of the source triangle.
-        
+        is = @view metal.fe[:, ifs]     # Obtain the three edges of the source triangle.
+
         #vtxcrd!(rs, ifs, metal) # Obtain coordinates of source tri's vertices
         rs = vtxcrd(ifs, metal) # Obtain coordinates of source tri's vertices
         # Calculate twice the signed area of the source triangle
@@ -102,13 +102,13 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
 
         rs31 = rs[3] - rs[1]
         rs21 = -rs12
-      
+
         self_tri = ifm == ifs
         clsflg = self_tri || closed  # Extract if self or if always
-        im = @view metal.fe[:,ifm]   # Obtain the three edges of the observation triangle
+        im = @view metal.fe[:, ifm]   # Obtain the three edges of the observation triangle
         rm = vtxcrd(ifm, metal) # observation triangle vertex coordinates
         rmc = mean(rm) # observation face centroid (meters)
-        
+
         for i ∈ 1:length(ξ)   # Loop for numerical integration
             rt = rs[1] + rs21 * ξ[i] + rs31 * η[i] # Source point
             uρ00 = ulocal * (rmc - rt)
@@ -130,26 +130,26 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
                 # Find components of l, unit tangent vector to edge #i
                 lvec = rs[ip1] - rs[i]
                 lvec /= norm(lvec)  # Make into unit vector.
-                
+
                 # Find unit outward normal to edge i, lying in plane z = 0
                 uvec = -unz * zhatcross(lvec) # so (ux,uy) = (ly * unz, -lx * unz)
-                
+
                 # Compute signed perp. distance from observation point to edge #i
                 p0 = uvec ⋅ (rs[i] - rmc)
                 p0sq = p0 * p0
-                
+
                 # Compute lplus and lminus as defined in the reference
-                lp = lvec ⋅ (rs[ip1] - rmc) 
-                lm = lvec ⋅ (rs[i] - rmc) 
+                lp = lvec ⋅ (rs[ip1] - rmc)
+                lm = lvec ⋅ (rs[i] - rmc)
                 ledge = lp - lm   # Length of the edge
-                
+
                 pplus = sqrt(p0sq + lp * lp)
                 pminus = sqrt(p0sq + lm * lm)
-                
+
                 # Check for special case of observation point on extension of edge #i
-                if abs(p0/ledge) < 1e-4
+                if abs(p0 / ledge) < 1e-4
                     p0 = 0.0
-                    factor = lp * pplus  -  lm * pminus
+                    factor = lp * pplus - lm * pminus
                 else
                     factor = p0 * log((pplus + lp) / (pminus + lm))
                     rinv[iufp] += factor
@@ -163,20 +163,20 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
             ρ_r[iufp] /= area2  # Make it unitless
             rinv[iufp] /= (area2 * ulocal) # Make it unitless
         end
-      
+
     end
 
-    metal.J = J 
-    metal.J_ξ = J_ξ 
-    metal.J_η = J_η 
-    metal.K = K 
-    metal.K_ξ = K_ξ 
-    metal.K_η = K_η 
-    metal.ρ_r = ρ_r 
-    metal.rinv = rinv 
+    metal.J = J
+    metal.J_ξ = J_ξ
+    metal.J_η = J_η
+    metal.K = K
+    metal.K_ξ = K_ξ
+    metal.K_η = K_η
+    metal.ρ_r = ρ_r
+    metal.rinv = rinv
 
     return nothing
-end  
+end
 
 #=
 """
@@ -193,7 +193,7 @@ end
  Return the coordinates (in local units) of the triangle vertices for face iface.
 """
 @inline function vtxcrd(iface, metal)
-    vi = @view metal.fv[:,iface] # Vertex indices
+    vi = @view metal.fv[:, iface] # Vertex indices
     @view metal.ρ[vi]
 end
 
@@ -215,15 +215,15 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
 - `I1`, `I1_ξ`, `I1_η`, `I2`: Complex, frequency-dependent, spectral integrals defined
                               by Eqs (7.22a), (7.27), and (7.32a).  Their units are (1/m).
 """
-@inline function zint(Σm1_func, Σm2_func, rs, rmc) 
+@inline function zint(Σm1_func, Σm2_func, rs, rmc)
     ξ = SVector(0.33333333333333330, 0.10128650732345633, 0.79742698535308730,
-                0.10128650732345633, 0.47014206410511505, 0.05971587178976989,
-                0.47014206410511505)
+        0.10128650732345633, 0.47014206410511505, 0.05971587178976989,
+        0.47014206410511505)
     η = SVector(0.33333333333333333, 0.79742698535308730, 0.10128650732345633,
-                0.10128650732345633, 0.05971587178976989, 0.47014206410511505,
-                0.47014206410511505)
+        0.10128650732345633, 0.05971587178976989, 0.47014206410511505,
+        0.47014206410511505)
     wght = SVector(0.1125, 0.06296959027241358, 0.06296959027241358, 0.06296959027241358,
-                   0.06619707639425308, 0.06619707639425308, 0.06619707639425308)
+        0.06619707639425308, 0.06619707639425308, 0.06619707639425308)
 
     I1_ξ = zero(ComplexF64)
     I1_η = zero(ComplexF64)
@@ -231,8 +231,8 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
     I2 = zero(ComplexF64)
 
     for i ∈ 1:length(ξ)
-        rt = rs[1] + (rs[2] - rs[1]) * ξ[i]  +  (rs[3] - rs[1]) * η[i] # Source point
-        ρdif = rmc - rt 
+        rt = rs[1] + (rs[2] - rs[1]) * ξ[i] + (rs[3] - rs[1]) * η[i] # Source point
+        ρdif = rmc - rt
         sig1 = Σm1_func(ρdif)::ComplexF64
         sig2 = Σm2_func(ρdif)::ComplexF64
         sig1wght = sig1 * wght[i]
@@ -241,7 +241,7 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
         I1 += sig1wght
         I2 += sig2 * wght[i]
     end
-    return   (I1, I1_ξ, I1_η, I2)
+    return (I1, I1_ξ, I1_η, I2)
 end  # function
 
 end # module
