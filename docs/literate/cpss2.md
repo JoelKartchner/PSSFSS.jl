@@ -17,7 +17,7 @@ high-order modes in the generalized scattering matrix (GSM) formulation.
 We begin by computing the skin depth and sheet resistance for the
 copper traces.  The conductivity and thickness are as stated in the paper:
 
-```@example cpss2
+````@example cpss2
 # Compute skin depth and sheet resistance:
 using PSSFSS.Constants: μ₀ # free-space permeability [H/m]
 f = (10:0.1:20) * 1e9 # frequencies in Hz
@@ -25,12 +25,12 @@ f = (10:0.1:20) * 1e9 # frequencies in Hz
 t = 18e-6 # metalization thickness [m]
 Δ = sqrt.(2 ./ (2π*f*σ*μ₀)) # skin depth [m]
 @show extrema(t./Δ)
-```
+````
 
-```@example cpss2
+````@example cpss2
 Rs = 1 ./ (σ * Δ)
 @show extrema(Rs)
-```
+````
 
 We see that the metal is many skin depths thick (effectively infinitely thick) so that we can use
 the thick metal surface sheet resistance formula.  Since the latter varies with frequency, we approximate
@@ -38,7 +38,7 @@ it over the band 10-20 GHz by a value near its mean: 0.032 Ω/□.
 
 Here is the script that analyzes the design from the referenced paper:
 
-```@example cpss2
+````@example cpss2
 using PSSFSS
 P = 5.2 # side length of unit square
 d1 = 2.61 # Inner layer thickness
@@ -82,11 +82,11 @@ flist = 10:0.1:20
 results = analyze(strata, flist, steering, logfile=devnull,
                   resultfile=devnull, showprogress=false)
 nothing # hide
-```
+````
 
 The PSSFSS run took about 85 seconds on my machine.  Here are plots of the five sheets:
 
-```@example cpss2
+````@example cpss2
 using Plots
 default()
 ps = []
@@ -95,7 +95,7 @@ for k in 1:5
 end
 plot(ps..., layout=5)
 savefig("cpssb1.png"); nothing  # hide
-```
+````
 
 ![](cpssb1.png)
 
@@ -137,7 +137,7 @@ accurate cascading.
 Here are comparison plots of PSSFSS versus highly converged CST predictions digitized from
 plots presented in the paper:
 
-```@example cpss2
+````@example cpss2
 using Plots, DelimitedFiles
 RLl = -extract_result(results, @outputs s11db(l,l))
 AR11l = extract_result(results, @outputs ar11db(l))
@@ -152,37 +152,37 @@ plot(flist,RLl,title="LHCP → LHCP Return Loss", label="PSSFSS",
 cst = readdlm("../src/assets/ericsson_cpss_digitized_rllhcp.csv", ',')
 plot!(cst[:,1], cst[:,2], label="CST")
 savefig("cpssb2.png"); nothing  # hide
-```
+````
 
 ![](cpssb2.png)
 
-```@example cpss2
+````@example cpss2
 plot(flist,AR11l,title="LHCP → LHCP Reflected Axial Ratio", label="PSSFSS",
          ylabel="Axial Ratio (dB)", ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/ericsson_cpss_digitized_arlhcp.csv", ',')
 plot!(cst[:,1], cst[:,2], label="CST")
 savefig("cpssb3.png"); nothing  # hide
-```
+````
 
 ![](cpssb3.png)
 
-```@example cpss2
+````@example cpss2
 plot(flist,AR21r,title="RHCP → RHCP Transmitted Axial Ratio", label="PSSFSS",
      ylabel="Axial Ratio (dB)", ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/ericsson_cpss_digitized_arrhcp.csv", ',')
 plot!(cst[:,1], cst[:,2], label="CST")
 savefig("cpssb4.png"); nothing  # hide
-```
+````
 
 ![](cpssb4.png)
 
-```@example cpss2
+````@example cpss2
 plot(flist,IL21r,title="RHCP → RHCP Insertion Loss", label="PSSFSS",
          ylabel="Insertion Loss (dB)", ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/ericsson_cpss_digitized_ilrhcp.csv", ',')
 plot!(cst[:,1], cst[:,2], label="CST")
 savefig("cpssb5.png"); nothing  # hide
-```
+````
 
 ![](cpssb5.png)
 

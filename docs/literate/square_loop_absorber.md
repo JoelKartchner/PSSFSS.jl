@@ -12,7 +12,7 @@ We compare the reflection coefficient magnitudes computed by PSSFSS with those d
 from the cited figure when the sheet is suspended
 5 mm above a ground plane, hence we will also make use of the `pecsheet` function.
 
-```@example square_loop_absorber
+````@example square_loop_absorber
 using Plots, PSSFSS, DelimitedFiles
 D = 11 # Period of square lattice (mm)
 r_outer = √2/2 * D/8 * [5,6,7] # radii of square outer vertices
@@ -42,16 +42,16 @@ for (i,(ri, ro, label, color, R)) in enumerate(zip(r_inner, r_outer, labels, col
 end
 plot(ps..., layout=(1,3))
 savefig("sqloop1.png"); nothing  # hide
-```
+````
 
 ![](sqloop1.png)
 
 This run takes about 85 seconds on my machine.
 
-```@example square_loop_absorber
+````@example square_loop_absorber
 p
 savefig(p,"sqloop2.png"); nothing  # hide
-```
+````
 
 ![](sqloop2.png)
 

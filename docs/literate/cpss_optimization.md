@@ -18,7 +18,7 @@ reflection, and reflects RHCP (without changing its sense!) almost without atten
 
 Here is the script that analyzes their design:
 
-```@example cpss_optimization
+````@example cpss_optimization
 using PSSFSS
 # Define convenience functions for sheets:
 outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=600, rot=rot)
@@ -53,30 +53,30 @@ flist = 10:0.1:20
 results = analyze(strata, flist, steering, showprogress=false,
                   resultfile=devnull, logfile=devnull);
 nothing #hide
-```
+````
 
 Here are plots of the five meanderline sheets:
 
-```@example cpss_optimization
+````@example cpss_optimization
 using Plots
 plot(outer(rot0), unitcell=true, title="Sheet1")
-```
+````
 
-```@example cpss_optimization
+````@example cpss_optimization
 plot(inner(rot0-45), unitcell=true, title="Sheet2")
-```
+````
 
-```@example cpss_optimization
+````@example cpss_optimization
 plot(center(rot0-2*45), unitcell=true, title="Sheet3 (Center)")
-```
+````
 
-```@example cpss_optimization
+````@example cpss_optimization
 plot(inner(rot0-3*45), unitcell=true, title="Sheet4")
-```
+````
 
-```@example cpss_optimization
+````@example cpss_optimization
 plot(outer(rot0-4*45), unitcell=true, title="Sheet5")
-```
+````
 
 Notice that not only are the meanders rotated, but so too are the unit cell rectangles.
 This is because we used the generic `rot` keyword argument that rotates the entire unit
@@ -147,7 +147,7 @@ the presence of the thin layer is accounted for using the stratified medium Gree
 Here is the script that compares PSSFSS predicted performance with very
 high accuracy predictions from CST and COMSOL that were digitized from figures in the paper.
 
-```@example cpss_optimization
+````@example cpss_optimization
 using Plots, DelimitedFiles
 RL11rr = -extract_result(results, @outputs s11db(r,r))
 AR11r = extract_result(results, @outputs ar11db(r))
@@ -163,11 +163,11 @@ plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_rl.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
 savefig("cpssa1.png"); nothing  # hide
-```
+````
 
 ![](cpssa1.png)
 
-```@example cpss_optimization
+````@example cpss_optimization
 p = plot(flist,AR11r,title="RHCP → RHCP Reflected Axial Ratio",
          xlabel="Frequency (GHz)", ylabel="Axial Ratio (dB)", label="PSSFSS")
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_reflected.csv", ',')
@@ -175,11 +175,11 @@ plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_ar_reflected.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
 savefig("cpssa2.png"); nothing  # hide
-```
+````
 
 ![](cpssa2.png)
 
-```@example cpss_optimization
+````@example cpss_optimization
 p = plot(flist,IL21L,title="LHCP → LHCP Insertion Loss",
          xlabel="Frequency (GHz)", ylabel="Insertion Loss (dB)", label="PSSFSS")
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_il.csv", ',')
@@ -187,11 +187,11 @@ plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_il.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
 savefig("cpssa3.png"); nothing  # hide
-```
+````
 
 ![](cpssa3.png)
 
-```@example cpss_optimization
+````@example cpss_optimization
 p = plot(flist,AR21L,title="LHCP → LHCP Transmitted Axial Ratio",
          xlabel="Frequency (GHz)", ylabel="Axial Ratio (dB)", label="PSSFSS")
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_transmitted.csv", ',')
@@ -199,7 +199,7 @@ plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_ar_transmitted.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
 savefig("cpssa4.png"); nothing  # hide
-```
+````
 
 ![](cpssa4.png)
 

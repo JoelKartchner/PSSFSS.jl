@@ -24,17 +24,17 @@ The closely spaced sheets are a good test of the generalized scattering formulat
 implemented in PSSFSS.  The sheet geometry is shown below.  Remember that the entire
 sheet is metalized *except* for the region of the triangulation.
 
-```@example band_pass_filter
+````@example band_pass_filter
 using Plots, PSSFSS
 sheet = loadedcross(class='M', w=0.023, L1=0.8, L2=0.14,
             s1=[0.861,0.0], s2=[0.0,0.861], ntri=600, units=cm)
 plot(sheet, unitcell=true)
 savefig("bpf1.png"); nothing  # hide
-```
+````
 
 ![](bpf1.png)
 
-```@example band_pass_filter
+````@example band_pass_filter
 steering = (ϕ=0, θ=0)
 strata = [  Layer()
             Layer(ϵᵣ=1.3, width=1.1cm)
@@ -55,18 +55,18 @@ p = plot(xlabel="Frequency (GHz)", ylabel="Reflection Coefficient (dB)",
 plot!(p, data[:,1], data[:,3], label="PSSFSS", color=:red)
 plot!(p, dat[:,1], dat[:,2], label="CST", color=:blue)
 savefig("bpf2.png"); nothing  # hide
-```
+````
 
 ![](bpf2.png)
 
-```@example band_pass_filter
+````@example band_pass_filter
 p2 = plot(xlabel="Frequency (GHz)", ylabel="Transmission Coefficient (dB)",
           legend=:bottom, title="Loaded Cross Band-Pass Filter", xtick=0:2:20, ytick=-80:10:0,
          xlim=(-0.1,20.1), ylim=(-80,0.1))
 plot!(p2, data[:,1], data[:,2], label="PSSFSS", color=:red)
 plot!(p2, dat[:,1], dat[:,4], label="CST", color=:blue)
 savefig("bpf3.png"); nothing  # hide
-```
+````
 
 ![](bpf3.png)
 

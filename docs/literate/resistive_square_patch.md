@@ -14,19 +14,19 @@ from the cited figures.
 
 We start by defining a function that creates a patch of the desired sheet resistance:
 
-```@example resistive_square_patch
+````@example resistive_square_patch
 using Plots, PSSFSS
 patch(R) = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm, Rsheet=R)
 plot(patch(0), unitcell=true)
 savefig("resistive1.png"); nothing  # hide
-```
+````
 
 ![](resistive1.png)
 
 The patches measure 0.5 cm on a side and lie in a square lattice of period 1 cm.
 Now we perform the analysis, looping over the desired values of sheet resistance.
 
-```@example resistive_square_patch
+````@example resistive_square_patch
 steering = (ϕ=0, θ=0)
 flist = 1:0.5:60
 Rs = [0, 10, 30, 100]
@@ -38,14 +38,14 @@ for (i,R) in pairs(Rs)
                       logfile=devnull, resultfile=devnull)
     calculated[:,i] = extract_result(results, outputs)
 end
-```
+````
 
 Looping over the four sheet resistance values, each evaluated at 119 frequencies
 required approximately 20 seconds on my machine.
 
 We plot the results, including those digitized from the paper for comparison:
 
-```@example resistive_square_patch
+````@example resistive_square_patch
 using DelimitedFiles
 markers = (:diamond, :utriangle, :square, :xcross)
 colors = (:blue, :red, :green, :black)
@@ -60,7 +60,7 @@ for (i,R) in pairs(Rs)
 end
 p
 savefig("resistive2.png"); nothing  # hide
-```
+````
 
 ![](resistive2.png)
 
