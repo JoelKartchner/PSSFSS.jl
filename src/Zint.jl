@@ -1,6 +1,6 @@
 module Zint
 
-using StaticArrays: SVector, MVector
+using StaticArrays: SVector, MVector, @SVector
 using ..Sheets: SV2, RWGSheet
 using ..Layers: Layer
 using ..RWG: RWGData
@@ -178,23 +178,13 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
     return nothing
 end
 
-#=
-"""
- Return the coordinates (in local units) of the triangle vertices for face iface.
-"""
-@inline function vtxcrd!(ρvec, iface, metal)
-    vi = @view metal.fv[:,iface] # Vertex indices
-    ρvec[:] = metal.ρ[vi]
-end
-=#
-
 
 """
  Return the coordinates (in local units) of the triangle vertices for face iface.
 """
 @inline function vtxcrd(iface, metal)
-    vi = @view metal.fv[:, iface] # Vertex indices
-    @view metal.ρ[vi]
+    #vi = @view metal.fv[:, iface] # Vertex indices
+    @SVector [metal.ρ[metal.fv[i, iface]] for i in 1:3]
 end
 
 

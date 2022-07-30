@@ -3,7 +3,7 @@ export fillz, filly
 
 
 using Statistics: mean
-using StaticArrays: SMatrix, MVector
+using StaticArrays: SMatrix, MVector, @SVector
 using OffsetArrays
 using Unitful # for ustrip and u"m"
 using LinearAlgebra: norm, ⋅
@@ -108,10 +108,15 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     end
 
     t1 = time_ns()
+    nthr = Threads.nthreads()
+    zcontribs = [MVector{9,ComplexF64}(0im,0im,0im,0im,0im,0im,0im,0im,0im) for _ in 1:nthr]    
+    mbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
+    sbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
     Threads.@threads for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
-        zcontrib = MVector{9,ComplexF64}(0im, 0im, 0im, 0im, 0im, 0im, 0im, 0im, 0im)
-        mbfsave = MVector{9,Int}(0, 0, 0, 0, 0, 0, 0, 0, 0)
-        sbfsave = MVector{9,Int}(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        thrid = Threads.threadid()
+        zcontrib = zcontribs[thrid]
+        mbfsave = mbfsaves[thrid]
+        sbfsave = sbfsaves[thrid]
         ifmifs = rwgdat.ufp2fp[iufp][1]  # Obtain index into face/face matrix
         rowcol = i2s[ifmifs]
         ifm, ifs = rowcol[1], rowcol[2] # indices of match and source triangles
@@ -155,7 +160,7 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
 
         # Compute vector from each vertex to centroid of match triangle
         # (divided by 2) as in Eq. (7-15):
-        ρc2 = 0.5 * [rmc - rm[i] for i in 1:3]
+        ρc2 = @SVector [0.5 * (rmc - rm[i]) for i in 1:3]
 
         # Loop over the face pairs in this equivalence class:
         for (i0, ifmifs2) in enumerate(rwgdat.ufp2fp[iufp])
@@ -336,10 +341,15 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
     end
 
     t1 = time_ns()
+    nthr = Threads.nthreads()
+    ycontribs = [MVector{9,ComplexF64}(0im,0im,0im,0im,0im,0im,0im,0im,0im) for _ in 1:nthr]    
+    mbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
+    sbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
     Threads.@threads for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
-        ycontrib = MVector{9,ComplexF64}(0im, 0im, 0im, 0im, 0im, 0im, 0im, 0im, 0im)
-        mbfsave = MVector{9,Int}(0, 0, 0, 0, 0, 0, 0, 0, 0)
-        sbfsave = MVector{9,Int}(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        thrid = Threads.threadid()
+        ycontrib = ycontribs[thrid]
+        mbfsave = mbfsaves[thrid]
+        sbfsave = sbfsaves[thrid]
         ifmifs = rwgdat.ufp2fp[iufp][1]  # Obtain index into face/face matrix.
         rowcol = i2s[ifmifs]
         ifm, ifs = rowcol[1], rowcol[2] # indices of match and source triangles
@@ -376,7 +386,7 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
 
         # Compute vector from each vertex to centroid of match triangle
         # (divided by 2) as in Eq. (7.53):
-        ρc2 = 0.5 * [rmc - rm[i] for i in 1:3]
+        ρc2 = @SVector [0.5 * (rmc - rm[i]) for i in 1:3]
 
         # Loop over the face pairs this equivalence class:
         for (i0, ifmifs) in enumerate(rwgdat.ufp2fp[iufp])
