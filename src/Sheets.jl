@@ -46,7 +46,7 @@ mutable struct RWGSheet <: Sheet
     ψ₂::Float64  # Incremental phase shift (radians)
     u::Float64   # Smoothing parameter (1/(specified units))
 
-    class::Char # Type of sheet. 'J' for electric current, 'M' for magnetic current
+    class::Char # Sheet classifier. 'J' for electric current, 'M' for magnetic current, 'E' for PEC/E-wall, 'H' for PMC/H-wall
     info::String  # Informational comment
     # The following flag tells rwg_setup whether (.true.) or not (.false.)
     # to check for consistent edges at xi or eta = 0 and 1.  The default
@@ -85,10 +85,16 @@ RWGSheet() = RWGSheet("", u"mm",            # style, units
     true, false)          # ξη_check, fufp
 
 
-Base.show(io::IO, ::MIME"text/plain", s::RWGSheet) =
-    print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", length(s.ρ), " nodes, ", length(s.e1),
-        " edges, ", size(s.fv, 2), " faces")
-
+function Base.show(io::IO, ::MIME"text/plain", s::RWGSheet)
+    if s.class == 'E'
+        print(io, "RWGSheet: perfect electric conducting wall")
+    elseif s.class == 'H'
+        print(io, "RWGSheet: perfect magnetic conducting wall")
+    else
+        print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", length(s.ρ), " nodes, ", length(s.e1),
+            " edges, ", size(s.fv, 2), " faces")
+    end
+end
 
 """
     read_sheet_data(filename::AbstractString)::RWGSheet
