@@ -104,7 +104,9 @@
 # 64 GBytes (Linux) RAM, with multi-threading enabled via the `-t auto` Julia startup option. 
 # **Multi-threading must be explicitly enabled in Julia.**  Please see 
 # [this section](https://docs.julialang.org/en/v1/manual/multi-threading/#man-multithreading) of the Julia
-# documentation for details.
+# documentation for details.  On Windows I have experienced significant speedups by using the 
+# [MKL](https://github.com/JuliaLinearAlgebra/MKL.jl) package.  On Linux, I find that the `MKL` package 
+# actually results in slower execution. YMMV.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
 # You will need a text editor to create Julia scripts that run PSSFSS.  One of the best for this purpose

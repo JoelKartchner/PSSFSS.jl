@@ -21,7 +21,7 @@ using InteractiveUtils: versioninfo
 using Dates: now
 using DelimitedFiles: writedlm
 using Printf: @sprintf
-using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!
+using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!, BLAS
 using StaticArrays: StaticArrays, SVector, SArray, @SVector
 using Unitful: ustrip, @u_str
 using Logging: with_logger
@@ -216,6 +216,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     juliainfo = String(take!(io)) * ss
     i = findfirst(ss, juliainfo)
     juliainfo = juliainfo[1:first(i)-1]
+    juliainfo *= "  BLAS: $(BLAS.get_config())\n"
     juliainfo = juliainfo * "  Threads.nthreads() = $(Threads.nthreads())\n"
     @logfile "\n\nStarting PSSFSS $(pssfssv) analysis on $(date) at $(clock)\n$(juliainfo)\n\n"
     check_inputs(layers, sheets, junc, freqs, stkeys, stvalues, outlist)
