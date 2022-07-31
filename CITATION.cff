@@ -4,11 +4,11 @@ authors:
   - family-names: Simon
     given-names: Peter
 title: "PSSFSS - Analysis of polarization and frequency selective surfaces in Julia"
-version: 0.1.9
-date-released: 2022-07-15
+version: 0.1.10
+date-released: 2022-07-30
 identifiers:
-  - description: This is the archived snapshot of version 0.1.9
+  - description: This is the archived snapshot of the latest version
     type: doi
-    value: "10.5281/zenodo.283897390"
+    value: "10.5281/zenodo.6842809"
 license: MIT
 repository-code: "https://github.com/simonp0420/PSSFSS.jl"
