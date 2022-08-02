@@ -1,0 +1,6 @@
+{
+    "julia.executablePath": "julia +rc",
+    "julia.additionalArgs": [
+
+    ]
+}
