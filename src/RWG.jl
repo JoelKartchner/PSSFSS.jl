@@ -455,12 +455,14 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
     ft0 = SVector{2,ComplexF64}(0.0 + 0.0im, 0.0 + 0.0im)
     for iface in 1:nface
         r = vtxcrd_m(iface, sheet, one_meter)
-        lvec .= (r[next[i]] - r[i] for i in 1:3) # Edge vectors
-        rc .= (r[i] + 0.5 * lvec[i] for i in 1:3)  # Edge centers
-        if kmag * maximum(norm.(lvec)) < 1e-4 # small k
+        @inbounds for i in 1:3
+            lvec[i] = r[next[i]] - r[i] # Edge vector
+            rc[i] = r[i] + 0.5 * lvec[i] # Edge center
+        end
+        if kmag * maximum(norm, lvec) < 1e-4 # small k
             centroid = mean(r)   #  Compute centroid coordinates.
             cphase = cis(k ⋅ centroid) #  Phase factor at centroid.
-            for i in 1:3 #  Loop over three edges of the triangle
+            @inbounds for i in 1:3 #  Loop over three edges of the triangle
                 ie = sheet.fe[i, iface] # Global index for edge opposite r(i).
                 ib = rwgdat.ebf[ie]    # Global basis function index.
                 ib == 0 && continue
@@ -477,7 +479,7 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
             kfact = 2k / kmagsq
             darea = zdotaxb(lvec[1], lvec[2]) # Twice the directed area
             denom = darea * kmagsq
-            zdotlxk = [zdotaxb(l, k) for l in lvec]
+            zdotlxk = @SVector [zdotaxb(lvec[i], k) for i in 1:3]
             ctrm1 = @SVector [im * rc[i] - kfact for i in 1:3]
             for i in 1:3  # Loop over three edges
                 dotkl2 = 0.5 * (k ⋅ lvec[i])
