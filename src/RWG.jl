@@ -17,7 +17,7 @@ export RWGData, setup_rwg, edge_current_unit_vector, rwgbfft!
 
 
 using ..Sheets: RWGSheet, SV2
-using StaticArrays: SVector, MVector, SArray
+using StaticArrays: SVector, MVector, SArray, @SVector
 using LinearAlgebra: ⋅, norm
 using NearestNeighbors: KDTree, inrange
 using OffsetArrays
@@ -315,7 +315,9 @@ function setup_rwg(sheet::RWGSheet, leafsize::Int=9)::RWGData
         idxs = inrange(kdtree, data[mn], r, true)
         found[idxs] .= true
         push!(ufp2fp, idxs)
-        ufpm[idxs] .= nufp
+        for i in idxs
+            ufpm[i] = nufp
+        end
     end
     nufp == length(ufp2fp) || error("Miscount of nufp")
 
@@ -453,12 +455,14 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
     ft0 = SVector{2,ComplexF64}(0.0 + 0.0im, 0.0 + 0.0im)
     for iface in 1:nface
         r = vtxcrd_m(iface, sheet, one_meter)
-        lvec .= (r[next[i]] - r[i] for i in 1:3) # Edge vectors
-        rc .= (r[i] + 0.5 * lvec[i] for i in 1:3)  # Edge centers
-        if kmag * maximum(norm.(lvec)) < 1e-4 # small k
+        @inbounds for i in 1:3
+            lvec[i] = r[next[i]] - r[i] # Edge vector
+            rc[i] = r[i] + 0.5 * lvec[i] # Edge center
+        end
+        if kmag * maximum(norm, lvec) < 1e-4 # small k
             centroid = mean(r)   #  Compute centroid coordinates.
             cphase = cis(k ⋅ centroid) #  Phase factor at centroid.
-            for i in 1:3 #  Loop over three edges of the triangle
+            @inbounds for i in 1:3 #  Loop over three edges of the triangle
                 ie = sheet.fe[i, iface] # Global index for edge opposite r(i).
                 ib = rwgdat.ebf[ie]    # Global basis function index.
                 ib == 0 && continue
@@ -475,8 +479,8 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
             kfact = 2k / kmagsq
             darea = zdotaxb(lvec[1], lvec[2]) # Twice the directed area
             denom = darea * kmagsq
-            zdotlxk = [zdotaxb(l, k) for l in lvec]
-            ctrm1 = [im * rci - kfact for rci in rc]
+            zdotlxk = @SVector [zdotaxb(lvec[i], k) for i in 1:3]
+            ctrm1 = @SVector [im * rc[i] - kfact for i in 1:3]
             for i in 1:3  # Loop over three edges
                 dotkl2 = 0.5 * (k ⋅ lvec[i])
                 j0kl2[i] = j₀(dotkl2)
@@ -494,7 +498,7 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
                 csum .= complex(0.0, 0.0)
                 for n in 1:3  # Perform sum over n as shown in Equation (2-11):
                     ctrm3 = (zhatcross(lvec[n]) + zdotlxk[n] * (ctrm1[n] - cjr)) * j0kl2[n]
-                    csum += cphasv[n] * (ctrm3 - rtrm2[n])
+                    csum .+= cphasv[n] * (ctrm3 - rtrm2[n])
                 end
                 #csum = csum * norm(lvec(next(i))) # Needed for orig. defn. of RWG 
                 #                                          # basis funct.
@@ -547,7 +551,7 @@ Return the coordinates (in meters) of the triangle vertices for face iface.
 """
 @inline function vtxcrd_m(iface, sheet, one_meter)
     vi = @view sheet.fv[:, iface] # Vertex indices
-    sheet.ρ[vi] ./ one_meter
+    @SVector [sheet.ρ[vi[i]] / one_meter for i in 1:3]
 end
 
 

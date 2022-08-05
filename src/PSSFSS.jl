@@ -420,11 +420,15 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             kvec = l.β[qp]
             # If desired F.T. has already been computed, then copy it.
             if qp > 1 && kvec ≈ l.β[qp-1]
-                bfftstore[:, sr, qp] = bfftstore[:, sr, qp-1]
+                @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore,1)
+                    bfftstore[i, sr, qp] = bfftstore[i, sr, qp-1]
+                end
                 continue
             end
             if sr == 2 && length(layers[1].β) ≥ qp && kvec ≈ layers[1].β[qp]
-                bfftstore[:, 2, qp] = bfftstore[:, 1, qp]
+                @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore,1)
+                    bfftstore[i, 2, qp] = bfftstore[i, 1, qp]
+                end
                 continue
             end
             bfft = @view bfftstore[:, sr, qp]
@@ -444,7 +448,9 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             # Incident field for source layer in absence of the FSS sheet:
             sourcevec = vincs[qp, sr] * ls.c[qp] * acf[sr] * ls.tvec[qp]
             # Compute generalized voltage vector:
-            imat .= (b ⋅ sourcevec for b in bfftstore[:, sr, qp]) # Eq. (7.39)
+            @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore, 1)
+                imat[i] = bfftstore[i, sr, qp] ⋅ sourcevec # Eq. (7.39)
+            end
             # Solve the matrix equation
             t_solve1 = time()
             ldiv!(zmatf, imat)
@@ -545,11 +551,15 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             kvec = l.β[qp]
             # If desired F.T. has already been computed, then copy it.
             if qp > 1 && kvec ≈ l.β[qp-1]
-                bfftstore[:, sr, qp] = bfftstore[:, sr, qp-1]
+                @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore,1)
+                    bfftstore[i, sr, qp] = bfftstore[i, sr, qp-1]
+                end
                 continue
             end
             if sr == 2 && length(layers[1].β) ≥ qp && kvec ≈ layers[1].β[qp]
-                bfftstore[:, 2, qp] = bfftstore[:, 1, qp]
+                @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore,1)
+                    bfftstore[i, 2, qp] = bfftstore[i, 1, qp]
+                end
                 continue
             end
             bfft = @view bfftstore[:, sr, qp]
@@ -571,7 +581,9 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             # Incident field for Region sr (Eq. (7.64))
             sourcevec = iincs[qp, sr] * ls.c[qp] * ls.Y[qp] * zhatcross(ls.tvec[qp])
             # Compute generalized current vector:
-            vmat .= (b ⋅ sourcevec for b in bfftstore[:, sr, qp]) # Eq. (7.64)
+            @inbounds for i in firstindex(bfftstore, 1):lastindex(bfftstore,1)
+                vmat[i] = bfftstore[i, sr, qp] ⋅ sourcevec # Eq. (7.64)
+            end
             # Solve the matrix equation
             t_solve1 = time()
             ldiv!(ymatf, vmat)
