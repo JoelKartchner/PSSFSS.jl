@@ -109,7 +109,7 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         rm = vtxcrd(ifm, metal) # observation triangle vertex coordinates
         rmc = mean(rm) # observation face centroid (meters)
 
-        for i ∈ 1:length(ξ)   # Loop for numerical integration
+        @inbounds for i ∈ eachindex(ξ)   # Loop for numerical integration
             rt = rs[1] + rs21 * ξ[i] + rs31 * η[i] # Source point
             uρ00 = ulocal * (rmc - rt)
             Jsum, Ksum = jksums(uρ00, metal.ψ₁, metal.ψ₂, us1, us2, clsflg) # spatial sums
