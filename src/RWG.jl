@@ -443,7 +443,7 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
     nface = size(sheet.fv, 2) # Number of triangular faces
     kmagsq = k ⋅ k
     kmag = sqrt(kmagsq)
-    one_meter = ustrip(Float64, sheet.units, 1u"m")
+    one_meter_inv = 1 / ustrip(Float64, sheet.units, 1u"m")
 
     lvec = zeros(SV2, 3)
     rc = zeros(SV2, 3)
@@ -454,7 +454,7 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
     centroid = SVector{2,Float64}(0.0, 0.0)
     ft0 = SVector{2,ComplexF64}(0.0 + 0.0im, 0.0 + 0.0im)
     for iface in 1:nface
-        r = vtxcrd_m(iface, sheet, one_meter)
+        r = vtxcrd_m(iface, sheet, one_meter_inv)
         @inbounds for i in 1:3
             lvec[i] = r[next[i]] - r[i] # Edge vector
             rc[i] = r[i] + 0.5 * lvec[i] # Edge center
@@ -481,7 +481,7 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
             denom = darea * kmagsq
             zdotlxk = @SVector [zdotaxb(lvec[i], k) for i in 1:3]
             ctrm1 = @SVector [im * rc[i] - kfact for i in 1:3]
-            for i in 1:3  # Loop over three edges
+            @inbounds for i in 1:3  # Loop over three edges
                 dotkl2 = 0.5 * (k ⋅ lvec[i])
                 j0kl2[i] = j₀(dotkl2)
                 rtrm2[i] = 0.5 * zdotlxk[i] * j₁(dotkl2) * lvec[i]
@@ -490,13 +490,13 @@ function rwgbfft!(ft, rwgdat::RWGData, sheet::RWGSheet, k::AbstractVector, ψ₁
             #
             #  Loop over edges of triangle associated with basis functions.
             #
-            for i in 1:3
+            @inbounds for i in 1:3
                 ie = sheet.fe[i, iface] # Global index for edge opposite r[i].
                 ib = rwgdat.ebf[ie]    # Global basis function index.
                 ib == 0 && continue # Skip if no basis func for this edge.
                 cjr = im * r[i]
                 csum .= complex(0.0, 0.0)
-                for n in 1:3  # Perform sum over n as shown in Equation (2-11):
+                @inbounds for n in 1:3  # Perform sum over n as shown in Equation (2-11):
                     ctrm3 = (zhatcross(lvec[n]) + zdotlxk[n] * (ctrm1[n] - cjr)) * j0kl2[n]
                     csum .+= cphasv[n] * (ctrm3 - rtrm2[n])
                 end
@@ -545,13 +545,13 @@ j₁(x::Complex) = abs2(x) < 1e-6 ? x * (1 / 3 - x * x / 30) : begin
 end
 
 """
-    vtxcrd_m(iface::Int, sheet::Sheet, one_meter::Real)
+    vtxcrd_m(iface::Int, sheet::Sheet, one_meter_inv::Real)
 
 Return the coordinates (in meters) of the triangle vertices for face iface.
 """
-@inline function vtxcrd_m(iface, sheet, one_meter)
+@inline function vtxcrd_m(iface, sheet, one_meter_inv)
     vi = @view sheet.fv[:, iface] # Vertex indices
-    @SVector [sheet.ρ[vi[i]] / one_meter for i in 1:3]
+    @SVector [sheet.ρ[vi[i]] * one_meter_inv for i in 1:3]
 end
 
 
