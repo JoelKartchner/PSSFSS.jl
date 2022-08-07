@@ -1092,30 +1092,31 @@ All arguments are keyword arguments which can be entered in any order.
 - `a` and `b`:  n-vectors (n>=1) of the same length providing the inner and outer radii, respectively of the polygonal rings.
                Entries in `a` and `b` must be positive and strictly increasing. `b[i] > a[i]` ∀ `i ∈ 1:n`.
 - `sides`:  The number (>= 4) of polygon sides.
-- `gapwidth`: A scalar or an n-vector of the same length as `a` and `b` containing the gap width(s) for each ring.
+- `gapwidth`: A scalar or a vector of the same length as `a` and `b` containing the gap width(s) for each ring.
             A width of zero implies that the ring is not split (i.e. there is no gap).  If the `gapwidth` of all rings
             is zero, then the resulting geometry is similar to a `polyring`. 
             The gap width `gapwidth[i]` for the `i`th ring must not exceed `gapwidthmax = 2 * a[i] * sin(α/2)` where
             `α = 360/sides` is the angle subtended by one polygon side about the polygon center.  Thus `gapwidthmax` is the 
-            length of one side of the inner polygon bounding the `i`th annular ring.
+            length of one side of the inner regular polygon bounding the `i`th annular ring.
 - `ntri`:  The desired total number of triangles distributed among all the annular regions. This is a guide, the actual number 
            will likely be different.
     
 $(optional_kwargs)
-- `orient::Real=0.0`:  Counterclockwise rotation angle in degrees used to locate the center
-           the first gap in the polygonal rings.  The default is to locate the gap center on the
-           positive x-axis.
+- `orient::0`:  A scalar or vector of the same length of `a` and `b`. Contains the counterclockwise rotation angle(s)
+   in degrees used to locate the center(s) of the gap(s) in the polygonal ring(s). The default value of `0` implies that 
+   all ring gaps will be bisected by a ray drawn from the center of the unit cell parallel to the positive x-axis.
 
 """
 function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, b::Vector{<:Real},
     sides::Int, ntri::Int, units::PSSFSSLength,
-    gapwidth::Union{Real, Vector{<:Real}}, orient::Real=0.0, kwarg...)::RWGSheet
+    gapwidth::Union{Real, Vector{<:Real}}, orient::Union{Real, Vector{<:Real}}=0, kwarg...)::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
     nring = length(a)
     gwidth = gapwidth isa Real ? fill(gapwidth, nring) : gapwidth
+    orent =  orient isa Real ? fill(orient, nring) : orient
     
     all(x -> length(x) == nring, (b, gwidth)) || 
         throw(ArgumentError("Incompatible lengths for a, b, gwidth"))
@@ -1138,7 +1139,6 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
 
     ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
     α = 360 / sides # angle subtended by each side (degrees)
-    #orient += α/2 # So that a flat side of the polygon is bisected by the ray at angle `orient`
     sinαo2, cosαo2 = sincosd(α/2)
     for i in 1:nring
         gwidthmax = 2 * a[i] * sinαo2
@@ -1158,9 +1158,8 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     holes = SV2[]
     boundary = 0
     node = 0
-    ϕ₀ = -180
-    rotmatorient = rotationmat(orient)
     for iring in 1:nring
+        rotmat = rotationmat(orent[iring])
         if iszero(gwidth[iring])
             # regular polygonal annulus:
             for r in (b[iring], a[iring])
@@ -1171,15 +1170,12 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                     push!(e1, node)
                     push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orient + (i - 0.5) * α))...]))
+                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orent[iring] + (i - 0.5) * α))...]))
                 end
                 e2[end] = nodesave
             end
         else
             # finite width gap
-            ϕ₀ += 180 # put gap on opposite side as last split ring
-            rotmatϕ₀ = rotationmat(ϕ₀)
-            rotmat = rotmatϕ₀ * rotmatorient
             boundary += 1
             isgn = -1 
             nodesave = node + 1
@@ -1194,7 +1190,7 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                 push!(segmarkers, boundary)
 
                 for i in 1:sides
-                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(ϕ₀ + orient + isgn*(i - 0.5) * α))...]))
+                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orent[iring] + isgn*(i - 0.5) * α))...]))
                     if i == 1 && norm(ρ[end] - ρ[end-1]) < ρtol
                         pop!(ρ)
                         continue
@@ -1227,8 +1223,8 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     # Calculation coordinates of "hole" points
     ρhole = SV2[]
     solids = reverse!(findall(iszero, gwidth))
-    unitvector = SV2([reverse(sincosd(ϕ₀ + orient))...])
     for iring in solids
+        unitvector = SV2([reverse(sincosd(α/2 + orent[iring]))...])
         if iring == 1
             push!(ρhole, ρ₀)
         else
