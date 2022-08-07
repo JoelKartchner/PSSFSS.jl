@@ -56,7 +56,7 @@ using .Log: pssfss_logger, @logfile
 @reexport using .PSSFSSLen
 @reexport using .Layers: Layer
 @reexport using .Elements: rectstrip, diagstrip, polyring, meander, loadedcross,
-    jerusalemcross, pecsheet, pmcsheet
+    jerusalemcross, pecsheet, pmcsheet, splitring
 @reexport using .Outputs: @outputs, extract_result_file, extract_result
 using .Outputs: Result, append_result_data
 
@@ -789,7 +789,7 @@ function report_layers_sheets(layers, sheets, junc, rwgdat, usi_in)
     nothing
 end
 
-
+#=
 @precompile_setup begin
     # Putting some things in `setup` can reduce the size of the
     # precompile file and potentially make loading faster.
@@ -831,6 +831,6 @@ end
         AR21L = extract_result(results, @outputs ar21db(L))
     end
 end
-
+=#
 
 end # module
