@@ -1105,10 +1105,12 @@ $(optional_kwargs)
 - `orient::0`:  A scalar or vector of the same length of `a` and `b`. Contains the counterclockwise rotation angle(s)
    in degrees used to locate the center(s) of the gap(s) in the polygonal ring(s). The default value of `0` implies that 
    all ring gaps will be bisected by a ray drawn from the center of the unit cell parallel to the positive x-axis.
+- `double::false`: A scalar or vector of Boolean values.  Where `true`, this implies that a ring should have "double gap",
+  i.e. a gap at both ϕ = `orient[i]` and at `orient[i] + 180`.
 
 """
 function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, b::Vector{<:Real},
-    sides::Int, ntri::Int, units::PSSFSSLength,
+    sides::Int, ntri::Int, units::PSSFSSLength, double::Union{Bool, Vector{Bool}}=false,
     gapwidth::Union{Real, Vector{<:Real}}, orient::Union{Real, Vector{<:Real}}=0, kwarg...)::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
@@ -1117,7 +1119,8 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     nring = length(a)
     gwidth = gapwidth isa Real ? fill(gapwidth, nring) : gapwidth
     orent =  orient isa Real ? fill(orient, nring) : orient
-    
+    dble = double isa Bool ? fill(double, nring) : double
+
     all(x -> length(x) == nring, (b, gwidth)) || 
         throw(ArgumentError("Incompatible lengths for a, b, gwidth"))
     sides ≥ 4 || throw(ArgumentError("Number of sides must be 4 or more"))
@@ -1174,8 +1177,10 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                 end
                 e2[end] = nodesave
             end
-        else
-            # finite width gap
+            continue # next iring
+
+        elseif !dble[iring]
+            # finite width single gap
             boundary += 1
             isgn = -1 
             nodesave = node + 1
@@ -1213,8 +1218,55 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                 end
             end
             e2[end] = nodesave
+            continue # next iring
+        
+        elseif dble[iring]
+            # Handle case of double gap
+            ρtol = 0.33 * (b[iring] - a[iring])
+            nhalfring = sides ÷ 2
+            for half in 1:2
+                rotmat = rotationmat(orent[iring] + 180*(half-1))
+                boundary += 1
+                nodesave = node + 1
+                isgn = -1
+                for (outin, r) in enumerate((b[iring], a[iring]))
+                    isgn *=-1
+
+                    node += 1
+                    push!(e1, node)
+                    push!(e2, node + 1)
+                    push!(ρ, ρ₀ + rotmat * SV2(isgn * r * cosαo2, gwidth[iring]/2))
+                    push!(segmarkers, boundary)
+
+                    for i in 1:nhalfring
+                        push!(ρ, ρ₀ + r * rotmat * SV2([reverse(sincosd((1-isgn)*90 + isgn * (i - 0.5) * α))...]))
+                        if i == 1 && norm(ρ[end] - ρ[end-1]) < ρtol
+                            pop!(ρ)
+                            continue
+                        end
+                        node += 1
+                        push!(e1, node)
+                        push!(e2, node + 1)
+                        push!(segmarkers, boundary)
+                    end
+
+                    ρnext = ρ₀ + rotmat * SV2(-isgn * r * cosαo2, gwidth[iring]/2)
+                    if norm(ρ[end] - ρnext) < ρtol
+                        ρ[end] = ρnext
+                    else
+                        node += 1
+                        push!(e1, node)
+                        push!(e2, node + 1)
+                        push!(segmarkers, boundary)
+                        push!(ρ, ρnext)
+                    end
+                end
+                e2[end] = nodesave
+            end
+            continue # next iring
         end
-    end
+
+    end # for iring 
     #=
     for (kk, rho) in enumerate(ρ)
         println("Node $kk: ", round(rho[1],digits=3), ", ", round(rho[2],digits=3))
