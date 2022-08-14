@@ -1,6 +1,7 @@
 using PSSFSS
 using LinearAlgebra: ×, norm
 using PSSFSS.Elements: s₁s₂2β₁β₂
+using PSSFSS.Sheets: SV2
 using PSSFSS.PGF: direct_electric_modal_series, direct_magnetic_modal_series, jksums, c3_calc,
     d3_calc, electric_modal_sum_funcs, magnetic_modal_sum_funcs
 using Logging: Error, ConsoleLogger, default_metafmt, global_logger
@@ -28,8 +29,8 @@ layers = Layer[Layer()
     Layer()]
 s = 2 # Source location
 ψ₁, ψ₂ = 0.4, -0.6  # Incremental phase shifts (rad)
-s₁ = [1.14 * inch2m, 0.0] # Lattice vector
-s₂ = [0.5707, 0.9885] * inch2m # Lattice vector
+s₁ = SV2([1.14 * inch2m, 0.0]) # Lattice vector
+s₂ = SV2([0.5707, 0.9885] * inch2m) # Lattice vector
 β₁, β₂ = s₁s₂2β₁β₂(s₁, s₂)
 β₀₀ = (ψ₁ * β₁ + ψ₂ * β₂) / (2π)
 extract = true

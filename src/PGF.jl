@@ -39,14 +39,14 @@ end
 
 
 """
-    jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract::Bool; convtest=1e-8) --> (jsum, ksum)
+    jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract::Bool; convtest=1e-8) --> (jsum, ksum)
                                                                   
 Compute the frequency-independent sums defined in Equations (7.32c) and (7.32d) of the 
 theory documentation.
 
 ## Arguments:
 
-- `uρ₀₀`: 2-vector containing the difference of the observation and source vectors, 
+- `uρ⃗₀₀`: 2-vector containing the difference of the observation and source vectors, 
           multiplied by `u`, the smoothing parameter.
 - `ψ₁`, `ψ₂`:  The unit cell incremental phase shifts (radians).
 - `us₁`, `us₂`:  2-vectors containing unit cell direct lattice vectors multiplied 
@@ -64,21 +64,21 @@ theory documentation.
 - `ksum`: The complex sum appearing in the integral of Equation (7.22d) and (7.32d) of 
               the theory documentation.
 """
-function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
+function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
     rmin = 5 # min number rings to sum over
     small = 1e-5  # Test value for small-argument approximation
 
-    arg = norm(uρ₀₀)
-    rterm = exp(-arg)
+    uρ₀₀ = norm(uρ⃗₀₀)
+    rterm = exp(-uρ₀₀)
     ksum = complex(rterm)
     if extract
-        if arg ≤ small
-            jsum = complex((-arg / 6 + 0.5) * arg - 1) # Small argument extraction formula
+        if uρ₀₀ ≤ small
+            jsum = complex((-uρ₀₀ / 6 + 0.5) * uρ₀₀ - 1) # Small argument extraction formula
         else
-            jsum = complex((rterm - 1) / arg)  # Large argument extraction formula
+            jsum = complex((rterm - 1) / uρ₀₀)  # Large argument extraction formula
         end
     else
-        jsum = complex(rterm / arg)  # No extraction formula
+        jsum = complex(rterm / uρ₀₀)  # No extraction formula
     end
 
     # Begin loop over summation lattice rings.
@@ -88,10 +88,14 @@ function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
     for r in 1:jkringmax
         rsave = r
         jring = kring = zero(ComplexF64) # Initialize ring sums
-        for (m, n) in Ring(r)
-            arg = norm(uρ₀₀ - (m * us₁ + n * us₂))
-            term = exp(-complex(arg, m * ψ₁ + n * ψ₂))
-            jring += term / arg
+        for mn in Ring(r)
+            (m, n) = mn
+            uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
+            #term = exp(-complex(uρₘₙnrm, m * ψ₁ + n * ψ₂))
+            phase = -(m*ψ₁ + n*ψ₂)
+            phsfactor = iszero(phase) ? complex(1.0,0.0) : cis(phase)
+            term = uρₘₙ > 30 ? complex(0.0,0.0) : exp(-uρₘₙ) * phsfactor
+            jring += term / uρₘₙ
             kring += term
         end
         jsum += jring

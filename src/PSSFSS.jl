@@ -240,7 +240,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     for stout in stvalues[1], stin in stvalues[2]
         steer = getsttuple(stkeys, stout, stin)
         if keys(steer)[1] == :ψ₁
-            ψ₁, ψ₂ = deg2rad.([steer...]) # radians
+            ψ₁, ψ₂ = deg2rad.(steer) # radians
             upm::Float64 = ustrip(Float64, sheets[1].units, 1u"m")
             β₁, β₂ = sheets[1].β₁ * upm, sheets[1].β₂ * upm
             β⃗₀₀ = (ψ₁ * β₁ + ψ₂ * β₂) / twopi # Eq. (2.13b)
@@ -793,9 +793,9 @@ end
 @precompile_setup begin
     # Putting some things in `setup` can reduce the size of the
     # precompile file and potentially make loading faster.
-    outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=400, rot=rot)
-    inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=400, rot=rot, class='M')
-    center(rot) = meander(a=3.97, b=3.97, w1=0.34, w2=0.34, h=2.51+0.34, units=mm, ntri=400, rot=rot)
+    outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=300, rot=rot)
+    inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=300, rot=rot, class='M')
+    center(rot) = meander(a=3.97, b=3.97, w1=0.34, w2=0.34, h=2.51+0.34, units=mm, ntri=300, rot=rot)
     t1 = 4
     t2 = 2.45
     foam(w) = Layer(width=w, epsr=1.05)
