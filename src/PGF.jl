@@ -307,25 +307,25 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
 
     # Create proper sized storage arrays for FFT routine:
     mmaxo2 = mmax ÷ 2
-    #t1vec = zeros(ComplexF64, (mmax+2)^2)
-    #table1t = reshape(view(t1vec,1:mmax^2), mmax, mmax)
-    #table1t .= @view table1[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
-    #t2vec = zeros(ComplexF64, (mmax+2)^2)
-    #table2t = reshape(view(t2vec,1:mmax^2), mmax, mmax)
-    #table2t .= @view table2[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
 
-    table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    fft!(table1t::Matrix{ComplexF64})
-    fft!(table2t::Matrix{ComplexF64})
+    #table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    parentind = (1 + mg - mmaxo2):(mg + mmaxo2)
+    table1t = @view table1g.parent[parentind, parentind]
+    table2t = @view table2g.parent[parentind, parentind]
+    fft!(table1t)
+    fft!(table2t)
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/(2*area)
-    for q in 0:mmax-1
+    areafact = 1 / (2 * area)
+    @inbounds for q in 0:mmax-1
         qterm = q * (π - ψ₂ / mmax)
-        for p in 0:mmax-1
+        qp1 = q + 1
+        @inbounds @simd for p in 0:mmax-1
+            pp1 = p + 1
             pterm = p * (π - ψ₁ / mmax)
-            cfact = cis(pterm + qterm) / (2 * area)
-            table1t[p+1, q+1] *= cfact
-            table2t[p+1, q+1] *= cfact
+            cfact = cis(pterm + qterm) * areafact
+            table1t[pp1, qp1] *= cfact
+            table2t[pp1, qp1] *= cfact
         end
     end
     # Create proper sized interpolation array---Note that we add an extra row

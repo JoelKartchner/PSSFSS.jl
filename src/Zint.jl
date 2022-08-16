@@ -87,8 +87,6 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         rowcol = i2s[ifmifs]
         ifm, ifs = rowcol[1], rowcol[2] # indices of match and source triangles
         is = @view metal.fe[:, ifs]     # Obtain the three edges of the source triangle.
-
-        #vtxcrd!(rs, ifs, metal) # Obtain coordinates of source tri's vertices
         rs = vtxcrd(ifs, metal) # Obtain coordinates of source tri's vertices
         # Calculate twice the signed area of the source triangle
         rs32 = rs[3] - rs[2]
@@ -109,7 +107,7 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         rm = vtxcrd(ifm, metal) # observation triangle vertex coordinates
         rmc = mean(rm) # observation face centroid (meters)
 
-        @inbounds for i ∈ eachindex(ξ)   # Loop for numerical integration
+        @inbounds @simd for i ∈ eachindex(ξ)   # Loop for numerical integration
             rt = rs[1] + rs21 * ξ[i] + rs31 * η[i] # Source point
             uρ00 = ulocal * (rmc - rt)
             Jsum, Ksum = jksums(uρ00, metal.ψ₁, metal.ψ₂, us1, us2, clsflg) # spatial sums
@@ -220,7 +218,7 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
     I1 = zero(ComplexF64)
     I2 = zero(ComplexF64)
 
-    for i ∈ 1:length(ξ)
+    @inbounds @simd for i ∈ eachindex(ξ)
         rt = rs[1] + (rs[2] - rs[1]) * ξ[i] + (rs[3] - rs[1]) * η[i] # Source point
         ρdif = rmc - rt
         sig1 = Σm1_func(ρdif)::ComplexF64
