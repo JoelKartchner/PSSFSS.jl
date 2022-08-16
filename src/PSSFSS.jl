@@ -26,7 +26,7 @@ using StaticArrays: StaticArrays, SVector, SArray, @SVector
 using Unitful: ustrip, @u_str
 using Logging: with_logger
 using ProgressMeter
-using SnoopPrecompile
+#using SnoopPrecompile
 
 include("Constants.jl")
 include("Log.jl")
