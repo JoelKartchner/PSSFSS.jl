@@ -94,7 +94,7 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     ω = k0 * c₀                      # Radian frequency (Radians/second)
     jω = im * ω
     A_factor = μ₀ / fourpi * μ̃
-    Φ_factor = im / ϵ̄ * (twopi * ω * ϵ₀)
+    Φ_factor = im / (ϵ̄ * twopi * ω * ϵ₀)
 
 
     # Check whether or not the frequency-independent face/face integrals are up to date:
