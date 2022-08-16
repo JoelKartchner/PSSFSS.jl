@@ -307,7 +307,6 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
 
     # Create proper sized storage arrays for FFT routine:
     mmaxo2 = mmax ÷ 2
-
     #table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
     #table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
     parentind = (1 + mg - mmaxo2):(mg + mmaxo2)
@@ -428,17 +427,9 @@ function make_Σm_func(table::AbstractArray, β₁::SV2, β₂::SV2, ψ₁::Real
                            0.5 * (p² - 2pq + p) * table[m+1, n] +
                            0.5 * (q² - 2pq + q) * table[m, n+1] +
                            pq * table[m+1, n+1]
-            #=                Σm = q*(q-1)/2 * table[m,n-1] +
-                            p*(p-1)/2 * table[m-1,n] + 
-                           (1 + p*q - p*p - q*q) * table[m,n] +
-                           p*(p - 2*q + 1)/2 * table[m+1,n] +
-                           q*(q - 2*p + 1)/2 * table[m,n+1] +
-                           p*q * table[m+1,n+1] 
-            =#
             # Add any phase shift due to range:
-            if mshift ≠ 0 || nshift ≠ 0
-                Σm *= cis(-(mshift * ψ₁ + nshift * ψ₂)) # Eq. (5.30)
-            end
+            phase = -(mshift * ψ₁ + nshift * ψ₂)
+            iszero(phase) || (Σm *= cis(phase)) # Eq. (5.30)
             return Σm
         end # let block
     end # closure
@@ -588,16 +579,20 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
 
     # Create proper sized storage arrays for FFT routine:
     mmaxo2 = mmax ÷ 2
-    table1t::Matrix{ComplexF64} = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    table2t::Matrix{ComplexF64} = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    parentind = (1 + mg - mmaxo2):(mg + mmaxo2)
+    table1t = @view table1g.parent[parentind, parentind]
+    table2t = @view table2g.parent[parentind, parentind]
     fft!(table1t)
     fft!(table2t)
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/area:
+    areainv = 1 / area
     @inbounds for q in 0:mmax-1
         qterm = q * (π - ψ₂ / mmax)
-        @inbounds for p in 0:mmax-1
+        @inbounds @simd for p in 0:mmax-1
             pterm = p * (π - ψ₁ / mmax)
-            cfact = cis(pterm + qterm) / area
+            cfact = cis(pterm + qterm) * areainv
             table1t[p+1, q+1] *= cfact
             table2t[p+1, q+1] *= cfact
         end
