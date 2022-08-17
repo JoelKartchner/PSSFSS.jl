@@ -4,6 +4,7 @@ export electric_modal_sum_funcs, magnetic_modal_sum_funcs, jksums
 
 using LinearAlgebra: norm, ⋅, ×
 using OffsetArrays
+using LoopVectorization: @turbo
 using ..Rings: Ring
 using ..Sheets: SV2
 using ..Layers: Layer
@@ -13,6 +14,8 @@ using ..Log: @logfile
 
 # Variables used by the spatial routines:
 const jkringmax = 65 # Max. number of rings to sum over
+const ringphs = zeros(8jkringmax, Threads.nthreads())
+const ringuρₘₙ = zeros(8jkringmax, Threads.nthreads())
 
 # Variables used by the spectral routines:
 const mmax_list = (32, 2048)
@@ -21,22 +24,17 @@ const table1g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
 const table2g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
 
 
-#=
 """
-    ring(r::Integer)
+    collectring(r::Integer)
 
 Return vector of (m,n) pairs comprising the r'th summation ring.
 """
-function ring(r::Integer)
+function collectring(r::Integer)
     r == 0 && return [(0,0)]
-    leftright = vec([(m,n) for m in (-r,r), n in -r:r])
-    topbot = vec([(m,n) for m in 1-r:r-1, n in (-r,r)])
-    return vcat(leftright,topbot)
+    leftright = ((m,n) for m in (-r,r) for n in -r:r)
+    topbot = ((m,n) for m in 1-r:r-1 for n in (-r,r))
+    return vcat(leftright..., topbot...)
 end
-=#
-
-
-
 
 """
     jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract::Bool; convtest=1e-8) --> (jsum, ksum)
@@ -85,19 +83,42 @@ function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8
     rsave = 0
     conv = 0.0
     converged = false # Establish scope outside loop
+    tid = Threads.threadid()
     for r in 1:jkringmax
         rsave = r
-        jring = kring = zero(ComplexF64) # Initialize ring sums
-        for mn in Ring(r)
+
+        @inbounds for (i, mn) in enumerate(Ring(r))
             (m, n) = mn
             uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
-            #term = exp(-complex(uρₘₙnrm, m * ψ₁ + n * ψ₂))
-            phase = -(m*ψ₁ + n*ψ₂)
-            phsfactor = iszero(phase) ? complex(1.0,0.0) : cis(phase)
-            term = uρₘₙ > 30 ? complex(0.0,0.0) : exp(-uρₘₙ) * phsfactor
-            jring += term / uρₘₙ
-            kring += term
+            ringuρₘₙ[i, tid] = uρₘₙ
+            ringphs[i, tid] = -(m*ψ₁ + n*ψ₂)
         end
+
+        jring_r = kring_r = jring_i = kring_i = 0.0
+        if iszero(ψ₁) && iszero(ψ₂)
+            kring_i = 0.0
+            jring_i = 0.0
+            @turbo for i in 1:8r
+                e = exp(-ringuρₘₙ[i, tid])
+                term_r = e 
+                kring_r += term_r
+                jring_r += term_r / ringuρₘₙ[i, tid] 
+            end  
+        else
+            @turbo for i in 1:8r
+                e = exp(-ringuρₘₙ[i, tid])
+                c = cos(ringphs[i, tid])
+                s = sin(ringphs[i, tid])
+                term_r = e * c
+                term_i = e * s
+                kring_r += term_r
+                kring_i += term_i
+                jring_r += term_r / ringuρₘₙ[i, tid] 
+                jring_i += term_i / ringuρₘₙ[i, tid] 
+            end
+        end  
+        jring = complex(jring_r, jring_i)
+        kring = complex(kring_r, kring_i)
         jsum += jring
         ksum += kring
         # Test for convergence if we're far enough along:
