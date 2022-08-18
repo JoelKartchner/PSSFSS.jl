@@ -86,7 +86,8 @@ function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8
     tid = Threads.threadid()
     for r in 1:jkringmax
         rsave = r
-
+        #jring, kring = _jkring(r, uρ⃗₀₀, us₁, us₂, ψ₁, ψ₂, tid)
+        ##=
         @inbounds for (i, mn) in enumerate(Ring(r))
             (m, n) = mn
             uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
@@ -119,6 +120,7 @@ function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8
         end  
         jring = complex(jring_r, jring_i)
         kring = complex(kring_r, kring_i)
+        ##=#
         jsum += jring
         ksum += kring
         # Test for convergence if we're far enough along:
@@ -132,7 +134,41 @@ function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8
     return (jsum, ksum)
 end
 
+function _jkring(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int)
+    @inbounds for (i, mn) in enumerate(Ring(r))
+        (m, n) = mn
+        uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
+        ringuρₘₙ[i, tid] = uρₘₙ
+        ringphs[i, tid] = -(m*ψ₁ + n*ψ₂)
+    end
 
+    jring_r = kring_r = jring_i = kring_i = 0.0
+    if iszero(ψ₁) && iszero(ψ₂)
+        kring_i = 0.0
+        jring_i = 0.0
+        @turbo for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            term_r = e 
+            kring_r += term_r
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+        end  
+    else
+        @turbo for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            c = cos(ringphs[i, tid])
+            s = sin(ringphs[i, tid])
+            term_r = e * c
+            term_i = e * s
+            kring_r += term_r
+            kring_i += term_i
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+            jring_i += term_i / ringuρₘₙ[i, tid] 
+        end
+    end  
+    jring = complex(jring_r, jring_i)
+    kring = complex(kring_r, kring_i)
+    return jring, kring
+end
 
 """
     mysqrt(x)

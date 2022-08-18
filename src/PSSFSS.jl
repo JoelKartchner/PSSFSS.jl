@@ -26,7 +26,7 @@ using StaticArrays: StaticArrays, SVector, SArray, @SVector
 using Unitful: ustrip, @u_str
 using Logging: with_logger
 using ProgressMeter
-#using SnoopPrecompile
+using SnoopPrecompile
 
 include("Constants.jl")
 include("Log.jl")
@@ -789,39 +789,28 @@ function report_layers_sheets(layers, sheets, junc, rwgdat, usi_in)
     nothing
 end
 
-#=
+
 @precompile_setup begin
     # Putting some things in `setup` can reduce the size of the
     # precompile file and potentially make loading faster.
-    outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=300, rot=rot)
-    inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=300, rot=rot, class='M')
-    center(rot) = meander(a=3.97, b=3.97, w1=0.34, w2=0.34, h=2.51+0.34, units=mm, ntri=300, rot=rot)
+    outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=30, rot=rot)
+    #inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=300, rot=rot, class='M')
+    #center(rot) = meander(a=3.97, b=3.97, w1=0.34, w2=0.34, h=2.51+0.34, units=mm, ntri=300, rot=rot)
     t1 = 4
     t2 = 2.45
     foam(w) = Layer(width=w, epsr=1.05)
-    
+    #(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int) = (1, [1.7453292519943293, 28.099800957108705], [3.141592653589793, 0.0], [0.0, 62.831853071799586], 0.0, 0.0, 4)
+    substrate = Layer(width=0.1mm, epsr=2.6)
+
     @precompile_all_calls begin
-        substrate = Layer(width=0.1mm, epsr=2.6)
-        rot0 = 0
         strata = [
             Layer()
-            outer(rot0)
+            outer(0)
             substrate
             foam(t1*1mm)
-            inner(rot0 - 45)
-            substrate
-            foam(t2*1mm)
-            center(rot0 - 2*45)
-            substrate
-            foam(t2*1mm)
-            inner(rot0 - 3*45)
-            substrate
-            foam(t1*1mm)
-            outer(rot0 - 4*45)
-            substrate
             Layer() ]
-        steering = (θ=0, ϕ=0)
-        flist = 10:10:20
+        steering = (θ=0:1, ϕ=0)
+        flist = 10
         resultfile = tempname()
         logfile = tempname()
         results = analyze(strata, flist, steering; resultfile, logfile)
@@ -831,6 +820,6 @@ end
         AR21L = extract_result(results, @outputs ar21db(L))
     end
 end
-=#
+
 
 end # module
