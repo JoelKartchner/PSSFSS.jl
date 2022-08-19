@@ -6,17 +6,14 @@ using ..PSSFSSLen: mm, cm, inch, mil, PSSFSSLength
 using ..Sheets: RWGSheet, rotate!, translate!, combine, recttri, SV2
 using ..Meshsub: meshsub
 using StaticArrays: SA
-using LinearAlgebra: ×, norm, ⋅
+using LinearAlgebra: norm, ⋅
 using Printf: @sprintf
 
 macro testpos(var)
     return :(all($(esc(var)) .> 0) || error($(esc(string(var))) * " must be positive!"))
 end
 
-
-zhatcross(t) = [-t[2], t[1]]
-zhatcross(t::SV2) = SV2(-t[2], t[1])
-
+@inline zhatcross(t::SV2) = SV2(-t[2], t[1])
 
 """
     s₁s₂2β₁β₂(s₁,s₂) -> (β₁, β₂)
@@ -25,13 +22,9 @@ Compute the reciprocal lattice vectors from the direct lattice vectors.
 Inputs and outputs are static 2-vectors from StaticArrays.
 """
 function s₁s₂2β₁β₂(s₁, s₂)
-    s1 = [s₁..., 0.0] # 3-vector
-    s2 = [s₂..., 0.0] # 3-vector
-    fact = 2π / norm(s1 × s2)
-    β1 = fact .* s2 × [0, 0, 1]
-    β2 = fact .* [0, 0, 1] × s1
-    β₁ = SV2(β1[1:2])
-    β₂ = SV2(β2[1:2])
+    fact = 2π / abs(s₁[1]*s₂[2] - s₁[2]*s₂[1])
+    β₁ = -fact * zhatcross(s₂)
+    β₂ = fact * zhatcross(s₁)
     return β₁, β₂
 end
 
@@ -558,7 +551,7 @@ function loadedcross(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Rea
 
     # Set up call to meshsub
     areatri = areat / ntri
-    points = convert(Matrix{Cdouble}, hcat(ρ...))
+    points = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρ), (2, length(ρ))))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
@@ -736,7 +729,7 @@ function meander(; a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
         xform = (x, y) -> (y, a - x)
     end
     if morient ≠ 0
-        sheet.ρ = [SV2(xform(ρ...)) for ρ in sheet.ρ]
+        sheet.ρ = [SV2(xform(ρ[1], ρ[2])) for ρ in sheet.ρ]
     end
     # Set the face sheet resistance values.
     sheet.fr = zeros(size(sheet.fv, 2))
@@ -888,7 +881,7 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
                 push!(e1, node)
                 push!(e2, node + 1)
                 push!(segmarkers, boundary)
-                push!(ρ, ρ₀ + b[iring] * SV2([reverse(sincosd(orient + (i - 1) * α))...]))
+                push!(ρ, ρ₀ + b[iring] * SV2(reverse(sincosd(orient + (i - 1) * α))))
             end
             e2[end] -= sides
         else
@@ -945,7 +938,7 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
                     push!(e1, node)
                     push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, ρ₀ + a[iring] * SV2([reverse(sincosd(orient + (i - i1) * α))...]))
+                    push!(ρ, ρ₀ + a[iring] * SV2(reverse(sincosd(orient + (i - i1) * α))))
                 end
                 e2[end] = nodesave
             else
@@ -958,7 +951,7 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
                         push!(e1, node)
                         push!(e2, node + 1)
                         push!(segmarkers, boundary)
-                        push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orient + (i - 1) * α))...]))
+                        push!(ρ, ρ₀ + r * SV2(reverse(sincosd(orient + (i - 1) * α))))
                     end
                     e2[end] = nodesave
                 end
@@ -971,18 +964,18 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
     a[1] > 0 && push!(ρhole, ρ₀)
 
     for i in 1:nring-1
-        unitvector = SV2([reverse(sincosd(orient))...])
+        unitvector = SV2(reverse(sincosd(orient)))
         r = 0.5 * (b[i] + a[i+1])
         push!(ρhole, ρ₀ + r * unitvector)
     end
 
     # Set up call to meshsub
-    points = convert(Matrix{Cdouble}, hcat(ρ...))
+    points = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρ), (2, length(ρ))))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     if isempty(ρhole)
         holes = Array{Cdouble}(undef, 2, 0)
     else
-        holes = convert(Matrix{Cdouble}, hcat(ρhole...))
+        holes = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρhole), (2, length(ρhole))))
     end
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
@@ -1091,39 +1084,53 @@ All arguments are keyword arguments which can be entered in any order.
 - `s1` and `s2`:  2-vectors containing the unit cell lattice vectors.
 - `a` and `b`:  n-vectors (n>=1) of the same length providing the inner and outer radii, respectively of the polygonal rings.
                Entries in `a` and `b` must be positive and strictly increasing. `b[i] > a[i]` ∀ `i ∈ 1:n`.
-- `sides`:  The number (>= 4) of polygon sides.
+- `sides`:  The number (>= 4) of polygon sides for the background regular annular polygon from which the gaps are removed.
 - `gapwidth`: A scalar or a vector of the same length as `a` and `b` containing the gap width(s) for each ring.
             A width of zero implies that the ring is not split (i.e. there is no gap).  If the `gapwidth` of all rings
-            is zero, then the resulting geometry is similar to a `polyring`. 
-            The gap width `gapwidth[i]` for the `i`th ring must not exceed `gapwidthmax = 2 * a[i] * sin(α/2)` where
-            `α = 360/sides` is the angle subtended by one polygon side about the polygon center.  Thus `gapwidthmax` is the 
-            length of one side of the inner regular polygon bounding the `i`th annular ring.
+            is zero, then the resulting geometry is similar to a `polyring`. If a ring is to have multiple gaps, then
+            the widths of the gaps for that ring should be passed as a tuple.  For example, suppose there are three
+            rings and the second ring has 2 gaps, with the others having a single gap.  Then `gapwidth = [0.5, (0.4, 0.6), 0.3]`
+            would be an appropriately formatted input in this case.
+            If the gap width `gapwidth[i]` for the `i`th ring is less than or equal to 
+            `2 * a[i] * sin(π/sides)`, then the gap is implemented as a straight segment 
+            removed from the center of one of the annular polygon sides. For gap widths greater
+            than this amount (which is the length of one of the sides of the inner bounding polygon of the 
+            annulus), The gap is a formed as if a pie-shaped wedge (circular sector) is removed, with the 
+            gap width measured along the arc of radius `(a[i] + b[i])/2`.
+- `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular locations in degrees
+            (measured counterclockwise from the positive x-axis) of the centers of the gaps.  Like `gapwidth`, for 
+            any rings with multiple gaps, the corresponding entry in `gapangle` should be a tuple of the same length as
+            the number of gaps for that ring.
 - `ntri`:  The desired total number of triangles distributed among all the annular regions. This is a guide, the actual number 
            will likely be different.
-    
 $(optional_kwargs)
-- `orient::0`:  A scalar or vector of the same length of `a` and `b`. Contains the counterclockwise rotation angle(s)
-   in degrees used to locate the center(s) of the gap(s) in the polygonal ring(s). The default value of `0` implies that 
-   all ring gaps will be bisected by a ray drawn from the center of the unit cell parallel to the positive x-axis.
-- `double::false`: A scalar or vector of Boolean values.  Where `true`, this implies that a ring should have "double gap",
-  i.e. a gap at both ϕ = `orient[i]` and at `orient[i] + 180`.
-
 """
-function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, b::Vector{<:Real},
-    sides::Int, ntri::Int, units::PSSFSSLength, double::Union{Bool, Vector{Bool}}=false,
-    gapwidth::Union{Real, Vector{<:Real}}, orient::Union{Real, Vector{<:Real}}=0, kwarg...)::RWGSheet
+function splitring(;
+    s1::Vector{<:Real},
+    s2::Vector{<:Real},
+    a::Vector{<:Real},
+    b::Vector{<:Real},
+    sides::Int,
+    ntri::Int,
+    units::PSSFSSLength,
+    gapwidth::Union{Real, Vector},
+    gapangle::Union{Real, Vector}=0,
+    kwarg...)::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
     nring = length(a)
     gwidth = gapwidth isa Real ? fill(gapwidth, nring) : gapwidth
-    orent =  orient isa Real ? fill(orient, nring) : orient
-    dble = double isa Bool ? fill(double, nring) : double
+    gangle =  gapangle isa Real ? fill(gapangle, nring) : gapangle
 
-    all(x -> length(x) == nring, (b, gwidth)) || 
-        throw(ArgumentError("Incompatible lengths for a, b, gwidth"))
-    sides ≥ 4 || throw(ArgumentError("Number of sides must be 4 or more"))
+    all(x -> length(x) == nring, (b, gwidth, gangle)) || 
+        throw(ArgumentError("Incompatible lengths for a, b, gapwidth, gapangle"))
+    for (gw,ga) in zip(gwidth, gangle)
+        length(gw) == length(ga) || 
+            throw(ArgumentError("Incompatible gapwidth and gapangle"))
+    end
+    sides ≥ 3 || throw(ArgumentError("Number of sides must be 3 or more"))
     @testpos(ntri)
     @testpos(a)
     @testpos(b)
@@ -1143,15 +1150,12 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
     α = 360 / sides # angle subtended by each side (degrees)
     sinαo2, cosαo2 = sincosd(α/2)
-    for i in 1:nring
-        gwidthmax = 2 * a[i] * sinαo2
-        gwidth[i] > gwidthmax && throw(ArgumentError("Ring $i gap larger than allowed maximum = $gwidthmax"))
-    end
+    gwidthtest = [2 * r * sinαo2 for r in a]
+    orient = [α/2 for _ in 1:nring]
 
-    # compute area of each ring and total area of all rings:
+    # Approximate the total area of all rings minus gaps:
     area_factor = sides / 2 * sind(α)
-    area = [(b[i]^2 - a[i]^2) * area_factor - gwidth[i] * (b[i] - a[i]) for i in 1:nring]
-    areat = sum(area) # total area of all rings.
+    areat = sum(((b[i]^2 - a[i]^2) * area_factor - gwidth[i] * (b[i] - a[i]) for i in 1:nring))
     areatri = areat / ntri # Desired area of a single triangle
 
     ρ = SV2[]
@@ -1162,8 +1166,8 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     boundary = 0
     node = 0
     for iring in 1:nring
-        rotmat = rotationmat(orent[iring])
-        if iszero(gwidth[iring])
+        rotmat = rotationmat(orient[iring])
+        if all(iszero.(gwidth[iring]))
             # regular polygonal annulus:
             for r in (b[iring], a[iring])
                 boundary += 1
@@ -1173,59 +1177,16 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                     push!(e1, node)
                     push!(e2, node + 1)
                     push!(segmarkers, boundary)
-                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orent[iring] + (i - 0.5) * α))...]))
+                    push!(ρ, ρ₀ + r * SV2(reverse(sincosd(orient[iring] + (i - 0.5) * α))))
                 end
                 e2[end] = nodesave
             end
             continue # next iring
-
-        elseif !dble[iring]
-            # finite width single gap
-            boundary += 1
-            isgn = -1 
-            nodesave = node + 1
-            ρtol = 0.33 * (b[iring] - a[iring])
-            for r in (b[iring], a[iring])
-                isgn *= -1
-
-                node += 1
-                push!(e1, node)
-                push!(e2, node + 1)
-                push!(ρ, ρ₀ + rotmat * SV2(r * cosαo2, isgn * gwidth[iring]/2))
-                push!(segmarkers, boundary)
-
-                for i in 1:sides
-                    push!(ρ, ρ₀ + r * SV2([reverse(sincosd(orent[iring] + isgn*(i - 0.5) * α))...]))
-                    if i == 1 && norm(ρ[end] - ρ[end-1]) < ρtol
-                        pop!(ρ)
-                        continue
-                    end
-                    node += 1
-                    push!(e1, node)
-                    push!(e2, node + 1)
-                    push!(segmarkers, boundary)
-                end
-
-                ρnext = ρ₀ + rotmat * SV2(r * cosαo2, -isgn * gwidth[iring]/2)
-                if norm(ρ[end] - ρnext) < ρtol
-                    ρ[end] = ρnext
-                else
-                    node += 1
-                    push!(e1, node)
-                    push!(e2, node + 1)
-                    push!(segmarkers, boundary)
-                    push!(ρ, ρnext)
-                end
-            end
-            e2[end] = nodesave
-            continue # next iring
-        
-        elseif dble[iring]
-            # Handle case of double gap
-            ρtol = 0.33 * (b[iring] - a[iring])
-            nhalfring = sides ÷ 2
-            for half in 1:2
-                rotmat = rotationmat(orent[iring] + 180*(half-1))
+        else
+            # At least one finite gap on this ring
+            # continue here
+            ρtol = 0.2 * (b[iring] - a[iring])
+            for (gw, ga) in zip(gwidth[iring], gangle[iring])
                 boundary += 1
                 nodesave = node + 1
                 isgn = -1
@@ -1239,7 +1200,7 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
                     push!(segmarkers, boundary)
 
                     for i in 1:nhalfring
-                        push!(ρ, ρ₀ + r * rotmat * SV2([reverse(sincosd((1-isgn)*90 + isgn * (i - 0.5) * α))...]))
+                        push!(ρ, ρ₀ + r * rotmat * SV2(reverse(sincosd((1-isgn)*90 + isgn * (i - 0.5) * α))))
                         if i == 1 && norm(ρ[end] - ρ[end-1]) < ρtol
                             pop!(ρ)
                             continue
@@ -1276,7 +1237,7 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     ρhole = SV2[]
     solids = reverse!(findall(iszero, gwidth))
     for iring in solids
-        unitvector = SV2([reverse(sincosd(α/2 + orent[iring]))...])
+        unitvector = SV2(reverse(sincosd(α/2 + orient[iring])))
         if iring == 1
             push!(ρhole, ρ₀)
         else
@@ -1286,12 +1247,12 @@ function splitring(; s1::Vector{<:Real}, s2::Vector{<:Real}, a::Vector{<:Real}, 
     end
 
     # Set up call to meshsub
-    points = convert(Matrix{Cdouble}, hcat(ρ...))
+    points = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρ), (2, length(ρ))))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     if isempty(ρhole)
         holes = Array{Cdouble}(undef, 2, 0)
     else
-        holes = convert(Matrix{Cdouble}, hcat(ρhole...))
+        holes = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρhole), (2, length(ρhole))))
     end
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
