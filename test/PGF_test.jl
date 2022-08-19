@@ -34,7 +34,7 @@ s₂ = SV2([0.5707, 0.9885] * inch2m) # Lattice vector
 β₁, β₂ = s₁s₂2β₁β₂(s₁, s₂)
 β₀₀ = (ψ₁ * β₁ + ψ₂ * β₂) / (2π)
 extract = true
-ρdif_mil = [2, 6];
+ρdif_mil = SV2([2, 6]);
 ρdif = ρdif_mil / 1000 * 2.54 / 100;
 
 "Precomputed high-accuracy modal series for electric sources"
