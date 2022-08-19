@@ -218,7 +218,9 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     i = findfirst(ss, juliainfo)
     juliainfo = juliainfo[1:first(i)-1]
     juliainfo *= "  BLAS: $(BLAS.get_config())\n"
-    juliainfo = juliainfo * "  Threads.nthreads() = $(Threads.nthreads())\n"
+    if VERSION < v"1.8"
+        juliainfo = juliainfo * "  Threads.nthreads() = $(Threads.nthreads())\n"
+    end
     @logfile "\n\nStarting PSSFSS $(pssfssv) analysis on $(date) at $(clock)\n$(juliainfo)\n\n"
     check_inputs(layers, sheets, junc, freqs, stkeys, stvalues, outlist)
     k0min, k0max = twopi * 1e9 / c₀ .* extrema(freqs)
@@ -801,19 +803,17 @@ end
     foam(w) = Layer(width=w, epsr=1.05)
     #(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int) = (1, [1.7453292519943293, 28.099800957108705], [3.141592653589793, 0.0], [0.0, 62.831853071799586], 0.0, 0.0, 4)
     substrate = Layer(width=0.1mm, epsr=2.6)
+    strata = [
+        Layer()
+        outer(0)
+        substrate
+        foam(t1*1mm)
+        Layer() ]
+    steering = (θ=0:1, ϕ=0)
+    flist = 10
 
     @precompile_all_calls begin
-        strata = [
-            Layer()
-            outer(0)
-            substrate
-            foam(t1*1mm)
-            Layer() ]
-        steering = (θ=0:1, ϕ=0)
-        flist = 10
-        resultfile = tempname()
-        logfile = tempname()
-        results = analyze(strata, flist, steering; resultfile, logfile)
+        results = analyze(strata, flist, steering; resultfile=tempname(), logfile=tempname())
         RL11rr = -extract_result(results, @outputs s11db(r,r))
         AR11r = extract_result(results, @outputs ar11db(r))
         IL21L = -extract_result(results, @outputs s21db(L,L))

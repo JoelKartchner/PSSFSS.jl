@@ -14,8 +14,8 @@ using ..Log: @logfile
 
 # Variables used by the spatial routines:
 const jkringmax = 65 # Max. number of rings to sum over
-const ringphs = zeros(8jkringmax, Threads.nthreads())
-const ringuρₘₙ = zeros(8jkringmax, Threads.nthreads())
+const ringphs = zeros(8jkringmax, Sys.CPU_THREADS)
+const ringuρₘₙ = zeros(8jkringmax, Sys.CPU_THREADS)
 
 # Variables used by the spectral routines:
 const mmax_list = (32, 2048)
@@ -119,6 +119,41 @@ function _jkring(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float
         end  
     else
         @turbo for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            c = cos(ringphs[i, tid])
+            s = sin(ringphs[i, tid])
+            term_r = e * c
+            term_i = e * s
+            kring_r += term_r
+            kring_i += term_i
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+            jring_i += term_i / ringuρₘₙ[i, tid] 
+        end
+    end  
+    jring = complex(jring_r, jring_i)
+    kring = complex(kring_r, kring_i)
+    return jring, kring
+end
+
+function _jkringslow(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int)
+    @inbounds for (i, mn) in enumerate(Ring(r))
+        (m, n) = mn
+        uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
+        ringuρₘₙ[i, tid] = uρₘₙ
+        ringphs[i, tid] = -(m*ψ₁ + n*ψ₂)
+    end
+    jring_r = kring_r = jring_i = kring_i = 0.0
+    if iszero(ψ₁) && iszero(ψ₂)
+        kring_i = 0.0
+        jring_i = 0.0
+        for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            term_r = e 
+            kring_r += term_r
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+        end  
+    else
+        for i in 1:8r
             e = exp(-ringuρₘₙ[i, tid])
             c = cos(ringphs[i, tid])
             s = sin(ringphs[i, tid])
