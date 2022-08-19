@@ -91,7 +91,11 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     μᵣ₂ = layers[s+1].μᵣ
     μ̃ = 2 * μᵣ₁ * μᵣ₂ / (μᵣ₁ + μᵣ₂) # Equation (4-11) (normalized to μ₀)
     ϵ̄ = (ϵᵣ₁ + ϵᵣ₂) / 2              # Equation (4-23) (normalized to ϵ₀)
-    ω = k0 * c₀                  # Radian frequency (Radians/second)
+    ω = k0 * c₀                      # Radian frequency (Radians/second)
+    jω = im * ω
+    A_factor = μ₀ / fourpi * μ̃
+    Φ_factor = im / (ϵ̄ * twopi * ω * ϵ₀)
+
 
     # Check whether or not the frequency-independent face/face integrals are up to date:
     if ψ₁ ≠ metal.ψ₁ || ψ₂ ≠ metal.ψ₂ || metal.u == 0 ||
@@ -184,8 +188,8 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
                 else
                     error("Impossible situation in source edge loop")
                 end
-                A_source_flag = μ₀ / fourpi * source_flag * μ̃
-                Φ_source_flag = im / ϵ̄ * (source_flag / (twopi * ω * ϵ₀))
+                A_source_flag = A_factor * source_flag
+                Φ_source_flag = Φ_factor * source_flag
 
                 # Compute singular contribution for this edge (the middle term in 
                 # square brackets in Equation (7-21) using (B.2):
@@ -220,8 +224,8 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
                     # Add contribution to the impedance matrix
                     mbfsave[savecounter] = mbf
                     sbfsave[savecounter] = sbf
-                    zcontrib[savecounter] += match_flag * (im * ω * dotprod - Φ_i)
-                    #zmat[mbf,sbf] += match_flag * (im*ω*dotprod - Φ_i)
+                    zcontrib[savecounter] += match_flag * (jω * dotprod - Φ_i)
+                    #zmat[mbf,sbf] += match_flag * (jω*dotprod - Φ_i)
                     # Add surface loading, if applicable:
                     if self_tri && metal.fr[ifm] ≠ 0
                         if self_edge
@@ -321,10 +325,13 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
     μ̃ = 2.0 * μᵣ₁ * μᵣ₂ / (μᵣ₁ + μᵣ₂) # Eq (4-11) (normalized to μ₀)
     ϵ̄ = 0.5 * (ϵᵣ₁ + ϵᵣ₂) # Equation (1-23) (normalized to ϵ₀)
     ω = k0 * c₀              # Radian frequency (Radians/second)
+    jω = im * ω
     I1fact = π / ϵ̄
     KFfact = (c3s * ϵᵣ₁ + c3sp1 * ϵᵣ₂) / (2 * ϵ̄ * u)
     I2fact = π * μ̃
     KPfact = μ̃ / (2 * u) * (d3s / μᵣ₁ + d3sp1 / μᵣ₂)
+    F_factor = -ϵ₀ / π * ϵ̄ 
+    Ψ_factor = 2im / (π * ω * μ₀ * μ̃)
 
     # Check whether or not the apert face/face integrals are up to date:
     if ψ₁ ≠ apert.ψ₁ || ψ₂ ≠ apert.ψ₂ || apert.u == 0 ||
@@ -410,8 +417,8 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
                 else
                     error("Impossible situation in source edge loop")
                 end
-                F_source_flag = -ϵ₀ / π * ϵ̄ * source_flag
-                Ψ_source_flag = 2im / (π * ω * μ₀ * μ̃) * source_flag
+                F_source_flag = F_factor * source_flag
+                Ψ_source_flag = Ψ_factor * source_flag
 
                 # Compute singular contribution for this edge (the middle term in 
                 # square brackets in Equation (7-57)) using (B-2):
@@ -448,7 +455,7 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
                     # Add contribution to the admittance matrix
                     mbfsave[savecounter] = mbf
                     sbfsave[savecounter] = sbf
-                    ycontrib[savecounter] += match_flag * (-im * ω * dotprod - Ψ_i)
+                    ycontrib[savecounter] += -match_flag * (jω * dotprod + Ψ_i)
                     #ymat[mbf,sbf] += match_flag * (-im*ω*dotprod - Ψ_i)
                 end
             end # loop over source edges

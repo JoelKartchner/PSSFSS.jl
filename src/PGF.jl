@@ -4,6 +4,7 @@ export electric_modal_sum_funcs, magnetic_modal_sum_funcs, jksums
 
 using LinearAlgebra: norm, ⋅, ×
 using OffsetArrays
+using LoopVectorization: @turbo
 using ..Rings: Ring
 using ..Sheets: SV2
 using ..Layers: Layer
@@ -13,6 +14,8 @@ using ..Log: @logfile
 
 # Variables used by the spatial routines:
 const jkringmax = 65 # Max. number of rings to sum over
+const ringphs = zeros(8jkringmax, Sys.CPU_THREADS)
+const ringuρₘₙ = zeros(8jkringmax, Sys.CPU_THREADS)
 
 # Variables used by the spectral routines:
 const mmax_list = (32, 2048)
@@ -21,32 +24,27 @@ const table1g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
 const table2g = OffsetArray(zeros(ComplexF64, 2mg + 1, 2mg + 1), -mg:mg, -mg:mg)
 
 
-#=
 """
-    ring(r::Integer)
+    collectring(r::Integer)
 
 Return vector of (m,n) pairs comprising the r'th summation ring.
 """
-function ring(r::Integer)
+function collectring(r::Integer)
     r == 0 && return [(0,0)]
-    leftright = vec([(m,n) for m in (-r,r), n in -r:r])
-    topbot = vec([(m,n) for m in 1-r:r-1, n in (-r,r)])
-    return vcat(leftright,topbot)
+    leftright = ((m,n) for m in (-r,r) for n in -r:r)
+    topbot = ((m,n) for m in 1-r:r-1 for n in (-r,r))
+    return vcat(leftright..., topbot...)
 end
-=#
-
-
-
 
 """
-    jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract::Bool; convtest=1e-8) --> (jsum, ksum)
+    jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract::Bool; convtest=1e-8) --> (jsum, ksum)
                                                                   
 Compute the frequency-independent sums defined in Equations (7.32c) and (7.32d) of the 
 theory documentation.
 
 ## Arguments:
 
-- `uρ₀₀`: 2-vector containing the difference of the observation and source vectors, 
+- `uρ⃗₀₀`: 2-vector containing the difference of the observation and source vectors, 
           multiplied by `u`, the smoothing parameter.
 - `ψ₁`, `ψ₂`:  The unit cell incremental phase shifts (radians).
 - `us₁`, `us₂`:  2-vectors containing unit cell direct lattice vectors multiplied 
@@ -64,36 +62,31 @@ theory documentation.
 - `ksum`: The complex sum appearing in the integral of Equation (7.22d) and (7.32d) of 
               the theory documentation.
 """
-function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
+function jksums(uρ⃗₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
     rmin = 5 # min number rings to sum over
     small = 1e-5  # Test value for small-argument approximation
 
-    arg = norm(uρ₀₀)
-    rterm = exp(-arg)
+    uρ₀₀ = norm(uρ⃗₀₀)
+    rterm = exp(-uρ₀₀)
     ksum = complex(rterm)
     if extract
-        if arg ≤ small
-            jsum = complex((-arg / 6 + 0.5) * arg - 1) # Small argument extraction formula
+        if uρ₀₀ ≤ small
+            jsum = complex((-uρ₀₀ / 6 + 0.5) * uρ₀₀ - 1) # Small argument extraction formula
         else
-            jsum = complex((rterm - 1) / arg)  # Large argument extraction formula
+            jsum = complex((rterm - 1) / uρ₀₀)  # Large argument extraction formula
         end
     else
-        jsum = complex(rterm / arg)  # No extraction formula
+        jsum = complex(rterm / uρ₀₀)  # No extraction formula
     end
 
     # Begin loop over summation lattice rings.
     rsave = 0
     conv = 0.0
     converged = false # Establish scope outside loop
+    tid = Threads.threadid()
     for r in 1:jkringmax
         rsave = r
-        jring = kring = zero(ComplexF64) # Initialize ring sums
-        for (m, n) in Ring(r)
-            arg = norm(uρ₀₀ - (m * us₁ + n * us₂))
-            term = exp(-complex(arg, m * ψ₁ + n * ψ₂))
-            jring += term / arg
-            kring += term
-        end
+        jring, kring = _jkring(r, uρ⃗₀₀, us₁, us₂, ψ₁, ψ₂, tid)
         jsum += jring
         ksum += kring
         # Test for convergence if we're far enough along:
@@ -107,7 +100,75 @@ function jksums(uρ₀₀, ψ₁, ψ₂, us₁, us₂, extract, convtest=1e-8)
     return (jsum, ksum)
 end
 
+function _jkring(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int)
+    @inbounds for (i, mn) in enumerate(Ring(r))
+        (m, n) = mn
+        uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
+        ringuρₘₙ[i, tid] = uρₘₙ
+        ringphs[i, tid] = -(m*ψ₁ + n*ψ₂)
+    end
+    jring_r = kring_r = jring_i = kring_i = 0.0
+    if iszero(ψ₁) && iszero(ψ₂)
+        kring_i = 0.0
+        jring_i = 0.0
+        @turbo for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            term_r = e 
+            kring_r += term_r
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+        end  
+    else
+        @turbo for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            c = cos(ringphs[i, tid])
+            s = sin(ringphs[i, tid])
+            term_r = e * c
+            term_i = e * s
+            kring_r += term_r
+            kring_i += term_i
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+            jring_i += term_i / ringuρₘₙ[i, tid] 
+        end
+    end  
+    jring = complex(jring_r, jring_i)
+    kring = complex(kring_r, kring_i)
+    return jring, kring
+end
 
+function _jkringslow(r::Int, uρ⃗₀₀::SV2, us₁::SV2, us₂::SV2, ψ₁::Float64, ψ₂::Float64, tid::Int)
+    @inbounds for (i, mn) in enumerate(Ring(r))
+        (m, n) = mn
+        uρₘₙ = norm(uρ⃗₀₀ - (m * us₁ + n * us₂))
+        ringuρₘₙ[i, tid] = uρₘₙ
+        ringphs[i, tid] = -(m*ψ₁ + n*ψ₂)
+    end
+    jring_r = kring_r = jring_i = kring_i = 0.0
+    if iszero(ψ₁) && iszero(ψ₂)
+        kring_i = 0.0
+        jring_i = 0.0
+        for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            term_r = e 
+            kring_r += term_r
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+        end  
+    else
+        for i in 1:8r
+            e = exp(-ringuρₘₙ[i, tid])
+            c = cos(ringphs[i, tid])
+            s = sin(ringphs[i, tid])
+            term_r = e * c
+            term_i = e * s
+            kring_r += term_r
+            kring_i += term_i
+            jring_r += term_r / ringuρₘₙ[i, tid] 
+            jring_i += term_i / ringuρₘₙ[i, tid] 
+        end
+    end  
+    jring = complex(jring_r, jring_i)
+    kring = complex(kring_r, kring_i)
+    return jring, kring
+end
 
 """
     mysqrt(x)
@@ -303,25 +364,24 @@ function electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
 
     # Create proper sized storage arrays for FFT routine:
     mmaxo2 = mmax ÷ 2
-    #t1vec = zeros(ComplexF64, (mmax+2)^2)
-    #table1t = reshape(view(t1vec,1:mmax^2), mmax, mmax)
-    #table1t .= @view table1[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
-    #t2vec = zeros(ComplexF64, (mmax+2)^2)
-    #table2t = reshape(view(t2vec,1:mmax^2), mmax, mmax)
-    #table2t .= @view table2[-mmaxo2:mmaxo2-1,-mmaxo2:mmaxo2-1]
-
-    table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    fft!(table1t::Matrix{ComplexF64})
-    fft!(table2t::Matrix{ComplexF64})
+    #table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    parentind = (1 + mg - mmaxo2):(mg + mmaxo2)
+    table1t = @view table1g.parent[parentind, parentind]
+    table2t = @view table2g.parent[parentind, parentind]
+    fft!(table1t)
+    fft!(table2t)
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/(2*area)
-    for q in 0:mmax-1
+    areafact = 1 / (2 * area)
+    @inbounds for q in 0:mmax-1
         qterm = q * (π - ψ₂ / mmax)
-        for p in 0:mmax-1
+        qp1 = q + 1
+        @inbounds @simd for p in 0:mmax-1
+            pp1 = p + 1
             pterm = p * (π - ψ₁ / mmax)
-            cfact = cis(pterm + qterm) / (2 * area)
-            table1t[p+1, q+1] *= cfact
-            table2t[p+1, q+1] *= cfact
+            cfact = cis(pterm + qterm) * areafact
+            table1t[pp1, qp1] *= cfact
+            table2t[pp1, qp1] *= cfact
         end
     end
     # Create proper sized interpolation array---Note that we add an extra row
@@ -424,17 +484,9 @@ function make_Σm_func(table::AbstractArray, β₁::SV2, β₂::SV2, ψ₁::Real
                            0.5 * (p² - 2pq + p) * table[m+1, n] +
                            0.5 * (q² - 2pq + q) * table[m, n+1] +
                            pq * table[m+1, n+1]
-            #=                Σm = q*(q-1)/2 * table[m,n-1] +
-                            p*(p-1)/2 * table[m-1,n] + 
-                           (1 + p*q - p*p - q*q) * table[m,n] +
-                           p*(p - 2*q + 1)/2 * table[m+1,n] +
-                           q*(q - 2*p + 1)/2 * table[m,n+1] +
-                           p*q * table[m+1,n+1] 
-            =#
             # Add any phase shift due to range:
-            if mshift ≠ 0 || nshift ≠ 0
-                Σm *= cis(-(mshift * ψ₁ + nshift * ψ₂)) # Eq. (5.30)
-            end
+            phase = -(mshift * ψ₁ + nshift * ψ₂)
+            iszero(phase) || (Σm *= cis(phase)) # Eq. (5.30)
             return Σm
         end # let block
     end # closure
@@ -584,16 +636,20 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
 
     # Create proper sized storage arrays for FFT routine:
     mmaxo2 = mmax ÷ 2
-    table1t::Matrix{ComplexF64} = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
-    table2t::Matrix{ComplexF64} = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table1t = table1g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    #table2t = table2g[-mmaxo2:mmaxo2-1, -mmaxo2:mmaxo2-1]
+    parentind = (1 + mg - mmaxo2):(mg + mmaxo2)
+    table1t = @view table1g.parent[parentind, parentind]
+    table2t = @view table2g.parent[parentind, parentind]
     fft!(table1t)
     fft!(table2t)
     # Adjust phase according to Equation (5.32).  Also, include factor of 1/area:
+    areainv = 1 / area
     @inbounds for q in 0:mmax-1
         qterm = q * (π - ψ₂ / mmax)
-        @inbounds for p in 0:mmax-1
+        @inbounds @simd for p in 0:mmax-1
             pterm = p * (π - ψ₁ / mmax)
-            cfact = cis(pterm + qterm) / area
+            cfact = cis(pterm + qterm) * areainv
             table1t[p+1, q+1] *= cfact
             table2t[p+1, q+1] *= cfact
         end

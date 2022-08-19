@@ -384,7 +384,7 @@ macro outputs(args...)
             error("Illegal @outputs construction")
         end
     end
-    tuple([eval(a) for a in newargs]...)
+    Tuple(eval(a) for a in newargs)
 end
 
 
