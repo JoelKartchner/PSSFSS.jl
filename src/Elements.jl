@@ -8,10 +8,82 @@ using ..Meshsub: meshsub
 using StaticArrays: SA
 using LinearAlgebra: norm, ⋅
 using Printf: @sprintf
+import LibGEOS # difference, readgeom, Polygon, MultiPolygon
+import GeoInterface # nhole, ngeom, coordinates, getexterior, gethole
+import PolygonOps
 
 macro testpos(var)
     return :(all($(esc(var)) .> 0) || error($(esc(string(var))) * " must be positive!"))
 end
+
+mutable struct MeshsubData
+    ρ::Vector{SV2}
+    e1::Vector{Cint}
+    e2::Vector{Cint}
+    segmarkers::Vector{Cint}
+    holes::Vector{SV2}
+    boundary::Int
+    node::Int
+    area::Float64
+end
+MeshsubData() = MeshsubData(SV2[], Cint[], Cint[], Cint[], SV2[], 0, 0, 0.0)
+
+"""
+    _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
+
+Update `msdata` for the new LibGEOS Polygon object. If the object has any holes,
+then it is assumed that the polygon is actually a regular polygonal annular ring
+centered on the point ρ₀.
+"""
+function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
+    allcoords = GeoInterface.coordinates(obj)
+    ngeom = GeoInterface.ngeom(obj)
+    @assert ngeom == length(allcoords)
+    for kgeom in 1:ngeom # 1 for exterior, 2,3,... for holes
+        coords = allcoords[kgeom]
+        sgn = kgeom == 1 ? 1 : -1
+        area = PolygonOps.area(coords)
+        if sgn * area < 0
+            reverse!(coords) # exterior CCW. holes CW
+            area *= -1 # exterior area > 0, hole area < 0
+        end
+        msdata.area += area
+        msdata.boundary += 1
+        nodesave = msdata.node + 1
+        for (i, ρ) in enumerate(coords)
+            i == length(coords) && break # Last point is repeat of first
+            msdata.node += 1
+            push!(msdata.e1, msdata.node)
+            push!(msdata.e2, msdata.node + 1)
+            push!(msdata.segmarkers, msdata.boundary)
+            push!(msdata.ρ, ρ)
+        end
+        msdata.e2[end] = nodesave
+        if kgeom > 1
+            # Add hole point.  This code assumes that the hole is a complete ring centered on ρ₀
+            ρᵢₙ = ρ₀ + 0.999 * (msdata.ρ[end] - ρ₀)
+            @assert PolygonOps.inpolygon(ρᵢₙ, coords, in=true, on=false, out=false)
+            push!(msdata.holes, ρᵢₙ)
+        end
+    end
+    return msdata
+end    
+
+"""
+    _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.MultiPolygon, ρ₀)
+
+Update `msdata` for the new LibGEOS MultiPolygon object. If the object has any holes,
+then it is assumed that the polygon is actually a regular polygonal annular ring
+centered on the point ρ₀.
+"""
+function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.MultiPolygon, ρ₀)
+    for k in 1:GeoInterface.ngeom(obj)
+        geom = LibGEOS.getgeom(obj, k)
+        _add_libgeos_geom!(msdata, geom, ρ₀)
+    end
+    return msdata
+end
+
 
 @inline zhatcross(t::SV2) = SV2(-t[2], t[1])
 
@@ -847,10 +919,8 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
             ns2 = ns1  # given value is to be associated with shorter edge.
             ns1 = round(Int, ns2 * norms1 / norms2)
         end
-        #ncvrt = [2*(ns1+ns2), sides] # Num of vertices in outer, inner boundary
     else
         fillcell = false # outer ring has finite width.
-        #ncvrt = [sides, sides]
     end
 
     ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
@@ -1066,12 +1136,97 @@ function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, u
 
 end # function
 
+"""
+_makeregpoly(radius, sides, center = [0.,0.], orient = 0.0)
 
+Create a LibGEOS regular polygon.
 
+## Arguments:
+* `radius`: Radius of vertices on polygon boundary, measured from `center`.
+* `sides`: Number of sides of the boundary regular polygons.
+* `center`: A 2-vector containing the coordinates of the polygon center.
+* `orient`: Orientation angle of the first vertex wrt the center location.
+"""
+function _makeregpoly(radius, sides, center = [0.,0.], orient = 0.0)
+    io = IOBuffer()
+    write(io, "POLYGON((")
+    for i in 0:sides
+        s, c = sincosd(orient + i * 360/sides)
+        print(io, center[1] + radius*c, " ", center[2] + radius*s)
+        i < sides && write(io, ",")
+    end
+    write(io, "))")
+    s = String(take!(io))
+    poly = LibGEOS.readgeom(s)
+    return poly
+end
+
+"""
+    _makering(a, b, sides, center = [0.,0.], orient = 0.0)
+
+Create a LibGEOS annular regular polygon.
+
+## Arguments:
+* `a`, `b`: Radii of vertices on the ring's inner and outer boundaries, respectively.
+* `sides`: Number of sides of the boundary regular polygons.
+* `center`: A 2-vector containing the coordinates of the annulus center.
+* `orient`: Orientation angle of the first vertex wrt the center location.
+"""
+function _makering(a, b, sides, center = SV2[0.,0.], orient = 0.0)
+    return LibGEOS.difference(_makeregpoly(b,sides,center,orient), _makeregpoly(a,sides,center,orient))
+end
 
 
 """
-    splitring(; s1, s2, a, b, sides, ntri, gapwidth, units, kwargs...) --> RWGSheet
+    _makewedge(center, radius, centerangle, wedgeangle; sides=20)
+
+Make a LibGeos pie-shaped wedge centered on angle `centerangle` of specified wedge angle.
+Angles are in degrees.
+"""
+function _makewedge(center, radius, centerangle, wedgeangle; sides=20)
+    io = IOBuffer()
+    print(io, "POLYGON((", center[1], " ", center[2], ",")
+    for θ in range(start=centerangle-wedgeangle/2, stop=centerangle+wedgeangle/2, length=sides)
+        s, c = sincosd(θ)
+        print(io, center[1] + radius*c, " ", center[2] + radius*s, ",")
+    end
+    print(io, center[1], " ", center[2], "))")
+    s = String(take!(io))
+    poly = LibGEOS.readgeom(s)
+    return poly
+end
+
+"""
+    _makerect(center, len, centerangle, width)
+
+Make a LibGeos rectangle centered on angle `centerangle` of specified width and length.
+Angles are in degrees.
+"""
+function _makerect(center, len, centerangle, width)
+    x1, y1 = 0.0, -width/2
+    x2, y3 = len, y1 + width
+    prevertices = SV2[[x1,y1], [x2,y1], [x2,y3], [x1,y3], [x1,y1]]
+    s, c = sincosd(centerangle)
+    rotmat = SA[c -s; s c]
+    io = IOBuffer()
+    print(io, "POLYGON((")
+    for (i, prevertex) in enumerate(prevertices)
+        x, y = center + rotmat * prevertex
+        print(io, x, " ", y)
+        i < length(prevertices) && write(io, ",")
+    end
+    write(io, "))")
+    s = String(take!(io))
+    rect = LibGEOS.readgeom(s)
+    return rect
+end
+
+function _getcoordinates(geosgeom)
+    return GeoInterface.coordinates(geosgeom)
+end
+
+"""
+    splitring(; s1, s2, a, b, sides, ntri, gapwidth, gapcenter, gapangle, units, kwargs...) --> RWGSheet
 
 Return a variable of type `RWGSheet` that contains the triangulation for one or more concentric annular regions bounded by polygons.
 
@@ -1084,7 +1239,12 @@ All arguments are keyword arguments which can be entered in any order.
 - `s1` and `s2`:  2-vectors containing the unit cell lattice vectors.
 - `a` and `b`:  n-vectors (n>=1) of the same length providing the inner and outer radii, respectively of the polygonal rings.
                Entries in `a` and `b` must be positive and strictly increasing. `b[i] > a[i]` ∀ `i ∈ 1:n`.
-- `sides`:  The number (>= 4) of polygon sides for the background regular annular polygon from which the gaps are removed.
+- `sides`:  The number (>= 4) of polygon sides for the background regular annular polygon(s) from which the gaps are removed.
+- `gapcenter`: A scalar or vector of angles in degrees that define the gap center angular location(s), measured counterclockwise.  
+             A scalar implies that all rings have a gap in that same angular location.  If a vector, then it must have the 
+             same length as `a` and `b`, with `gapcenter[m]` denoting the gap center location for the `m`th ring.
+             However `gapcenter[m]` can be either a scalar (denoting a single gap) or an n-tuple (denoting n gaps 
+             in the `m`th ring).
 - `gapwidth`: A scalar or a vector of the same length as `a` and `b` containing the gap width(s) for each ring.
             A width of zero implies that the ring is not split (i.e. there is no gap).  If the `gapwidth` of all rings
             is zero, then the resulting geometry is similar to a `polyring`. If a ring is to have multiple gaps, then
@@ -1096,14 +1256,20 @@ All arguments are keyword arguments which can be entered in any order.
             removed from the center of one of the annular polygon sides. For gap widths greater
             than this amount (which is the length of one of the sides of the inner bounding polygon of the 
             annulus), The gap is a formed as if a pie-shaped wedge (circular sector) is removed, with the 
-            gap width measured along the arc of radius `(a[i] + b[i])/2`.
-- `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular locations in degrees
-            (measured counterclockwise from the positive x-axis) of the centers of the gaps.  Like `gapwidth`, for 
-            any rings with multiple gaps, the corresponding entry in `gapangle` should be a tuple of the same length as
-            the number of gaps for that ring.
+            gap width measured along the arc of radius `(a[i] + b[i])/2`.  Note that only one of `gapwidth` and 
+            `gapangularwidth` can be specified.
+- `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular widths of the gaps.
+            Like `gapwidth`, for any rings with multiple gaps, the corresponding entry in `gapangle` should be a 
+            tuple of the same length as the number of gaps for that ring. The gap(s) in the `m`th ring 
+            is/are formed as if pie-shaped wedge(s) with wedge angle(s) `gapangle[m]`, are removed from the ring(s).
+            The locations and sizes of the tuples in `gapangle` must agree with those in `gapcenter`.
+            Note that only one of `gapangle` and `gapwidth` can be specified.
 - `ntri`:  The desired total number of triangles distributed among all the annular regions. This is a guide, the actual number 
            will likely be different.
 $(optional_kwargs)
+- `orient::Real=0.0`:  Counterclockwise rotation angle in degrees used to locate the initial
+           vertex of the polygonal rings.  The default is to locate the vertex on the
+           ray from the center parallel to the positive x-axis.
 """
 function splitring(;
     s1::Vector{<:Real},
@@ -1113,22 +1279,42 @@ function splitring(;
     sides::Int,
     ntri::Int,
     units::PSSFSSLength,
-    gapwidth::Union{Real, Vector},
-    gapangle::Union{Real, Vector}=0,
+    gapcenter::Union{Real, Vector, Nothing}=nothing,
+    gapwidth::Union{Real, Vector, Nothing}=nothing,
+    gapangle::Union{Real, Vector, Nothing}=nothing,
+    orient::Real=0.0,
     kwarg...)::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
     check_optional_kw_arguments!(kwargs)
     nring = length(a)
-    gwidth = gapwidth isa Real ? fill(gapwidth, nring) : gapwidth
-    gangle =  gapangle isa Real ? fill(gapangle, nring) : gapangle
+    isngc, isngw, isnga = isnothing.((gapcenter, gapwidth, gapangle))
+    if !isngc 
+        if (isngw && isnga) || (!isngw && !isnga)
+            throw(ArgumentError("Exactly one of gapwidth or gapangle must be specified"))
+        end
+        gcenter = isa(gapcenter, Real) ? fill(gapcenter, length(a)) : gapcenter
+        if isngw
+            gaorw = isa(gapangle, Real) ? fill(gapangle, length(a)) : gapangle
+            usewedge = true
+        else
+            gaorw = isa(gapwidth, Real) ? fill(gapwidth, length(a)) : gapwidth
+            usewedge = false
+        end
+        userect = !usewedge
+        gaps = true
+    else
+        !isngw && throw(ArgumentError("gapwidth cannot be specified without gapcenter"))
+        !isnga && throw(ArgumentError("gapangle cannot be specified without gapcenter"))
+        gaps = false
+    end
 
-    all(x -> length(x) == nring, (b, gwidth, gangle)) || 
-        throw(ArgumentError("Incompatible lengths for a, b, gapwidth, gapangle"))
-    for (gw,ga) in zip(gwidth, gangle)
-        length(gw) == length(ga) || 
-            throw(ArgumentError("Incompatible gapwidth and gapangle"))
+    all(x -> length(x) == nring, (b, gcenter, gaorw)) || 
+        throw(ArgumentError("Incompatible lengths for a, b, gapcenter, gapwidth, or gapangle"))
+    for (gc,gaw) in zip(gcenter, gaorw)
+        length(gc) == length(gaw) || 
+            throw(ArgumentError("Incompatible gapcenter and gap width/angle"))
     end
     sides ≥ 3 || throw(ArgumentError("Number of sides must be 3 or more"))
     @testpos(ntri)
@@ -1148,105 +1334,24 @@ function splitring(;
     end
 
     ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
-    α = 360 / sides # angle subtended by each side (degrees)
-    sinαo2, cosαo2 = sincosd(α/2)
-    gwidthtest = [2 * r * sinαo2 for r in a]
-    orient = [α/2 for _ in 1:nring]
-
-    # Approximate the total area of all rings minus gaps:
-    area_factor = sides / 2 * sind(α)
-    areat = sum(((b[i]^2 - a[i]^2) * area_factor - gwidth[i] * (b[i] - a[i]) for i in 1:nring))
-    areatri = areat / ntri # Desired area of a single triangle
-
-    ρ = SV2[]
-    e1 = Cint[]
-    e2 = Cint[]
-    segmarkers = Cint[]
-    holes = SV2[]
-    boundary = 0
-    node = 0
+    msdata = MeshsubData()
     for iring in 1:nring
-        rotmat = rotationmat(orient[iring])
-        if all(iszero.(gwidth[iring]))
-            # regular polygonal annulus:
-            for r in (b[iring], a[iring])
-                boundary += 1
-                nodesave = node + 1
-                for i in 1:sides
-                    node += 1
-                    push!(e1, node)
-                    push!(e2, node + 1)
-                    push!(segmarkers, boundary)
-                    push!(ρ, ρ₀ + r * SV2(reverse(sincosd(orient[iring] + (i - 0.5) * α))))
-                end
-                e2[end] = nodesave
+        ring = _makering(a[iring], b[iring], sides, ρ₀, orient)
+        for (gapcen, gapspec) in zip(gcenter[iring], gaorw[iring])
+            gapspec == 0 && continue
+            if usewedge
+                poly = _makewedge(ρ₀, 1.2*b[iring], gapcen, gapspec)
+            else
+                poly = _makerect(ρ₀, 1.2*b[iring], gapcen, gapspec)
             end
-            continue # next iring
-        else
-            # At least one finite gap on this ring
-            # continue here
-            ρtol = 0.2 * (b[iring] - a[iring])
-            for (gw, ga) in zip(gwidth[iring], gangle[iring])
-                boundary += 1
-                nodesave = node + 1
-                isgn = -1
-                for (outin, r) in enumerate((b[iring], a[iring]))
-                    isgn *=-1
-
-                    node += 1
-                    push!(e1, node)
-                    push!(e2, node + 1)
-                    push!(ρ, ρ₀ + rotmat * SV2(isgn * r * cosαo2, gwidth[iring]/2))
-                    push!(segmarkers, boundary)
-
-                    for i in 1:nhalfring
-                        push!(ρ, ρ₀ + r * rotmat * SV2(reverse(sincosd((1-isgn)*90 + isgn * (i - 0.5) * α))))
-                        if i == 1 && norm(ρ[end] - ρ[end-1]) < ρtol
-                            pop!(ρ)
-                            continue
-                        end
-                        node += 1
-                        push!(e1, node)
-                        push!(e2, node + 1)
-                        push!(segmarkers, boundary)
-                    end
-
-                    ρnext = ρ₀ + rotmat * SV2(-isgn * r * cosαo2, gwidth[iring]/2)
-                    if norm(ρ[end] - ρnext) < ρtol
-                        ρ[end] = ρnext
-                    else
-                        node += 1
-                        push!(e1, node)
-                        push!(e2, node + 1)
-                        push!(segmarkers, boundary)
-                        push!(ρ, ρnext)
-                    end
-                end
-                e2[end] = nodesave
-            end
-            continue # next iring
+            ring = LibGEOS.difference(ring, poly)
         end
-
+        _add_libgeos_geom!(msdata, ring, ρ₀)
     end # for iring 
-    #=
-    for (kk, rho) in enumerate(ρ)
-        println("Node $kk: ", round(rho[1],digits=3), ", ", round(rho[2],digits=3))
-    end
-    =#
-    # Calculation coordinates of "hole" points
-    ρhole = SV2[]
-    solids = reverse!(findall(iszero, gwidth))
-    for iring in solids
-        unitvector = SV2(reverse(sincosd(α/2 + orient[iring])))
-        if iring == 1
-            push!(ρhole, ρ₀)
-        else
-            r = 0.5 * (a[iring] + b[iring - 1])
-            push!(ρhole, ρ₀ + r * unitvector)
-        end
-    end
 
     # Set up call to meshsub
+    areatri = msdata.area / ntri # Desired area of a single triangle
+    ρ, e1, e2, ρhole, segmarkers = msdata.ρ, msdata.e1, msdata.e2, msdata.holes, msdata.segmarkers
     points = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρ), (2, length(ρ))))
     segments = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
     if isempty(ρhole)

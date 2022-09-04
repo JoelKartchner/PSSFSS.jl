@@ -15,5 +15,6 @@ pmcsheet
 polyring
 read_sheet_data
 rectstrip
+splitring
 ```
 
