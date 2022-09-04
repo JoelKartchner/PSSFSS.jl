@@ -183,7 +183,7 @@ the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`).  Currentl
 imperfectly conducting ground plane (`Rsheet` > 0) that completely fills the unit cell.
 
 Other FSS/PSS element types: `pecsheet`, `pmcsheet`, `polyring`, `meander`, `loadedcross`,
-`jerusalemcross`.
+`jerusalemcross`, `diagstrip`, `splitring`.
 
 #### RWGSheet Classes
 The default class for a `RWGSheet` is `'J'` meaning the triangulation represents electric surface

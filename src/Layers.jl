@@ -21,8 +21,8 @@ in a Gblock, an instance of Layer also specifies the periodicity (via the
 reciprocal lattice vectors) and stores the mode constants for the Floquet modes present 
 in the layer. 
 
-    Layer(width::0mm, ϵᵣ=1.0, tanδ=0.0, μᵣ=1.0, mtanδ=0.0)
-    Layer(width::0mm, epsr=1.0, tandel=0.0, mur=1.0, mtandel=0.0)
+    Layer(;width::0mm, ϵᵣ=1.0, tanδ=0.0, μᵣ=1.0, mtanδ=0.0)
+    Layer(;width::0mm, epsr=1.0, tandel=0.0, mur=1.0, mtandel=0.0)
 
 Create a `Layer` instance with the specified electrical properties.  All arguments
 are optional keyword arguments with default values as shown above. They can be 

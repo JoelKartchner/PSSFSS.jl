@@ -255,6 +255,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
         for fghz in freqs
             @logfile "  $(fghz) GHz"
             t_freq = time()
+            t_cascade = 0.0
             k0 = twopi * fghz * 1e9 / c₀
             if keys(steer)[1] == :θ
                 k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
@@ -269,7 +270,9 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
             n1 = length(layers[1].P)
             gsma = GSM(n1, n1)
             gsmc = GSM(n1, n1)
+            t_cascade1 = time()
             cascade!(gsma, layers[1])
+            t_cascade += time() - t_cascade1
             for (ig, gbl) in pairs(gbls) # Walk through the Gblocks
                 i1 = first(gbl.rng) # Index of layer to left of Gblock
                 i2 = 1 + last(gbl.rng) # Index of layer to right of Gblock
@@ -311,11 +314,15 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                     @assert i2 - i1 == 1
                     gsmb = gsm_slab_interface(layers[i1], layers[i2], k0)
                 end
+                t_cascade1 = time()
                 gsmc = cascade(gsma, gsmb)
                 cascade!(gsmc, layers[i2])
+                t_cascade += time() - t_cascade1
                 gsma = gsmc
             end # Gblock loop
             t_freq = round(time() - t_freq, digits=tdigits)
+            t_cascade = round(t_cascade, digits=tdigits)
+            @logfile "    $(t_cascade) seconds for cascading at $(fghz) GHz"
             @logfile "  $(t_freq) seconds total at $(fghz) GHz"
 
             result = Result(gsmc, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
@@ -471,10 +478,11 @@ function calculate_jtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
                 end
             end
             t_extract2 = time()
-            t_extract = t_extract + (t_extract2 - t_extract1)
+            t_extract += (t_extract2 - t_extract1)
         end
     end
-    #@logfile "      $(round(t_extract,digits=tdigits)) seconds to extract $(i_extract) GSM entries"
+    t_extract = round(t_extract, digits=tdigits)
+    @logfile "      $(t_extract) seconds to extract $(i_extract) GSM entries"
     return gsm
 end
 
@@ -607,6 +615,7 @@ function calculate_mtype_gsm(layers::AbstractVector{Layer}, sheet::RWGSheet, u::
             t_extract += t_extract2 - t_extract1
         end
     end
+    t_extract = round(t_extract, digits=tdigits)
     @logfile "      $(t_extract) seconds to extract $(i_extract) GSM entries"
     return gsm
 end
