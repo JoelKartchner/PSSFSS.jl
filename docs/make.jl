@@ -8,6 +8,10 @@ cd("literate") do
 end
 =#
 
+demopage, postprocess_cb, demo_assets = makedemos("PSS_&_FSS_Elements")
+assets = String[]
+isnothing(demo_assets) || (push!(assets, demo_assets))
+
 makedocs(;
     clean=false,
     modules=[PSSFSS],
@@ -17,16 +21,18 @@ makedocs(;
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://simonp0420.github.io/PSSFSS.jl/stable",
-        assets=String[],
+        assets=assets,
     ),
     pages=[
         "Home" => "index.md",
-        "Manual" => "manual.md",
+        "User Manual" => "manual.md",
+        demopage,
         "Examples" => "examples.md",
         "Function Reference" => "reference.md",
         "Index" => "function_index.md"
     ],
 )
+postprocess_cb() # For DemoCards
 
 deploydocs(;
     repo="github.com/simonp0420/PSSFSS.jl",
