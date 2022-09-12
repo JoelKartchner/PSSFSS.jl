@@ -1,5 +1,6 @@
 using PSSFSS
 using Documenter
+using DemoCards
 
 #=
 using Literate
