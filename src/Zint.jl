@@ -86,7 +86,6 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         ifmifs = rwgdat.ufp2fp[iufp][1]  # Obtain index into face/face matrix
         rowcol = i2s[ifmifs]
         ifm, ifs = rowcol[1], rowcol[2] # indices of match and source triangles
-        is = @view metal.fe[:, ifs]     # Obtain the three edges of the source triangle.
         rs = vtxcrd(ifs, metal) # Obtain coordinates of source tri's vertices
         # Calculate twice the signed area of the source triangle
         rs32 = rs[3] - rs[2]
@@ -123,7 +122,7 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
         end
         if clsflg
             # compute closed-form of singular integrals from Eqs (B.3)
-            for i ∈ 1:3  # Loop over sides of source triangle
+            @inbounds @simd for i ∈ 1:3  # Loop over sides of source triangle
                 ip1 = next[i]  # Next edge in cyclic list.
                 # Find components of l, unit tangent vector to edge #i
                 lvec = rs[ip1] - rs[i]
@@ -203,7 +202,7 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
 - `I1`, `I1_ξ`, `I1_η`, `I2`: Complex, frequency-dependent, spectral integrals defined
                               by Eqs (7.22a), (7.27), and (7.32a).  Their units are (1/m).
 """
-@inline function zint(Σm1_func, Σm2_func, rs, rmc)
+@inline function zint(Σm1_func::F1, Σm2_func::F2, rs, rmc) where {F1<:Function, F2<:Function}
     ξ = SVector(0.33333333333333330, 0.10128650732345633, 0.79742698535308730,
         0.10128650732345633, 0.47014206410511505, 0.05971587178976989,
         0.47014206410511505)
@@ -218,11 +217,13 @@ Compute frequency-dependent integrals needed to fill the generalized impedance m
     I1 = zero(ComplexF64)
     I2 = zero(ComplexF64)
 
+    rs21 = rs[2] - rs[1]
+    rs31 = rs[3] - rs[1]
     @inbounds @simd for i ∈ eachindex(ξ)
-        rt = rs[1] + (rs[2] - rs[1]) * ξ[i] + (rs[3] - rs[1]) * η[i] # Source point
+        rt = rs[1] + rs21 * ξ[i] + rs31 * η[i] # Source point
         ρdif = rmc - rt
-        sig1 = Σm1_func(ρdif)::ComplexF64
-        sig2 = Σm2_func(ρdif)::ComplexF64
+        sig1 = Σm1_func(ρdif)
+        sig2 = Σm2_func(ρdif)
         sig1wght = sig1 * wght[i]
         I1_ξ += sig1wght * ξ[i]
         I1_η += sig1wght * η[i]

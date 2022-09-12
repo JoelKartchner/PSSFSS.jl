@@ -647,7 +647,7 @@ function magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers::AbstractVector{La
     areainv = 1 / area
     @inbounds for q in 0:mmax-1
         qterm = q * (π - ψ₂ / mmax)
-        @inbounds @simd for p in 0:mmax-1
+        @inbounds for p in 0:mmax-1
             pterm = p * (π - ψ₁ / mmax)
             cfact = cis(pterm + qterm) * areainv
             table1t[p+1, q+1] *= cfact

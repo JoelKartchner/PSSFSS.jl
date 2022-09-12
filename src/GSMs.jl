@@ -122,7 +122,7 @@ Cascade a pair of generalized scattering matrices (GSMs).
 must be conformable, i.e., `n2a == n1b`, where `n2a` is the number of modes in Region
 2 for GSM `a`, and `n1b` is the number of modes in Region 1 of GSM `b`.
 """
-function cascade(a::GSM, b::GSM)::GSM
+function cascade(a::GSM, b::GSM)
     n2a = size(a.s22, 2)
     n1b = size(b.s11, 1)
     n1b ≠ n2a && error("Non-conformable arrays")
@@ -544,7 +544,7 @@ Calculate the GSM (generalized scattering matrix) of a dielectric junction.
     with Equations (3.23) and (3.24) of the theory documentation.
 
 """
-function gsm_slab_interface(L1::Layer, L2::Layer, k0)::GSM
+function gsm_slab_interface(L1::Layer, L2::Layer, k0)
 
     n1 = length(L1.P)  # Number of modes in Region 1.
     n2 = length(L2.P)  # Number of modes in Region 2.

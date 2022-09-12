@@ -86,6 +86,7 @@ end
 
 
 @inline zhatcross(t::SV2) = SV2(-t[2], t[1])
+@inline zhatcross(t::T) where {T<:AbstractVector} = [-t[2], t[1]]
 
 """
     s₁s₂2β₁β₂(s₁,s₂) -> (β₁, β₂)

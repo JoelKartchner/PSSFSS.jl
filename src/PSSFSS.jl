@@ -280,7 +280,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                 i_sheet = i_junc == 0 ? 0 : junc[i_junc]
                 if i_sheet ≠ 0
                     if gbldup[ig] > 0
-                        gsmb = deepcopy(gsm_save[gbldup[ig]]) # Use previously calculated GSM
+                        gsmb::GSM = deepcopy(gsm_save[gbldup[ig]]) # Use previously calculated GSM
                     else
                         region = @view layers[i1:i2]
                         sheet = sheets[i_sheet]
@@ -805,7 +805,7 @@ end
     # Putting some things in `setup` can reduce the size of the
     # precompile file and potentially make loading faster.
     outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=30, rot=rot)
-    #inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=300, rot=rot, class='M')
+    inner(rot) = meander(a=3.97*√2, b=3.97/√2, w1=0.1, w2=0.1, h=0.14+0.1, units=mm, ntri=30, rot=rot, class='M')
     #center(rot) = meander(a=3.97, b=3.97, w1=0.34, w2=0.34, h=2.51+0.34, units=mm, ntri=300, rot=rot)
     t1 = 4
     t2 = 2.45
@@ -816,7 +816,10 @@ end
         Layer()
         outer(0)
         substrate
-        foam(t1*1mm)
+        foam(t1*mm)
+        inner(0)
+        substrate
+        Layer(epsr = 2.3, width = 5mm)
         Layer() ]
     steering = (θ=0:1, ϕ=0)
     flist = 10
