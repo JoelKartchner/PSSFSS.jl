@@ -45,7 +45,7 @@ include("Modes.jl")
 include("Outputs.jl")
 
 using .Rings
-@reexport using .Sheets: Sheet, RWGSheet, read_sheet_data
+@reexport using .Sheets: Sheet, RWGSheet, read_sheet_data, nodecount, facecount, edgecount
 using .RWG: setup_rwg, rwgbfft!, RWGData
 using .GSMs: GSM, cascade, cascade!, gsm_electric_gblock, gsm_magnetic_gblock,
     gsm_slab_interface, translate_gsm!, choose_gblocks, Gblock, pecgsm, pmcgsm

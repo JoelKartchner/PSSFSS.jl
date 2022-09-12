@@ -1,7 +1,7 @@
 module Sheets
 
 export RWGSheet, read_sheet_data, write_sheet_data, find_unique_periods
-export rotate!, translate!, combine, recttri, SV2, MV2
+export rotate!, translate!, combine, recttri, SV2, MV2, nodecount, facecount, edgecount
 
 using StaticArrays: SVector, MVector, SMatrix
 using ..PSSFSSLen
@@ -84,6 +84,28 @@ RWGSheet() = RWGSheet("", u"mm",            # style, units
     ' ', "",              # class, info
     true, false)          # ξη_check, fufp
 
+"""
+    nodecount(s::RWGSheet)
+    
+Return the number of unique triangle vertices in the `RWGSheet` triangulation.
+"""
+nodecount(s::RWGSheet) = length(s.ρ)
+
+
+"""
+    facecount(s::RWGSheet)
+    
+Return the number of triangle faces in the `RWGSheet` triangulation.
+"""
+facecount(s::RWGSheet) = size(s.fv, 2)
+
+
+"""
+    edgecount(s::RWGSheet)
+    
+Return the number of triangle edges in the `RWGSheet` triangulation.
+"""
+edgecount(s::RWGSheet) = length(s.e1)
 
 function Base.show(io::IO, ::MIME"text/plain", s::RWGSheet)
     if s.class == 'E'
@@ -91,8 +113,8 @@ function Base.show(io::IO, ::MIME"text/plain", s::RWGSheet)
     elseif s.class == 'H'
         print(io, "RWGSheet: perfect magnetic conducting wall")
     else
-        print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", length(s.ρ), " nodes, ", length(s.e1),
-            " edges, ", size(s.fv, 2), " faces")
+        print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", nodecount(s), " nodes, ", edgecount(s),
+            " edges, ", facecount(s), " faces")
     end
 end
 
