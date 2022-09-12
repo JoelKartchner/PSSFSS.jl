@@ -13,11 +13,11 @@ using ..Constants: η₀, min_elength
 using ..Sheets: Sheet, RWGSheet, find_unique_periods
 using FileIO: load
 
-mutable struct GSM{T1<:AbstractMatrix,T2<:AbstractMatrix}
-    s11::T1
-    s12::T2
-    s21::T2
-    s22::T1
+struct GSM
+    s11::Matrix{ComplexF64}
+    s12::Matrix{ComplexF64}
+    s21::Matrix{ComplexF64}
+    s22::Matrix{ComplexF64}
 end
 
 function GSM(n1::Int, n2::Int)
