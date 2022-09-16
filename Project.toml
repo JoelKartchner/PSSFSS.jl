@@ -1,7 +1,7 @@
 name = "PSSFSS"
 uuid = "6b20a5d4-3c6c-44cd-883b-1480592d72be"
 authors = ["Peter Simon <psimon0420@gmail.com> and contributors"]
-version = "0.1.11"
+version = "1.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -33,12 +33,15 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 [compat]
 FFTW = "1.4"
 FileIO = "1.8"
+GeoInterface = "1.0.1"
 JLD2 = "0.4.11"
+LibGEOS = "0.7.2"
 LoggingExtras = "0.4"
 LoopVectorization = "0.12.122"
 NearestNeighbors = "0.4"
 OffsetArrays = "1.8"
 PkgVersion = "0.1.1"
+PolygonOps =  "0.1.2"
 ProgressMeter = "1.6"
 RecipesBase = "1.1"
 Reexport = "^1.0.0"
