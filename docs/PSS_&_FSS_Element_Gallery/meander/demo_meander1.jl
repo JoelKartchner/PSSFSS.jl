@@ -4,7 +4,7 @@
 # description: "Meanderline trace created by the meander function"
 # ---
 
-# Like the `rectstrip` element, the `meander` element employs a structured mesh, so 
+# Like the [`rectstrip`](@ref) element, the [`meander`](@ref) element employs a structured mesh, so 
 # it can be analyzed very efficiently.
 
 using PSSFSS, Plots

@@ -9,7 +9,7 @@ cd("literate") do
 end
 =#
 
-demopage, postprocess_cb, demo_assets = makedemos("PSS_&_FSS_Elements")
+demopage, postprocess_cb, demo_assets = makedemos("PSS_&_FSS_Element_Gallery")
 assets = String[]
 isnothing(demo_assets) || (push!(assets, demo_assets))
 
@@ -28,7 +28,7 @@ makedocs(;
         "Home" => "index.md",
         "User Manual" => "manual.md",
         demopage,
-        "Examples" => "examples.md",
+        "Usage Examples" => "examples.md",
         "Function Reference" => "reference.md",
         "Index" => "function_index.md"
     ],

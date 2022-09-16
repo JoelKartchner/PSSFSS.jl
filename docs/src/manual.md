@@ -84,10 +84,11 @@ more about PSSFSS!
 written in the [Julia](https://julialang.org/) programming language.
 You must have Julia installed to use PSSFSS.
 For Windows users, I recommend using the
-[Julia ap](https://www.microsoft.com/en-us/p/julia/9njnww8pvkmn)
-in the Windows Store to
-handle the Julia installation.  For Linux and Mac users, I recommend using
-[JILL.py](https://github.com/johnnychen94/jill.py) to manage the installation.
+[Juliaup](https://github.com/JuliaLang/juliaup#readme) app.
+At the time of this writing, Juliaup is supposed to be available shortly
+to many Linux and Mac users.  If it is not yet available for your platform,
+then consider using [JILL.py](https://github.com/johnnychen94/jill.py) to
+manage the installation.
 
 It goes without saying that computational electromagnetics is compute intensive. You will
 want to run PSSFSS on a rather "beefy" machine. A machine with multiple cores
@@ -101,14 +102,14 @@ both equipped with an
 [this section](https://docs.julialang.org/en/v1/manual/multi-threading/#man-multithreading) of the Julia
 documentation for details.  On Windows I have experienced significant speedups by using the
 [MKL](https://github.com/JuliaLinearAlgebra/MKL.jl) package.  On Linux, I find that the `MKL` package
-actually results in slower execution. YMMV.
+sometimes actually results in slower execution. YMMV.
 
 You will need a text editor to create Julia scripts that run PSSFSS.  One of the best for this purpose
-is [VS Code](https://code.visualstudio.com/), which has extensive support for both editing and running
-Julia via the
+is [VS Code](https://code.visualstudio.com/), which has extensive support for editing, running, debugging,
+and profiling Julia via the
 [julia-vscode](https://github.com/julia-vscode/julia-vscode) extension.
 Whatever your choice of editor, installation and
-use of the [JuliaMono](https://cormullion.github.io/pages/2020-07-26-JuliaMono/) fonts is
+use of the [JuliaMono](https://juliamono.netlify.app) fonts is
 highly recommended. JuliaMono exploits Julia's support for Unicode fonts and
 allows one to use standard engineering/mathematical symbols for
 electromagnetic quantities directly in Julia scripts; symbols such as ϵᵣ, μᵣ, θ, ϕ, and tanδ.
@@ -132,11 +133,11 @@ Here are the steps in the analysis process.
 
 4. Specify any outputs to be written to one or more CSV files.
 
-5. Invoke the `analysis` function to perform the desired analysis. This will generate a log file,
+5. Invoke the [`analyze`](@ref) function to perform the desired analysis. This will generate a log file,
    a "results" file, and the output files specified in Step 4.
 
-6. Optionally, extract additional outputs from the results returned by `analyze` via a call to
-   `extract_result`, or from the results file via a call to `extract_result_file`.
+6. Optionally, extract additional outputs from the results returned by [`analyze`](@ref) via a call to
+   [`extract_result`](@ref), or from the results file via a call to [`extract_result_file`](@ref).
 
 7. Plot or export extracted outputs.
 
@@ -144,7 +145,7 @@ We dissect these steps below...
 
 ## Strata
 ### Layer
-Dielectric layers are created with the `Layer` function:
+Dielectric layers are created with the [`Layer`](@ref) function:
 
 ```@repl manual
 using PSSFSS # Brings PSSFSS functions and types into scope
@@ -163,27 +164,27 @@ foam = Layer(epsr=1.05, width=0.25inch, tandel=0.001) # You can stick to ASCII i
 ```
 
 ### RWGSheet
-An `RWGSheet` object represents the triangulation of an FSS/PSS element, and is
+Ac `RWGSheet` object represents the triangulation of an FSS/PSS element, and is
 created by calling a constructor function for a particular style of sheet:
 
 ```@repl manual
 patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 ```
 
-The call to `rectstrip` above creates a `RWGSheet` object for a rectangular strip
+The call to [`rectstrip`](@ref) above creates a `RWGSheet` object for a rectangular strip
 of dimensions 0.5 cm in the x and y directions, lying in a square unit cell of dimension
 1 cm.  The triangulation uses 10 edges in the x and y directions (`Nx` and `Ny`).
 
-You can get documentation for `rectstrip` by typing `?rectstrip` at the Julia prompt.
-`rectstrip` can be used to model dipoles, strip grids, ground planes, rectangular reflectarray elements, and rectangular
+You can get documentation for [`rectstrip`](@ref) by typing `?rectstrip` at the Julia prompt.
+[`rectstrip`](@ref) can be used to model dipoles, strip grids, ground planes, rectangular reflectarray elements, and rectangular
 patch elements.
-A call to `rectstrip` generates a rectangular strip, which by default (i.e. when `rot=0`) is oriented with its sides parallel
+A call to [`rectstrip`](@ref) generates a rectangular strip, which by default (i.e. when `rot=0`) is oriented with its sides parallel
 to the x and y axes.  It should be noted that it is permissible for either or both strip side lengths to be equal to
 the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`).  Currently, this is the only way to model an
 imperfectly conducting ground plane (`Rsheet` > 0) that completely fills the unit cell.
 
-Other FSS/PSS element types: `pecsheet`, `pmcsheet`, `polyring`, `meander`, `loadedcross`,
-`jerusalemcross`, `diagstrip`, `splitring`.
+Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
+[`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), and [`splitring`](@ref).
 
 #### RWGSheet Classes
 The default class for a `RWGSheet` is `'J'` meaning the triangulation represents electric surface
@@ -193,7 +194,7 @@ in an aperture in an otherwise solid metallic surface.  So `'J'`-class is used f
 patch, capacitive, etc. elements, while `'M'`-class is used for slot, aperture, inductive, etc. elements.
 
 ### Plotting Sheets
-We can visualize the triangulation using the `plot` function of the `Plots` package.
+We can visualize the triangulation using the `plot` function of the [`Plots`](https://docs.juliaplots.org) package.
 
 ```@repl manual
 using Plots
@@ -239,7 +240,7 @@ plot(patch, rep=(4,3)) # Show multiple FSS elements
 strata = [Layer(), patch, Layer()] # A vector of RWGSheet and Layer objects
 ```
 
-The first and last entries must be lossless `Layer`s with identical electrical parameters.
+The first and last entries must be lossless [`Layer`](@ref) objects with identical electrical parameters.
 They are assumed to be semi-infinite in extent.  In between these outer layers
 can be any number of other layers
 and FSS sheets.  Any two sheets cannot be adjacent: they must be separated by at least one `Layer`.
@@ -309,7 +310,7 @@ one can "cover" any desired range of scan angles.
 
 ## Analysis Frequencies
 Frequencies to be analyzed are entered in GHz as either a scalar value or a Julia "iterable collection"
-such as an `Array` or `Range`:
+such as a `Vector` or `Range`:
 
 ```@repl manual
 flist = 12
@@ -351,17 +352,17 @@ So we see that the individual partitions of the scattering matrix are each a ``2
 ``\boldsymbol{S}^{12}`` and ``\boldsymbol{S}^{21}`` containing transmission coefficients.
 
 #### The @outputs macro
-The `@outputs` [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/#man-macros) is used
+The [`@outputs`](@ref) [macro](https://docs.julialang.org/en/v1/manual/metaprogramming/#man-macros) is used
 to request output performance parameters.  It can be used in three different ways:
- 1. It can be used as part of the `outlist` keyword argument to `analyze` to set up the
+ 1. It can be used as part of the `outlist` keyword argument to [`analyze`](@ref) to set up the
     outputs to be written to one or more CSV files during the analysis run.
- 2. It can be used as part of an input argument to `extract_result_file` to extract performance
+ 2. It can be used as part of an input argument to [`extract_result_file`](@ref) to extract performance
     parameters from the results file generated by a previous analysis run.
- 3. It can be used as part of an input argument to `extract_result` to extract performance
-    parameters from the Julia variable returned by the `analysis` function.
+ 3. It can be used as part of an input argument to [`extract_result`](@ref) to extract performance
+    parameters from the Julia variable returned by the [`analyze`](@ref) function.
 
 We'll see how to accomplish all these in a bit, but first let's look at the syntax and semantics
-of using `@outputs`.
+of using [`@outputs`](@ref).
 As a first example, we can request the ``(1,2)`` entry of $\boldsymbol{S}^{21}$ via the following code:
 ```julia
 @outputs s21(1,2)
@@ -395,7 +396,7 @@ polarized wave in Layer ``N``:
 ```julia
 @outputs FGHz s11dB(h,v) ar12dB(h)
 ```
-Note that multiple arguments to `@outputs` are separated by spaces, **with no commas or other
+Note that multiple arguments to [`@outputs`](@ref) are separated by spaces, **with no commas or other
 punctuation between**[^1].
 
 [^1]: An [alternative](https://docs.julialang.org/en/v1/manual/metaprogramming/#Macro-invocation)
@@ -433,7 +434,7 @@ parameters and their argument(s) can be typed without regard to capitalization.
 #### The `outlist` Keyword Argument to `analyze`
 `outlist` is used to specify data to be written to CSV files during the PSSFSS analysis,
 in the form of a matrix with one or more rows. Each row starts with a string containing
-the name of a CSV file; the rest of the row is an invocation of `@outputs` (or the result of
+the name of a CSV file; the rest of the row is an invocation of [`@outputs`](@ref) (or the result of
 such an invocation assigned to a Julia variable).  Here is an example that will create a pair
 of CSV files, one containing transmission coefficient magnitudes and the other containing
 reflection coefficient magnitudes (both in dB).  Frequency is also included in the CSV file
@@ -452,9 +453,9 @@ angle had been specified then we would also have wanted to include incidence ang
 CSV files.
 
 #### Using the Result File
-The result file generated by `analyze` can be used to obtain any quantity available to the `@outputs`
+The result file generated by [`analyze`](@ref) can be used to obtain any quantity available to the [`@outputs`](@ref)
 macro.  Consider the Blackney meanderline polarizer example presented earlier.  For that run,
-the result file name was left at its default value "pssfss.res".  We can use the `extract_result_file`
+the result file name was left at its default value "pssfss.res".  We can use the [`extract_result_file`](@ref)
 function to extract results from it as follows:
 
 ```julia
@@ -473,13 +474,13 @@ julia> dat = extract_result_file("pssfss.res", @outputs FGHz ar21db(h))
 9.0   5.40385
 ```
 
-As illustrated above, the value returned by `extract_result_file` is a
+As illustrated above, the value returned by [`extract_result_file`](@ref) is a
 two-dimensional array (a `Matrix`), with each column corresponding to a
-parameter of the `@outputs` macro.
+parameter of the [`@outputs`](@ref) macro.
 
 #### Using the `analyze` Function Return Value
-The variable returned from `analyze` can be used in a similar way to the result file to obtain any quantity
-available to the `@outputs` macro, but for this purpose we use the `extract_result` function:
+The variable returned from [`analyze`](@ref) can be used in a similar way to the result file to obtain any quantity
+available to the [`@outputs`](@ref) macro, but for this purpose we use the [`extract_result`](@ref) function:
 
 ```julia
 julia> results = analyze(strata, flist, steering, outlist=outputs);
@@ -498,6 +499,6 @@ julia> dat = extract_result(results, @outputs FGHz ar21db(h))
 9.0   5.40385
 ```
 
-As illustrated above, the value returned by `extract_result` is a two-dimensional array (a `Matrix`),
-with each column corresponding to a parameter of the `@outputs` macro.
+As illustrated above, the value returned by [`extract_result`](@ref) is a two-dimensional array (a `Matrix`),
+with each column corresponding to a parameter of the [`@outputs`](@ref) macro.
 

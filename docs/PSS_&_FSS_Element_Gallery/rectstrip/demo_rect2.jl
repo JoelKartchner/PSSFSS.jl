@@ -4,7 +4,7 @@
 # description: "Horizontal grid created by the rectstrip function"
 # ---
 
-# The `rectstrip` element employs a structured mesh, so 
+# The [`rectstrip`](@ref) element employs a structured mesh, so 
 # it can be analyzed very efficiently.
 
 using Plots, PSSFSS

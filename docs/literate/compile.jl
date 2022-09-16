@@ -8,8 +8,8 @@ end
 
 examples_list = ["symmetric_strip.jl", "resistive_square_patch.jl", 
                  "cross_on_dielectric_substrate.jl", 
-                 "square_loop_absorber.jl", "band_pass_filter.jl",
-                 "cpss_optimization.jl", "cpss2.jl"]
+                 "square_loop_absorber.jl", "splitringexample.jl", 
+                 "band_pass_filter.jl", "cpss_optimization.jl", "cpss2.jl"]
 
 # Adds examples as subsections to the Examples page:
 function replace_unknowns(str)
@@ -21,14 +21,15 @@ flist = ["manual.jl"]
 for file in flist
     Literate.markdown(file, "../src", codefence=("```@repl manual" => "```"), credit=false,
     postprocess=replace_unknowns)
-    Literate.notebook(file, "../notebooks", preprocess=notebook_filter, execute=false)
+    #Literate.notebook(file, "../notebooks", preprocess=notebook_filter, execute=false)
+    Literate.notebook(file, "../notebooks", execute=false)
 end
 
 for (i,file) in enumerate(examples_list)
     fnpre = splitext(file)[1]
     Literate.markdown(file, ".", credit=false)
-    #Literate.markdown(file, ".", codefence=("```@example $i" => "```"), credit=false)
-    Literate.notebook(file, "../notebooks", preprocess=notebook_filter, execute=false)
+    #Literate.notebook(file, "../notebooks", preprocess=notebook_filter, execute=false)
+    Literate.notebook(file, "../notebooks", execute=false)
 end
 
 function postinclude(str)

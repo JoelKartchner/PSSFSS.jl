@@ -4,12 +4,16 @@
 ```@docs
 analyze
 diagstrip
+edgecount
 extract_result
 extract_result_file
+facecount
 jerusalemcross
 Layer
 loadedcross
 meander
+nodecount
+@outputs
 pecsheet
 pmcsheet
 polyring

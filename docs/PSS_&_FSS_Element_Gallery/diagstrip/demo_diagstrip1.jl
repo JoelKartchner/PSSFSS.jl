@@ -4,7 +4,7 @@
 # description: "Diagonally oriented strip in a square lattice, created by the diagstrip function"
 # ---
 
-# The `diagstrip` element requires a square unit cell and restricts the values of `orient`
+# The [`diagstrip`](@ref) element requires a square unit cell and restricts the values of `orient`
 # to either `45` or `-45`.  Using this element (rather than a rotated `rectstrip`) is useful when
 # there are other sheets in the FSS/PSS structure that all share the same square lattice.  
 # In this case, the interactions between
