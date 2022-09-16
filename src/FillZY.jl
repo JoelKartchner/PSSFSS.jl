@@ -116,7 +116,7 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     zcontribs = [MVector{9,ComplexF64}(0im,0im,0im,0im,0im,0im,0im,0im,0im) for _ in 1:nthr]    
     mbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
     sbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
-    Threads.@threads for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
+    Threads.@threads :static for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
         thrid = Threads.threadid()
         zcontrib = zcontribs[thrid]
         mbfsave = mbfsaves[thrid]
@@ -352,7 +352,7 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
     ycontribs = [MVector{9,ComplexF64}(0im,0im,0im,0im,0im,0im,0im,0im,0im) for _ in 1:nthr]    
     mbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
     sbfsaves =  [MVector{9,Int}(0,0,0,0,0,0,0,0,0) for _ in 1:nthr]
-    Threads.@threads for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
+    Threads.@threads :static for iufp in 1:rwgdat.nufp  # Loop over each unique face pair
         thrid = Threads.threadid()
         ycontrib = ycontribs[thrid]
         mbfsave = mbfsaves[thrid]
