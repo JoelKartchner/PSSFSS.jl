@@ -34,6 +34,12 @@ of 600.  This can be verified by entering the Julia variable `sheet` at the
 sheet
 ````
 
+Alternatively, the `facecount` function will return the number of triangle faces on the sheet:
+
+````@example cross_on_dielectric_substrate
+facecount(sheet)
+````
+
 The cross FSS is etched on a dielectric sheet of thickness 3 mm.  The dielectric
 constant is varied over the values 1, 2, and 4 to observe the effect on the resonant
 frequency.  Following the reference, the list of analysis frequencies is varied slightly
@@ -61,7 +67,7 @@ for eps in [1, 2, 4]
 end
 ````
 
-The above loop requires about 80 seconds of execution time on my machine.
+The above loop requires about 85 seconds of execution time on my machine.
 Compare PSSFSS results to those digitized from the dissertation figure:
 
 ````@example cross_on_dielectric_substrate

@@ -13,11 +13,11 @@ using ..Constants: η₀, min_elength
 using ..Sheets: Sheet, RWGSheet, find_unique_periods
 using FileIO: load
 
-mutable struct GSM{T1<:AbstractMatrix,T2<:AbstractMatrix}
-    s11::T1
-    s12::T2
-    s21::T2
-    s22::T1
+struct GSM
+    s11::Matrix{ComplexF64}
+    s12::Matrix{ComplexF64}
+    s21::Matrix{ComplexF64}
+    s22::Matrix{ComplexF64}
 end
 
 function GSM(n1::Int, n2::Int)
@@ -122,7 +122,7 @@ Cascade a pair of generalized scattering matrices (GSMs).
 must be conformable, i.e., `n2a == n1b`, where `n2a` is the number of modes in Region
 2 for GSM `a`, and `n1b` is the number of modes in Region 1 of GSM `b`.
 """
-function cascade(a::GSM, b::GSM)::GSM
+function cascade(a::GSM, b::GSM)
     n2a = size(a.s22, 2)
     n1b = size(b.s11, 1)
     n1b ≠ n2a && error("Non-conformable arrays")
@@ -544,7 +544,7 @@ Calculate the GSM (generalized scattering matrix) of a dielectric junction.
     with Equations (3.23) and (3.24) of the theory documentation.
 
 """
-function gsm_slab_interface(L1::Layer, L2::Layer, k0)::GSM
+function gsm_slab_interface(L1::Layer, L2::Layer, k0)
 
     n1 = length(L1.P)  # Number of modes in Region 1.
     n2 = length(L2.P)  # Number of modes in Region 2.

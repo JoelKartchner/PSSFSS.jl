@@ -56,7 +56,7 @@ performed in the same analysis script using the immensely powerful Julia program
 You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character of the command prompt):
 
 ```julia
-(v1.7) pkg> add PSSFSS
+(v1.8) pkg> add PSSFSS
 ```
 
 or with `using Pkg; Pkg.add("PSSFSS")`.

@@ -46,7 +46,7 @@ savefig("sqloop1.png"); nothing  # hide
 
 ![](sqloop1.png)
 
-This run takes about 85 seconds on my machine.
+This run takes about 83 seconds on my machine.
 
 ````@example square_loop_absorber
 p
@@ -57,18 +57,29 @@ savefig(p,"sqloop2.png"); nothing  # hide
 
 It is useful to take a look at the log file created by PSSFSS for the last run above:
 ```
-Starting PSSFSS analysis on 2021-05-05 at 15:22:09.955
+Starting PSSFSS 1.0.0 analysis on 2022-09-14 at 14:31:14.261
+Julia Version 1.8.1
+Commit afb6c60d69a (2022-09-06 15:09 UTC)
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
+  Threads: 8 on 8 virtual cores
+  BLAS: LBTConfig([ILP64] libopenblas64_.so)
+
 
 
 Dielectric layer information...
 
-Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
------ ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
-    1    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2     0.0     0.0   571.2
-==================  Sheet   1  ========================   571.2     0.0     0.0   571.2
-    2    5.0000  mm    1.00 0.0000    1.00 0.0000    42   571.2     0.0     0.0   571.2
-==================  Sheet   2  ========================     0.0     0.0     0.0     0.0
-    3    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2     0.0     0.0   571.2
+ Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
+ ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
+     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2    -0.0    -0.0   571.2
+ ==================  Sheet   1  ========================   571.2    -0.0    -0.0   571.2
+     2    5.0000  mm    1.00 0.0000    1.00 0.0000    42   571.2    -0.0    -0.0   571.2
+ ==================  Sheet   2  ========================     0.0     0.0     0.0     0.0
+     3    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2    -0.0    -0.0   571.2
 
 
 
@@ -76,8 +87,8 @@ PSS/FSS sheet information...
 
 Sheet  Loc         Style      Rot  J/M Faces Edges Nodes Unknowns  NUFP
 -----  ---  ---------------- ----- --- ----- ----- ----- -------- ------
-  1     1          polyring   0.0  J    753  1201   448    1058  567009
-  2     2              NULL   0.0  E      0     0     0       0       0
+   1     1          polyring   0.0  J    753  1201   448    1058  567009
+   2     2              NULL   0.0  E      0     0     0       0       0
 
 ...
 ```

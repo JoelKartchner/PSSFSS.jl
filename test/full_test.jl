@@ -47,10 +47,10 @@ steering = (θ=0, ϕ=0)
 ## Compute analytic answer
 (r, t) = grating(2π * FGHz)
 gsmexact = GSM(2, 2)
-gsmexact.s11 = [r 0.0; 0.0 -t]
-gsmexact.s22 = gsmexact.s11
-gsmexact.s21 = [t 0; 0 -r]
-gsmexact.s12 = gsmexact.s21
+gsmexact.s11 .= [r 0.0; 0.0 -t]
+gsmexact.s22 .= gsmexact.s11
+gsmexact.s21 .= [t 0; 0 -r]
+gsmexact.s12 .= gsmexact.s21
 
 c_inchghz = c₀ * 100 / 2.54 * 1e-9
 period = c_inchghz # so the period/wavelength = freq in GHz

@@ -199,7 +199,7 @@ plot!(p2, flist, angdeg.(tpar_m), label="PSSFSS M")
 #md # ![](symstrip9.png)
 
 # ### Conclusion
-# Although good agreement is obtained, as expected the best agreement between 
+# Although very good agreement is obtained, as expected the best agreement between 
 # all three results occurs for the lowest frequencies, where the triangles are
 # smallest in terms of wavelength.  This emphasizes the fact that it is necessary for the 
 # user to check that enough triangles have been requested for good convergence

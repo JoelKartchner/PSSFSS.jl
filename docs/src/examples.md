@@ -242,7 +242,7 @@ savefig("symstrip9.png"); nothing  # hide
 ![](symstrip9.png)
 
 ### Conclusion
-Although good agreement is obtained, as expected the best agreement between
+Although very good agreement is obtained, as expected the best agreement between
 all three results occurs for the lowest frequencies, where the triangles are
 smallest in terms of wavelength.  This emphasizes the fact that it is necessary for the
 user to check that enough triangles have been requested for good convergence
@@ -355,6 +355,12 @@ of 600.  This can be verified by entering the Julia variable `sheet` at the
 sheet
 ````
 
+Alternatively, the `facecount` function will return the number of triangle faces on the sheet:
+
+````@example cross_on_dielectric_substrate
+facecount(sheet)
+````
+
 The cross FSS is etched on a dielectric sheet of thickness 3 mm.  The dielectric
 constant is varied over the values 1, 2, and 4 to observe the effect on the resonant
 frequency.  Following the reference, the list of analysis frequencies is varied slightly
@@ -382,7 +388,7 @@ for eps in [1, 2, 4]
 end
 ````
 
-The above loop requires about 80 seconds of execution time on my machine.
+The above loop requires about 85 seconds of execution time on my machine.
 Compare PSSFSS results to those digitized from the dissertation figure:
 
 ````@example cross_on_dielectric_substrate
@@ -455,7 +461,7 @@ savefig("sqloop1.png"); nothing  # hide
 
 ![](sqloop1.png)
 
-This run takes about 85 seconds on my machine.
+This run takes about 83 seconds on my machine.
 
 ````@example square_loop_absorber
 p
@@ -466,18 +472,29 @@ savefig(p,"sqloop2.png"); nothing  # hide
 
 It is useful to take a look at the log file created by PSSFSS for the last run above:
 ```
-Starting PSSFSS analysis on 2021-05-05 at 15:22:09.955
+Starting PSSFSS 1.0.0 analysis on 2022-09-14 at 14:31:14.261
+Julia Version 1.8.1
+Commit afb6c60d69a (2022-09-06 15:09 UTC)
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
+  Threads: 8 on 8 virtual cores
+  BLAS: LBTConfig([ILP64] libopenblas64_.so)
+
 
 
 Dielectric layer information...
 
-Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
------ ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
-    1    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2     0.0     0.0   571.2
-==================  Sheet   1  ========================   571.2     0.0     0.0   571.2
-    2    5.0000  mm    1.00 0.0000    1.00 0.0000    42   571.2     0.0     0.0   571.2
-==================  Sheet   2  ========================     0.0     0.0     0.0     0.0
-    3    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2     0.0     0.0   571.2
+ Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
+ ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
+     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2    -0.0    -0.0   571.2
+ ==================  Sheet   1  ========================   571.2    -0.0    -0.0   571.2
+     2    5.0000  mm    1.00 0.0000    1.00 0.0000    42   571.2    -0.0    -0.0   571.2
+ ==================  Sheet   2  ========================     0.0     0.0     0.0     0.0
+     3    0.0000  mm    1.00 0.0000    1.00 0.0000     2   571.2    -0.0    -0.0   571.2
 
 
 
@@ -485,8 +502,8 @@ PSS/FSS sheet information...
 
 Sheet  Loc         Style      Rot  J/M Faces Edges Nodes Unknowns  NUFP
 -----  ---  ---------------- ----- --- ----- ----- ----- -------- ------
-  1     1          polyring   0.0  J    753  1201   448    1058  567009
-  2     2              NULL   0.0  E      0     0     0       0       0
+   1     1          polyring   0.0  J    753  1201   448    1058  567009
+   2     2              NULL   0.0  E      0     0     0       0       0
 
 ...
 ```
@@ -503,6 +520,66 @@ triangulation used for a `polyring`.
 PSSFSS results agree very well with those of the paper, except for the medium
 width loop, where the agreement is not quite as good.  The reason for this is
 not known.
+
+```@meta
+EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/splitringexample.jl"
+```
+
+## Split-Ring Resonator
+This example is taken from Figure 3 of
+Fabian‐Gongora, et al, "Independently Tunable Closely Spaced Triband
+Frequency Selective Surface Unit Cell Using the Third Resonant Mode of Split Ring Slots",
+IEEE Access, 8/3/2021, Digital Object Identifier 10.1109/ACCESS.2021.3100325.
+
+It consists of three concentric split rings with gaps sequentially rotated by 180° situated
+on a thin dielectric slab.
+
+Here is a script that analyzes this geometry:
+
+```Julia
+using PSSFSS, Plots, DelimitedFiles
+
+r123 = [3.7, 4.25, 4.8]
+d = 10.8
+w = 0.3
+g = 0.3
+a = r123 .- w/2
+b = a .+ w
+gapwidth = [g, g, g]
+gapcenter = [-90, 90, -90]
+s1 = [d, 0]
+s2 = [0, d]
+
+sheet = splitring(;class='M', units=mm, sides=42, ntri=1500, a, b, s1, s2, gapwidth, gapcenter)
+display(plot(sheet, unitcell=true))
+strata = [
+    Layer()
+    sheet
+    Layer(ϵᵣ=10.2, tanδ=0.0023, width=0.13mm)
+    Layer()
+    ]
+
+freqs = union(1:0.1:2, 2.02:0.02:3, 3.1:0.05:14)
+steering = (θ = 0, ϕ = 0)
+results = analyze(strata, freqs, steering)
+s11dbvv = extract_result(results, @outputs s11db(v,v))
+p = plot(xlabel="Frequency (GHz)", ylabel="S₁₁ Amplitude (dB)",
+    xtick=1:14, xlim=(1, 14), ytick = -40:5:0, ylim=(-30,0),
+    legend=:bottom)
+plot!(p, freqs, s11dbvv, label="PSSFSS")
+dat = readdlm("../src/assets/fabian2021_fig3_digitized.csv", ',')
+plot!(p, dat[:,1], dat[:,2], label="Fabian (CST)")
+```
+
+![](./assets/fabian2021_element.png)
+
+![](./assets/fabian2021_comparison.png)
+
+Generally good agreement is seen between the PSSFSS predicted reflection amplitude and that
+digitized from the paper. (The latter was obtained from a CST frequency domain analysis,
+according to the paper's authors.) However, there is a small discrepancy in the predicted resonant
+frequencies that increases
+with frequency, likely because both results are less well converged at higher frequencies.
 
 ```@meta
 EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/band_pass_filter.jl"
@@ -576,7 +653,7 @@ savefig("bpf3.png"); nothing  # hide
 
 ![](bpf3.png)
 
-This analysis takes about 90 seconds for 191 frequencies on my machine.  Note that
+This analysis takes about 57 seconds for 191 frequencies on my machine.  Note that
 rather than including two separate invocations of the `loadedcross` function when
 defining the strata, I referenced the same sheet object in the two different locations.
 This allows PSSFSS to recognize that the triangulations are identical, and to exploit
@@ -680,7 +757,18 @@ sufficiently separated.  We can see from the log file (saved from a previous run
 disabled) that only 2 modes are used to model the interactions between sheets:
 
 ```
-Starting PSSFSS analysis on 2021-05-09 at 04:16:07.871
+Starting PSSFSS 1.0.0 analysis on 2022-09-12 at 16:35:20.914
+Julia Version 1.8.1
+Commit afb6c60d69 (2022-09-06 15:09 UTC)
+Platform Info:
+  OS: Windows (x86_64-w64-mingw32)
+  CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
+  Threads: 8 on 8 virtual cores
+  BLAS: LBTConfig([ILP64] libopenblas64_.dll)
+
 
 
 ******************* Warning ***********************
@@ -711,10 +799,10 @@ Dielectric layer information...
 
  Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
  ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
-     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1582.7     0.0     0.0  1582.7
- ==================  Sheet   1  ========================  1582.7     0.0     0.0  1582.7
+     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1582.7    -0.0    -0.0  1582.7
+ ==================  Sheet   1  ========================  1582.7    -0.0    -0.0  1582.7
      2    0.1000  mm    2.60 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
-     3    4.0000  mm    1.05 0.0000    1.00 0.0000     2  1582.7     0.0     0.0  1582.7
+     3    4.0000  mm    1.05 0.0000    1.00 0.0000     2  1582.7    -0.0    -0.0  1582.7
  ==================  Sheet   2  ========================   791.3  -791.3  1582.7  1582.7
      4    0.1000  mm    2.60 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
      5    2.4500  mm    1.05 0.0000    1.00 0.0000     2   791.3  -791.3  1582.7  1582.7
@@ -724,9 +812,10 @@ Dielectric layer information...
  ==================  Sheet   4  ========================  -791.3  -791.3  1582.7 -1582.7
      8    0.1000  mm    2.60 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
      9    4.0000  mm    1.05 0.0000    1.00 0.0000     2  -791.3  -791.3  1582.7 -1582.7
- ==================  Sheet   5  ======================== -1582.7    -0.0     0.0 -1582.7
+ ==================  Sheet   5  ======================== -1582.7     0.0     0.0 -1582.7
     10    0.1000  mm    2.60 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
-    11    0.0000  mm    1.00 0.0000    1.00 0.0000     2 -1582.7    -0.0     0.0 -1582.7
+    11    0.0000  mm    1.00 0.0000    1.00 0.0000     2 -1582.7     0.0     0.0 -1582.7
+
 ...
 ```
 
@@ -746,67 +835,72 @@ AR11r = extract_result(results, @outputs ar11db(r))
 IL21L = -extract_result(results, @outputs s21db(L,L))
 AR21L = extract_result(results, @outputs ar21db(L))
 
-default(lw=2, xlim=(10,20), xtick=10:20, ylim=(0,3), ytick=0:0.5:3, gridalpha=0.3,
-        framestyle=:box)
-p = plot(flist,RL11rr,title="RHCP → RHCP Return Loss",
-         xlabel="Frequency (GHz)", ylabel="Return Loss (dB)", label="PSSFSS")
+RLgoal, ILgoal, ARgoal  = ([0.5, 0.5], [0.5, 0.5], [0.75, 0.75])
+foptlimits = [12, 18]
+default(lw=2, xtick=10:20, xlabel="Frequency (GHz)", ylabel="Amplitude (dB)", gridalpha=0.3)
+
+p = plot(flist,RL11rr,title="RHCP → RHCP Return Loss", label="PSSFSS",
+         ylim=(0,2), ytick=0:0.25:2)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_rl.csv", ',')
 plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_rl.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
+plot!(p, foptlimits, RLgoal, color=:black, lw=4, label="Goal")
 savefig("cpssa1.png"); nothing  # hide
 ````
 
 ![](cpssa1.png)
 
 ````@example cpss_optimization
-p = plot(flist,AR11r,title="RHCP → RHCP Reflected Axial Ratio",
-         xlabel="Frequency (GHz)", ylabel="Axial Ratio (dB)", label="PSSFSS")
+p = plot(flist,AR11r,title="RHCP → RHCP Reflected Axial Ratio", label="PSSFSS",
+         xlim=(10,20), ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_reflected.csv", ',')
 plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_ar_reflected.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
+plot!(p, foptlimits, ARgoal, color=:black, lw=4, label="Goal")
 savefig("cpssa2.png"); nothing  # hide
 ````
 
 ![](cpssa2.png)
 
 ````@example cpss_optimization
-p = plot(flist,IL21L,title="LHCP → LHCP Insertion Loss",
-         xlabel="Frequency (GHz)", ylabel="Insertion Loss (dB)", label="PSSFSS")
+p = plot(flist,IL21L,title="LHCP → LHCP Insertion Loss", label="PSSFSS",
+         xlim=(10,20), ylim=(0,2), ytick=0:0.25:2)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_il.csv", ',')
 plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_il.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
+plot!(p, foptlimits, ILgoal, color=:black, lw=4, label="Goal")
 savefig("cpssa3.png"); nothing  # hide
 ````
 
 ![](cpssa3.png)
 
 ````@example cpss_optimization
-p = plot(flist,AR21L,title="LHCP → LHCP Transmitted Axial Ratio",
-         xlabel="Frequency (GHz)", ylabel="Axial Ratio (dB)", label="PSSFSS")
+p = plot(flist,AR21L,title="LHCP → LHCP Transmitted Axial Ratio", label="PSSFSS",
+         xlim=(10,20), ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_transmitted.csv", ',')
 plot!(p, cst[:,1], cst[:,2], label="CST")
 comsol = readdlm("../src/assets/cpss_comsol_fine_digitized_ar_transmitted.csv", ',')
 plot!(p, comsol[:,1], comsol[:,2], label="COMSOL")
+plot!(p, foptlimits, ARgoal, color=:black, lw=4, label="Goal")
 savefig("cpssa4.png"); nothing  # hide
 ````
 
 ![](cpssa4.png)
 
 The PSSFSS results generally track well with the high-accuracy solutions, but are less accurate
-especially at the high end of the band, presumably because cascading is performed in PSSFSS
-for this structure using only the two principal Floquet modes.  As previosly discussed,
-this is necessary because the
-rotated meanderlines are achieved by rotating the entire unit cell, and the unit cell for sheets
-2 and 4 are not square.  Since the periodicity of the sheets in the structure varies from sheet
-to sheet, higher order Floquet modes common to neighboring sheets cannot be defined, so we are forced
-to use only the dominant (0,0) modes which are independent of the periodicity.  This limitation is removed
-in a later example.
+especially at the high end of the band, possibly because in PSSFSS metallization thickness is
+neglected and cascading is performed for this structure using only the two principal Floquet modes.
+As previosly discussed, this is necessary because the rotated meanderlines are achieved by rotating
+the entire unit cell, and the unit cell for sheets 2 and 4 are not square.  Since the periodicity of
+the sheets in the structure varies from sheet to sheet, higher order Floquet modes common to neighboring
+sheets cannot be defined, so we are forced to use only the dominant (0,0) modes which are independent of
+the periodicity.  This limitation is removed in a later example.
 Meanwhile, it is of interest to note that their high-accuracy runs
 required 10 hours for CST and 19 hours for COMSOL on large engineering workstations.  The PSSFSS run
-took about 60 seconds on my desktop machine.
+took about 50 seconds on my desktop machine.
 
 ### Design Based on PSSFSS Optimization with CMAES
 Here we use PSSFSS in conjunction with the CMAES optimizer from the
@@ -820,12 +914,12 @@ using Dates: now
 
 let bestf = typemax(Float64)
     global objective
+    """
+        result = objective(x)
+
+    """
     function objective(x)
-        period, wo, ho, wi, hi, wc, hc, t1, t2 = x
-        ao = bo = ai = bi = ac = bc = period
-        ai *= √2
-        bi /= √2
-        # Ensure physically realizable or return large value:
+        ao, bo, ai, bi, ac, bc, wo, ho, wi, hi, wc, hc, t1, t2 = x
         (bo > ho > 2.1*wo && bi > hi > 2.1*wi && bc > hc > 2.1*wc) || (return 5000.0)
 
         outer(rot) = meander(a=ao, b=bo, w1=wo, w2=wo, h=ho, units=mm, ntri=400, rot=rot)
@@ -854,18 +948,24 @@ let bestf = typemax(Float64)
                 substrate
                 Layer() ]
         steering = (θ=0, ϕ=0)
-        flist = 11:0.25:19
-        results = analyze(strata, flist, steering, showprogress=false)
+        flist = 11.5:0.25:18.5
+        resultfile = logfile = devnull
+        showprogress = false
+        results = analyze(strata, flist, steering; showprogress, resultfile, logfile)
         s11rr, s21ll, ar11db, ar21db = eachcol(extract_result(results,
                        @outputs s11db(R,R) s21db(L,L) ar11db(R) ar21db(L)))
         RL = -s11rr
         IL = -s21ll
-        obj = maximum(vcat(RL,IL,ar11db,ar21db))
+        RLgoal, ILgoal, ARgoal  = (0.4, 0.5, 0.6)
+        obj = max(maximum(RL) - RLgoal,
+                  maximum(IL) - ILgoal,
+                  maximum(ar11db) - ARgoal,
+                  maximum(ar21db) - ARgoal)
         if obj < bestf
             bestf = obj
             open("optimization_best.log", "a") do fid
-                xround = round.(x, digits=4)
-                println(fid, round(obj,digits=4), " at x = ", xround, "  #", now())
+                xround = map(t  -> round(t, digits=4), x)
+                println(fid, round(obj,digits=5), " at x = ", xround, "  #", now())
             end
         end
         return obj
@@ -873,13 +973,17 @@ let bestf = typemax(Float64)
 end
 ```
 
-We optimize at 33 frequencies between 11 and 19 GHz.  The actual frequency range of interest is
-12 to 18 GHz; the wider optimization band provides some safety margin.  Each objective function
-evaluation takes about 24  seconds on my machine.
-As you can see from the code above, each successive sheet in the structure is rotated an additional
-45 degrees relative to its predecessor.
-The objective is defined as the largest value of RHCP reflected return loss, LHCP insertion loss, or
-reflected or transmitted axial ratio that
+We optimize at 29 frequencies between 11.5 and 18.5 GHz.  In the previously presented
+Sjöberg and Ericsson design a smaller frequency range of 12 to 18 GHz was used for optimization.
+We have also adopted more ambitious goals for return loss, insertion loss, and axial ratio
+of 0.4 dB, 0.5 dB, and 0.6 dB, respectively. These should be feasible because for
+our optimization setup, we have relaxed the restriction that all unit cells must be
+identical squares.  With more "knobs to turn" (i.e., a larger search space), we expect to be able
+to do somewhat better in terms of bandwidth and worst-case performance.  For our setup there are
+fourteen optimization variables in all.
+As one can see from the code above, each successive sheet in the structure is rotated an additional
+45 degrees relative to its predecessor.   The objective is defined as the maximum departure
+from the goal of RHCP reflected return loss, LHCP insertion loss, or reflected or transmitted axial ratio that
 occurs at any of the analysis frequencies (i.e. we are setting up for "minimax" optimization). Also,
 the `let` block allows the objective function to maintain persistent state in the
 variable `bestf` which is initialized to the largest 64-bit floating point value. Each time a set
@@ -887,71 +991,65 @@ of inputs results in a lower objective function value, `bestf` is updated with t
 the inputs and objective function value are
 written to the file "optimization_best.log", along with a date/time stamp.  This allows the user
 to monitor the optimization and to terminate the it prematurely, if desired, without losing the
-best result achieved so far.
+best result achieved so far. Each objective function evaluation takes about 9 seconds on my machine.
 
 Here is the code for running the optimization:
 
 ```julia
 using CMAEvolutionStrategy
-#  x = [period,  wo,  ho,  wi,   hi,  wc,   hc,  t1,  t2]
-xmin = [3.0,     0.1, 0.1, 0.1,  0.1, 0.1,  0.1, 1.5, 1.5]
-xmax = [5.5,     0.35,4.0, 0.35, 4.0, 0.35, 4.0, 6.0, 6.0]
+#  x = [a1,  b1,   a2, b2,  a3,  b3,  wo,  ho,  wi,   hi,  wc,   hc,  t1,  t2]
+xmin = [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.1, 0.1, 0.1,  0.1, 0.1,  0.1, 2.0, 2.0]
+xmax = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.35,4.0, 0.35, 4.0, 0.35, 4.0, 6.0, 6.0]
 x0 = 0.5 * (xmin + xmax)
-popsize = 2*(4 + floor(Int, 3*log(length(x0))))
 isfile("optimization_best.log") && rm("optimization_best.log")
+popsize = 2*(4 + floor(Int, 3*log(length(x0))))
 opt = minimize(objective, x0, 1.0;
            lower = xmin,
            upper = xmax,
            maxfevals = 9000,
+           popsize = popsize,
            xtol = 1e-4,
-           ftol = 1e-5,
-           popsize=popsize)
+           ftol = 1e-6)
 ```
 
 Note that I set the population size to twice the normal default value.  Based
 on previous experience, using 2 to 3 times the default population size helps the
 optimizer to do better on tough objective functions like the present one.
-I let the optimizer run for 6 hours, during which time it reduced the objective function
-value from 11.88 dB to 0.86 dB.  It was then interrupted due to a file system error.  I
-restarted it after setting the starting value to the current best and reducing the
-"sigma" value (the third argument to `minimize`, which controls the algorithms
- exploratory tendency) to 0.2 (slightly greater than the value it had achieved during the aborted run)
-from its default value of 1.  After about 13 hours the program terminated normally due to
-insufficient changes in the `x` variable.  The final value of objective function was 0.65 dB.
+I let the optimizer run overnight for about 17 hours, during which time it reduced the objective function
+value from 11.48 dB to -0.12 dB. Since it appeared to have essentially converged, I terminated the run.
 
-Here is a look at the final portion of the file "optimization_best.log":
+Here is a look at the beginning and final portions of the file "optimization_best.log":
 ```
-0.6535 at x = [3.0968, 0.1025, 2.1601, 0.1003, 0.95, 0.3377, 2.3584, 4.3813, 2.2974]  #2021-05-09T23:02:40.230
-0.6533 at x = [3.0991, 0.1028, 2.162, 0.1002, 0.944, 0.3372, 2.3562, 4.3801, 2.3007]  #2021-05-09T23:27:38.132
-0.6532 at x = [3.0985, 0.1029, 2.1652, 0.1003, 0.9414, 0.337, 2.3547, 4.3766, 2.3036]  #2021-05-09T23:46:19.068
-0.6531 at x = [3.0998, 0.1028, 2.164, 0.1001, 0.9443, 0.3378, 2.3558, 4.3783, 2.3028]  #2021-05-09T23:49:13.202
-0.6529 at x = [3.0988, 0.1028, 2.1652, 0.1002, 0.9422, 0.3372, 2.3545, 4.3765, 2.3039]  #2021-05-09T23:50:58.064
-0.6529 at x = [3.0985, 0.1029, 2.1687, 0.1002, 0.9407, 0.3368, 2.3526, 4.3714, 2.3073]  #2021-05-10T00:11:36.314
-0.6529 at x = [3.0976, 0.1028, 2.1688, 0.1004, 0.9443, 0.3374, 2.3532, 4.3716, 2.3062]  #2021-05-10T00:16:16.205
-0.6528 at x = [3.0991, 0.1028, 2.1679, 0.1002, 0.9444, 0.3376, 2.3539, 4.3735, 2.3056]  #2021-05-10T00:20:04.181
-0.6527 at x = [3.0987, 0.1027, 2.1664, 0.1001, 0.9443, 0.3375, 2.3544, 4.3751, 2.3045]  #2021-05-10T00:33:08.779
-0.6527 at x = [3.0972, 0.1029, 2.1692, 0.1002, 0.9362, 0.336, 2.3512, 4.3707, 2.3083]  #2021-05-10T00:39:14.306
-0.6527 at x = [3.0985, 0.1028, 2.1663, 0.1001, 0.9426, 0.3372, 2.3539, 4.3749, 2.3049]  #2021-05-10T00:40:59.223
-0.6527 at x = [3.0974, 0.1028, 2.1688, 0.1002, 0.9424, 0.3371, 2.3527, 4.3718, 2.3069]  #2021-05-10T00:51:08.383
-0.6526 at x = [3.0982, 0.1028, 2.1678, 0.1001, 0.9422, 0.3371, 2.3531, 4.373, 2.3061]  #2021-05-10T00:56:58.562
-0.6526 at x = [3.0979, 0.1028, 2.1682, 0.1001, 0.9406, 0.3369, 2.3529, 4.3725, 2.3066]  #2021-05-10T00:59:51.875
-0.6525 at x = [3.0974, 0.1028, 2.1675, 0.1001, 0.9411, 0.3369, 2.353, 4.3735, 2.306]  #2021-05-10T01:03:39.402
+11.47502 at x = [4.3371, 3.6377, 4.6978, 3.0065, 4.2178, 3.7151, 0.3456, 1.4562, 0.3345, 2.1578, 0.3498, 2.0437, 3.3593, 3.5733]  #2022-09-13T14:35:39.320
+8.83597 at x = [4.3381, 4.8048, 3.4625, 4.7309, 3.051, 3.5356, 0.1072, 3.585, 0.1039, 2.2732, 0.3206, 1.1203, 3.8363, 2.2236]  #2022-09-13T14:35:57.550
+6.61653 at x = [3.4206, 3.1036, 3.0215, 3.2064, 3.0201, 3.4882, 0.1034, 1.5586, 0.103, 2.3935, 0.2026, 2.1608, 4.2708, 2.4485]  #2022-09-13T14:36:06.768
+6.17284 at x = [4.6927, 3.9841, 4.6078, 3.8153, 3.2699, 3.0023, 0.3254, 3.0281, 0.3167, 1.0311, 0.3334, 1.3243, 4.9482, 2.5076]  #2022-09-13T14:37:01.227
+4.14975 at x = [4.4617, 4.105, 3.9944, 4.8857, 4.6484, 3.6307, 0.3457, 2.0488, 0.3354, 1.9338, 0.3275, 1.5484, 3.2037, 2.683]  #2022-09-13T14:37:17.647
+2.2661 at x = [4.7303, 4.1483, 3.4428, 3.3463, 3.607, 3.2735, 0.1572, 2.2432, 0.35, 2.2474, 0.2468, 1.376, 2.6822, 2.3709]  #2022-09-13T14:39:58.103
+1.57851 at x = [4.95, 4.1857, 4.0174, 3.3486, 4.9004, 3.678, 0.12, 1.6691, 0.2451, 1.0522, 0.2964, 1.7673, 3.6622, 2.6612]  #2022-09-13T14:41:33.641
+...
+-0.11824 at x = [3.0642, 4.8748, 4.1393, 3.0066, 3.8585, 3.0047, 0.344, 3.0002, 0.3469, 1.4042, 0.2502, 2.3751, 3.766, 2.3372]  #2022-09-14T06:37:45.783
+-0.1184 at x = [3.0416, 4.8731, 4.148, 3.0012, 3.8553, 3.0103, 0.3449, 3.0104, 0.3482, 1.4088, 0.2533, 2.3858, 3.7593, 2.3347]  #2022-09-14T06:38:57.587
+-0.11896 at x = [3.0454, 4.881, 4.1304, 3.0001, 3.8389, 3.01, 0.345, 3.0042, 0.348, 1.413, 0.2524, 2.3719, 3.7682, 2.3398]  #2022-09-14T06:50:21.349
+-0.11961 at x = [3.069, 4.8773, 4.1652, 3.002, 3.8446, 3.0055, 0.3439, 3.0101, 0.3468, 1.4051, 0.2518, 2.3774, 3.7652, 2.3401]  #2022-09-14T06:59:09.133
+-0.11961 at x = [3.0661, 4.8788, 4.155, 3.0014, 3.8314, 3.0069, 0.3441, 2.9933, 0.3476, 1.4168, 0.2516, 2.3689, 3.7816, 2.3322]  #2022-09-14T07:06:13.332
+-0.1197 at x = [3.0657, 4.8757, 4.1549, 3.0018, 3.8331, 3.0061, 0.3436, 3.0024, 0.3468, 1.4055, 0.2517, 2.3716, 3.7758, 2.3382]  #2022-09-14T07:15:07.056
 ```
 
-The performance of this design is shown below:
+The final sheet geometries and performance of this design are shown below:
 
-![](./assets/cpss_cmaesopt_ar_refl.png)
-
-![](./assets/cpss_cmaesopt_ar_trans.png)
-
-![](./assets/cpss_cmaesopt_il_trans.png)
+![](./assets/cpss_cmaesopt_sheets.png)
 
 ![](./assets/cpss_cmaesopt_rl_refl.png)
 
-It would probably be possible to do improve the performance somewhat over the 12-18 GHz band by weighting the
-various contributions to the objective function and/or tapering the
-requirements of the objective function at the band edges.  Also, in a serious design effort, several additional
-runs of the optimizer should be attempted, since results vary for stochastic algorithms like CMAES.
+![](./assets/cpss_cmaesopt_ar_refl.png)
+
+![](./assets/cpss_cmaesopt_il_trans.png)
+
+![](./assets/cpss_cmaesopt_ar_trans.png)
+
+As hoped for, the performance meets the more stringent design goals over a broader bandwidth than the
+Sjöberg and Ericsson design, presumably because of the greater design flexibility allowed here.
 
 ```@meta
 EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss2.jl"
@@ -1039,7 +1137,7 @@ results = analyze(strata, flist, steering, logfile=devnull,
 nothing # hide
 ````
 
-The PSSFSS run took about 85 seconds on my machine.  Here are plots of the five sheets:
+The PSSFSS run took about 55 seconds on my machine.  Here are plots of the five sheets:
 
 ````@example cpss2
 using Plots
@@ -1059,29 +1157,40 @@ We can see from the log file (of a previous run where it was not suppressed) tha
 PSSFSS to use additional modes in the GSM cascading procedure:
 
 ```
-Starting PSSFSS analysis on 2021-05-26 at 09:54:02.902
+Starting PSSFSS 1.0.0 analysis on 2022-09-14 at 13:22:05.118
+Julia Version 1.8.1
+Commit afb6c60d69a (2022-09-06 15:09 UTC)
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
+  Threads: 8 on 8 virtual cores
+  BLAS: LBTConfig([ILP64] libopenblas64_.so)
+
 
 
 Dielectric layer information...
 
  Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
  ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
-     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3     0.0     0.0  1208.3
+     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3    -0.0    -0.0  1208.3
      2    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
- ==================  Sheet   1  ========================  1208.3     0.0     0.0  1208.3
-     3    3.8100  mm    1.04 0.0017    1.00 0.0000    10  1208.3     0.0     0.0  1208.3
+ ==================  Sheet   1  ========================  1208.3    -0.0    -0.0  1208.3
+     3    3.8100  mm    1.04 0.0017    1.00 0.0000    10  1208.3    -0.0    -0.0  1208.3
      4    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
- ==================  Sheet   2  ========================  1208.3     0.0     0.0  1208.3
-     5    2.6100  mm    1.04 0.0017    1.00 0.0000    18  1208.3     0.0     0.0  1208.3
- ==================  Sheet   3  ========================  1208.3     0.0     0.0  1208.3
+ ==================  Sheet   2  ========================  1208.3    -0.0    -0.0  1208.3
+     5    2.6100  mm    1.04 0.0017    1.00 0.0000    18  1208.3    -0.0    -0.0  1208.3
+ ==================  Sheet   3  ========================  1208.3    -0.0    -0.0  1208.3
      6    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
-     7    2.6100  mm    1.04 0.0017    1.00 0.0000    18  1208.3     0.0     0.0  1208.3
+     7    2.6100  mm    1.04 0.0017    1.00 0.0000    18  1208.3    -0.0    -0.0  1208.3
      8    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
- ==================  Sheet   4  ========================  1208.3     0.0     0.0  1208.3
-     9    3.8100  mm    1.04 0.0017    1.00 0.0000    10  1208.3     0.0     0.0  1208.3
- ==================  Sheet   5  ========================  1208.3     0.0     0.0  1208.3
+ ==================  Sheet   4  ========================  1208.3    -0.0    -0.0  1208.3
+     9    3.8100  mm    1.04 0.0017    1.00 0.0000    10  1208.3    -0.0    -0.0  1208.3
+ ==================  Sheet   5  ========================  1208.3    -0.0    -0.0  1208.3
     10    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
-    11    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3     0.0     0.0  1208.3
+    11    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3    -0.0    -0.0  1208.3
 ...
 ```
 
