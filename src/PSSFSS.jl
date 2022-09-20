@@ -21,7 +21,7 @@ using InteractiveUtils: versioninfo
 using Dates: now
 using DelimitedFiles: writedlm
 using Printf: @sprintf
-using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!, BLAS
+using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!, BLAS, \, I
 using StaticArrays: StaticArrays, SVector, SArray, @SVector
 using Unitful: ustrip, @u_str
 using Logging: with_logger
@@ -43,6 +43,7 @@ include("FillZY.jl")
 include("GSMs.jl")
 include("Modes.jl")
 include("Outputs.jl")
+include("FastSweep.jl")
 
 using .Rings
 @reexport using .Sheets: Sheet, RWGSheet, read_sheet_data, nodecount, facecount, edgecount
@@ -59,6 +60,7 @@ using .Log: pssfss_logger, @logfile
     jerusalemcross, pecsheet, pmcsheet, splitring
 @reexport using .Outputs: @outputs, extract_result_file, extract_result
 using .Outputs: Result, append_result_data
+using .FastSweep: interpolate_band
 
 export analyze
 
@@ -66,7 +68,8 @@ Base.isfile(f::Base.DevNull) = false
 Base.open(f::Base.DevNull, ::AbstractString) = f
 
 """
-    analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", showprogress::Bool=true)
+    analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", 
+    showprogress::Bool=true, fastsweep=true)
 
 Analyze a full FSS/PSS structure over a range of frequencies and steering angles/phasings.  
 Generate output files as specified in `outlist`.
@@ -112,9 +115,11 @@ Generate output files as specified in `outlist`.
 
 - `showprogress`: If true (default), then show progress bar during execution.
 
+- `fastsweep`: If true (default) use an interpolated fast sweep for each frequency loop.
+
 """
 function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log",
-    resultfile="pssfss.res", showprogress::Bool=true)
+    resultfile="pssfss.res", showprogress::Bool=true, fastsweep::Bool=true)
     tstart = time()
     layers = Layer[deepcopy(s) for s in strata if s isa Layer]
     sheets = RWGSheet[s for s in strata if s isa Sheet]
@@ -154,7 +159,7 @@ end # function
 
 """
 function _analyze(layers, sheets, junc, freqs, stkeys, stvalues; 
-    outlist=Any[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time())
+    outlist=Any[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time(), fastsweep::Bool=true)
 
 
 ## Positional Arguments
@@ -200,9 +205,11 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
 - `showprogress`: If true, use ProgressMeter to show execution progress.
 
 - `tstart`: Nanoseconds since epoch at start of program execution.
+
+- `fastsweep`: If true (default), use an interpolated fast sweep for each frequency loop.
 """
 function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
-    outlist=[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time())
+    outlist=[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time(), fastsweep=true)
     showprogress && println("Beginning PSSFSS Analysis")
     ncount = 0 # Number of analyses performed
     ntotal = length(freqs) * length(stvalues[1]) * length(stvalues[2])
@@ -245,91 +252,46 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
             ψ₁, ψ₂ = deg2rad.(steer) # radians
             upm::Float64 = ustrip(Float64, sheets[1].units, 1u"m")
             β₁, β₂ = sheets[1].β₁ * upm, sheets[1].β₂ * upm
-            β⃗₀₀ = (ψ₁ * β₁ + ψ₂ * β₂) / twopi # Eq. (2.13b)
+            β⃗₀₀k1 = (ψ₁ * β₁ + ψ₂ * β₂) / twopi # Eq. (2.13b)
         else
             θ, ϕ = steer # degrees
             st = sind(θ)
             sp, cp = sincosd(ϕ)
+            β⃗₀₀k1 = @SVector([st * cp, st * sp])
         end
         @logfile "Beginning $(steer)"
-        for fghz in freqs
-            @logfile "  $(fghz) GHz"
-            t_freq = time()
-            t_cascade = 0.0
-            k0 = twopi * fghz * 1e9 / c₀
-            if keys(steer)[1] == :θ
-                k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
-                β⃗₀₀ = @SVector([k1 * st * cp, k1 * st * sp])
+        if fastsweep
+            ymat4x4s = interpolate_band(freqs; showprogress, xlabel="GHz") do fghz
+                (_, result) = compute_next_freq(fghz, β⃗₀₀k1, steer, layers, sheets, usi, 
+                rwgdat, uvec, junc, gbls, gbldup, gsm_save)
+                smat =  SArray{Tuple{4,4}}([result.gsm[1,1] result.gsm[1,2]; result.gsm[2,1] result.gsm[2,2]])
+                return (I - smat) \ (I + smat)
             end
-            setup_modes!.(layers, k0, Ref(β⃗₀₀))
-            if !(angle(layers[begin].γ[1]) ≈ angle(layers[end].γ[1]) ≈ π / 2)
-                @logfile "  Skipping $(fghz) GHz due to cutoff principal modes in ambient medium"
-                continue
-            end
-            # Initialize overall GSM and propagate it through layer 1's width:
-            n1 = length(layers[1].P)
-            gsma = GSM(n1, n1)
-            gsmc = GSM(n1, n1)
-            t_cascade1 = time()
-            cascade!(gsma, layers[1])
-            t_cascade += time() - t_cascade1
-            for (ig, gbl) in pairs(gbls) # Walk through the Gblocks
-                i1 = first(gbl.rng) # Index of layer to left of Gblock
-                i2 = 1 + last(gbl.rng) # Index of layer to right of Gblock
-                i_junc = gbl.j # junction where FSS is located, or 0 if no sheet
-                i_sheet = i_junc == 0 ? 0 : junc[i_junc]
-                if i_sheet ≠ 0
-                    if gbldup[ig] > 0
-                        gsmb::GSM = deepcopy(gsm_save[gbldup[ig]]) # Use previously calculated GSM
-                    else
-                        region = @view layers[i1:i2]
-                        sheet = sheets[i_sheet]
-                        s = gbl.j - i1 + 1 # sheet interface location within `region`
-                        if sheet.class == 'J'
-                            gsmb = calculate_jtype_gsm(region, sheet, uvec[i_sheet],
-                                rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
-                        elseif sheet.class == 'M'
-                            gsmb = calculate_mtype_gsm(region, sheet, uvec[i_sheet],
-                                rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
-                        elseif sheet.class == 'E'
-                            gsmb = pecgsm(length(region[1].P), length(region[end].P))
-                        elseif sheet.class == 'H'
-                            gsmb = pmcgsm(length(region[1].P), length(region[end].P))
-                        else
-                            error("Illegal sheet class: $(sheet.class)")
-                        end
-
-                        gbldup[ig] < 0 && (gsm_save[ig] = deepcopy(gsmb))
-                    end
-                    # Apply translations if requested:
-                    sheet = sheets[i_sheet]
-                    if sheet.dx ≠ 0 || sheet.dy ≠ 0
-                        upm = ustrip(Float64, sheet.units, 1u"m")
-                        dx = sheet.dx / upm
-                        dy = sheet.dy / upm
-                        translate_gsm!(gsmb, dx, dy, first(region), last(region))
-                    end
-
-                else # no sheet
-                    @assert i2 - i1 == 1
-                    gsmb = gsm_slab_interface(layers[i1], layers[i2], k0)
+            for (fghz, y4x4) in zip(freqs, ymat4x4s)
+                k0 = pi * fghz * 2e9 / c₀
+                if keys(steer)[1] == :θ
+                    k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
+                    β⃗₀₀ = k1 * β⃗₀₀k1
+                else
+                    β⃗₀₀ = copy(β⃗₀₀k1)
                 end
-                t_cascade1 = time()
-                gsmc = cascade(gsma, gsmb)
-                cascade!(gsmc, layers[i2])
-                t_cascade += time() - t_cascade1
-                gsma = gsmc
-            end # Gblock loop
-            t_freq = round(time() - t_freq, digits=tdigits)
-            t_cascade = round(t_cascade, digits=tdigits)
-            @logfile "    $(t_cascade) seconds for cascading at $(fghz) GHz"
-            @logfile "  $(t_freq) seconds total at $(fghz) GHz"
-
-            result = Result(gsmc, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
+                s4x4 = (I - y4x4) \ (I + y4x4)
+                gsm = GSM(s4x4[1:2,1:2], s4x4[1:2,3:4], s4x4[3:4,1:2], s4x4[3:4,3:4])
+                result = Result(gsm, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
                 layers[1].β₁, layers[1].β₂, layers[end].ϵᵣ, layers[end].μᵣ,
                 layers[end].β₁, layers[end].β₂)
-            push!(results, result)
+                push!(results, result)
+            end
+        end
+        for fghz in freqs
             ncount += 1
+            if fastsweep
+                result = results[ncount]
+            else
+                (β⃗₀₀, result) = compute_next_freq(fghz, β⃗₀₀k1, steer, layers, sheets, usi, 
+                rwgdat, uvec, junc, gbls, gbldup, gsm_save)
+                push!(results, result)
+            end
             # Write to output files
             append_result_data(resultfile, string(ncount), result)
             for row in eachrow(outlist)
@@ -351,6 +313,90 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     telapsed = round(time() - tstart, digits=1)
     @logfile "\n\n PSSFSS analysis exiting on $(date) at $(clock) ($(telapsed) seconds elapsed time)\n\n"
     return results
+end # function
+
+
+function compute_next_freq(fghz, β⃗₀₀k1, steer, layers, sheets, usi, rwgdat, uvec, junc, gbls, gbldup, gsm_save)
+    @logfile "  $(fghz) GHz"
+    t_freq = time()
+    k0 = pi * fghz * 2e9 / c₀
+    if keys(steer)[1] == :θ
+        k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
+        β⃗₀₀ = k1 * β⃗₀₀k1
+    else
+        β⃗₀₀ = copy(β⃗₀₀k1)
+    end
+
+    t_cascade = 0.0
+    setup_modes!.(layers, k0, Ref(β⃗₀₀))
+    if !(angle(layers[begin].γ[1]) ≈ angle(layers[end].γ[1]) ≈ π / 2)
+        @logfile "  Skipping $(fghz) GHz due to cutoff principal modes in ambient medium"
+        return nothing
+    end
+    # Initialize overall GSM and propagate it through layer 1's width:
+    n1 = length(layers[1].P)
+    gsma = GSM(n1, n1)
+    gsmc = GSM(n1, n1)
+    t_cascade1 = time()
+    cascade!(gsma, layers[1])
+    t_cascade += time() - t_cascade1
+    for (ig, gbl) in pairs(gbls) # Walk through the Gblocks
+        i1 = first(gbl.rng) # Index of layer to left of Gblock
+        i2 = 1 + last(gbl.rng) # Index of layer to right of Gblock
+        i_junc = gbl.j # junction where FSS is located, or 0 if no sheet
+        i_sheet = i_junc == 0 ? 0 : junc[i_junc]
+        if i_sheet ≠ 0
+            if gbldup[ig] > 0
+                gsmb::GSM = deepcopy(gsm_save[gbldup[ig]]) # Use previously calculated GSM
+            else
+                region = @view layers[i1:i2]
+                sheet = sheets[i_sheet]
+                s = gbl.j - i1 + 1 # sheet interface location within `region`
+                if sheet.class == 'J'
+                    gsmb = calculate_jtype_gsm(region, sheet, uvec[i_sheet],
+                        rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
+                elseif sheet.class == 'M'
+                    gsmb = calculate_mtype_gsm(region, sheet, uvec[i_sheet],
+                        rwgdat[i_sheet], s, k0, β⃗₀₀, usi[i_sheet])
+                elseif sheet.class == 'E'
+                    gsmb = pecgsm(length(region[1].P), length(region[end].P))
+                elseif sheet.class == 'H'
+                    gsmb = pmcgsm(length(region[1].P), length(region[end].P))
+                else
+                    error("Illegal sheet class: $(sheet.class)")
+                end
+
+                gbldup[ig] < 0 && (gsm_save[ig] = deepcopy(gsmb))
+            end
+            # Apply translations if requested:
+            sheet = sheets[i_sheet]
+            if sheet.dx ≠ 0 || sheet.dy ≠ 0
+                upm = ustrip(Float64, sheet.units, 1u"m")
+                dx = sheet.dx / upm
+                dy = sheet.dy / upm
+                translate_gsm!(gsmb, dx, dy, first(region), last(region))
+            end
+
+        else # no sheet
+            @assert i2 - i1 == 1
+            gsmb = gsm_slab_interface(layers[i1], layers[i2], k0)
+        end
+        t_cascade1 = time()
+        gsmc = cascade(gsma, gsmb)
+        cascade!(gsmc, layers[i2])
+        t_cascade += time() - t_cascade1
+        gsma = gsmc
+    end # Gblock loop
+    t_freq = round(time() - t_freq, digits=tdigits)
+    t_cascade = round(t_cascade, digits=tdigits)
+    @logfile "    $(t_cascade) seconds for cascading at $(fghz) GHz"
+    @logfile "  $(t_freq) seconds total at $(fghz) GHz"
+
+    result = Result(gsmc, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
+        layers[1].β₁, layers[1].β₂, layers[end].ϵᵣ, layers[end].μᵣ,
+        layers[end].β₁, layers[end].β₂)
+    
+    return (β⃗₀₀, result)
 end # function
 
 
