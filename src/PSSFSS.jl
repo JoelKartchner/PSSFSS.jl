@@ -21,8 +21,8 @@ using InteractiveUtils: versioninfo
 using Dates: now
 using DelimitedFiles: writedlm
 using Printf: @sprintf
-using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!, BLAS, \, I
-using StaticArrays: StaticArrays, SVector, SArray, @SVector
+using LinearAlgebra: ×, norm, ⋅, factorize, lu!, ldiv!, BLAS
+using StaticArrays: StaticArrays, SVector, SArray, @SVector, MArray
 using Unitful: ustrip, @u_str
 using Logging: with_logger
 using ProgressMeter
@@ -151,7 +151,7 @@ function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.lo
 
     with_logger(pssfss_logger(logfile)) do
         _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
-            outlist, resultfile, showprogress, tstart)
+            outlist, resultfile, showprogress, tstart, fastsweep)
     end
 end # function
 
@@ -261,13 +261,13 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
         end
         @logfile "Beginning $(steer)"
         if fastsweep
-            ymat4x4s = interpolate_band(freqs; showprogress, xlabel="GHz") do fghz
+            smat4x4s = interpolate_band(freqs; showprogress, xlabel="GHz") do fghz
                 (_, result) = compute_next_freq(fghz, β⃗₀₀k1, steer, layers, sheets, usi, 
                 rwgdat, uvec, junc, gbls, gbldup, gsm_save)
-                smat =  SArray{Tuple{4,4}}([result.gsm[1,1] result.gsm[1,2]; result.gsm[2,1] result.gsm[2,2]])
-                return (I - smat) \ (I + smat)
+                smat =  MArray{Tuple{4,4}}([result.gsm[1,1] result.gsm[1,2]; result.gsm[2,1] result.gsm[2,2]])
+                return smat
             end
-            for (fghz, y4x4) in zip(freqs, ymat4x4s)
+            for (fghz, s4x4) in zip(freqs, smat4x4s)
                 k0 = pi * fghz * 2e9 / c₀
                 if keys(steer)[1] == :θ
                     k1 = k0 * sqrt(real(layers[1].ϵᵣ * layers[1].μᵣ))
@@ -275,7 +275,6 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
                 else
                     β⃗₀₀ = copy(β⃗₀₀k1)
                 end
-                s4x4 = (I - y4x4) \ (I + y4x4)
                 gsm = GSM(s4x4[1:2,1:2], s4x4[1:2,3:4], s4x4[3:4,1:2], s4x4[3:4,3:4])
                 result = Result(gsm, steer, β⃗₀₀, fghz, layers[1].ϵᵣ, layers[1].μᵣ,
                 layers[1].β₁, layers[1].β₂, layers[end].ϵᵣ, layers[end].μᵣ,

@@ -82,10 +82,11 @@ function interp_path2(
             num2 = x0j[j+k] - x0
             den2 = Sjkm1[j] - Sjkm2[j+1]
             bigden = num1 * den2 + num2 * den1
-            Sjk[j] = Sjkm2[j+1] 
-            if !iszero(bigden)
-                Sjk[j] += (x0j[j+k] - x0j[j]) * den1 .* den2 ./ bigden
+            for i in eachindex(bigden)
+                iszero(bigden[i]) && (bigden[i] = one(eltype(bigden)))
             end
+            Sjk[j] = Sjkm2[j+1] 
+            Sjk[j] += (x0j[j+k] - x0j[j]) * den1 .* den2 ./ bigden
         end
     end
     return (Sjk[0], norm(Sjk[0] - Sjkm1[0]), Inf)
@@ -121,16 +122,22 @@ function interpolate_band(
         knots = round.(Int, collect(LinRange(firstindex(x), lastindex(x), 5)))
     end
 
-    fknots = [f(x[i]) for i in knots]
+    crclear = "\r\u1b[K" # carriage return and clear rest of line
+    showprogress && println("")
+    f1 = f(x[knots[1]])
+    showprogress && print(crclear, "1 knot at ", x[knots[1]], " ", xlabel, ", maxerrdB = Inf")
+    fknots = Array{typeof(f1), 1}(undef, length(knots))
+    fknots[1] = f1
+    for k = 2:length(knots)
+        fknots[k] = f(x[knots[k]])
+        showprogress && print(crclear, k, " knots. Added ", x[knots[1]], " ", xlabel, ", maxerrdB = Inf")
+    end
     errs = ones(len)
     errs[knots] .= 0.0
     mapreduce(iszero, &, errs) && (return fknots)
     fvalues = Array{eltype(fknots), 1}(undef, len)
     fvalues[knots] .= fknots
-    store1 = similar(fvalues)
-    store2 = similar(fvalues)
-    store3 = similar(fvalues)
-
+    store1, store2, store3 = (similar(fvalues) for _ in 1:3)
     max_err_lim = 10.0^(max_err_lim_db / 20)
     max_err = 1.0
     repeats = nextknot = 0
@@ -150,12 +157,13 @@ function interpolate_band(
         (max_err, nextknot) = findmax(errs)
         if showprogress
             maxerrdB = round(20*log10(max_err), digits=2)
-            println("Added knot at ", x[knots[end]], " ", xlabel, ", maxerrdB = ", maxerrdB)
+            print(crclear, length(knots), " knots. Added ", x[knots[end]], " ", xlabel, ", maxerrdB = ", maxerrdB)
         end
-
         max_err ≤ max_err_lim && (repeats += 1)
         max_err > max_err_lim && (repeats = 0)
     end
+
+    showprogress && println("")
     return fvalues
 end # function
 

@@ -34,7 +34,7 @@ for (i,R) in pairs(Rs)
 end
 
 # Looping over the four sheet resistance values, each evaluated at 119 frequencies
-# required approximately 20 seconds on my machine.
+# required approximately 20 seconds total on my machine.
 #
 # We plot the results, including those digitized from the paper for comparison:
 

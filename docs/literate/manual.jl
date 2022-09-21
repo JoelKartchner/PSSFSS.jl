@@ -37,7 +37,7 @@
 #                      w2=0.018, ntri=800, units=inch,rot=45)
 # innersheet = meander(a=0.3535, b=0.707, h=0.37, w1=0.027, 
 #                      w2=0.027, ntri=800, units=inch,rot=45)
-# flist = 3:0.25:9
+# flist = 3:0.1:9
 # steering = (ϕ=0, θ=0)
 # substrate = Layer(ϵᵣ=2.52, width=0.01inch)
 # spacer(width) = Layer(width=width, ϵᵣ=1.08)
@@ -63,9 +63,9 @@
 # p = plot(title="Blackney 1972 Polarizer", xlabel="Frequency (GHz)",
 #                                           ylabel="Axial Ratio (dB)")
 # data = readdlm("blackney.csv", ',', skipstart=1)
-# plot!(p, data[:,1],data[:,2],shape=:square,color=:red,label="PSSFSS")
+# plot!(p, data[:,1], data[:,2], color=:red, label="PSSFSS")
 # dat = readdlm("blackney_ar_digitized.csv", ',')
-# scatter!(p, dat[:,1],dat[:,2],color=:blue,shape=:x,label="Measured")
+# scatter!(p, dat[:,1], dat[:,2], color=:blue, shape=:x, label="Measured")
 # display(p)
 # ```
 #-
@@ -75,8 +75,8 @@
 #
 # ![blackney](./assets/blackney_polarizer_comparison.png)
 # 
-# The PSSFSS run took about 30 seconds on my machine for 4 meanderline PSS sheets 
-# analyzed at 25 frequencies.
+# The PSSFSS run took about 24 seconds on my machine for 4 meanderline PSS sheets 
+# analyzed at 61 frequencies.
 #
 # I hope this example whetted your appetite to learn
 # more about PSSFSS!

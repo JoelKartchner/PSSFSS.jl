@@ -35,7 +35,7 @@
 #     Layer()
 #     ]
 # 
-# freqs = union(1:0.1:2, 2.02:0.02:3, 3.1:0.05:14)
+# freqs = 1:0.02:14)
 # steering = (θ = 0, ϕ = 0)
 # results = analyze(strata, freqs, steering)
 # s11dbvv = extract_result(results, @outputs s11db(v,v))
@@ -51,9 +51,13 @@
 
 # ![](./assets/fabian2021_comparison.png)
 
+# This run of 651 frequencies requires about 40 seconds on my machine.
 # Generally good agreement is seen between the PSSFSS predicted reflection amplitude and that
 # digitized from the paper. (The latter was obtained from a CST frequency domain analysis,
 # according to the paper's authors.) However, there is a small discrepancy in the predicted resonant 
 # frequencies that increases 
 # with frequency, likely because both results are less well converged at higher frequencies.
+# Also, the reflection amplitudes of the higher-frequency peaks are less than unity for the CST
+# results, possibly because the authors may have included the finite conductivity of the metal traces.  
+# This detail was not reported in the paper.
 

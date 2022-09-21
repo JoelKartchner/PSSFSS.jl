@@ -104,8 +104,10 @@ results_m = analyze(strata, flist, steering, showprogress=false,
 nothing #hide
 ````
 
-Each 50-frequency run of `analyze` takes about 14 seconds
-for this geometry of 720 triangles on my machine.
+The first 50-frequency run of `analyze` takes about 9 seconds
+for this geometry of 720 triangles on my machine, and the second
+run takes 4 seconds.  The additional time for the first run is
+due to JIT (just-in-time) compilation.
 More detailed timing information is available in the log file
 (which is omitted for generating this documentation).
 
