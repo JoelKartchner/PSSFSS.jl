@@ -88,7 +88,7 @@
 # the inputs and objective function value are
 # written to the file "optimization_best.log", along with a date/time stamp.  This allows the user
 # to monitor the optimization and to terminate the it prematurely, if desired, without losing the 
-# best result achieved so far. Each objective function evaluation takes about 9 seconds on my machine.
+# best result achieved so far. Each objective function evaluation takes about 4.5 seconds on my machine.
 
 # Here is the code for running the optimization:
 
