@@ -28,6 +28,9 @@ end
 @safetestset "FillZY Tests" begin
     include("FillZY_test.jl")
 end
+@safetestset "FastSweep Tests" begin
+    include("FastSweep_test.jl")
+end
 @safetestset "SymStripFull Tests" begin
     include("full_test.jl")
 end

@@ -56,7 +56,7 @@ for eps in [1, 2, 4]
     push!(resultsstack, results)
 end
 
-# The above loop requires about 85 seconds of execution time on my machine.
+# The above loop requires about 25 seconds of execution time on my machine.
 # Compare PSSFSS results to those digitized from the dissertation figure:
 
 col=[:red,:blue,:green]

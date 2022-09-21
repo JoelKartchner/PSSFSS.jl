@@ -31,8 +31,7 @@ performed in the same analysis script using the immensely powerful Julia program
   meanderline polarizer.
 * Solution of mixed-potential integral equation using Rao-Wilton-Glisson triangle subdomain basis
   functions and multi-threaded method of moments.
-* Fast analysis for frequency sweeps without approximations or interpolation using a wide-band expansion of the 
-  potential Green's functions for a stratified medium with quasi-periodic excitation.
+* Fast analysis for frequency sweeps using an extremely robust rational function interpolation algorithm.
 * Automatic triangulation of sheet geometries to user-specified number of triangles.
 * Exploits redundancies inherent in structured meshes for greater numerical efficiency.
 * Easy extraction of useful engineering performance parameters, including 
@@ -47,10 +46,11 @@ performed in the same analysis script using the immensely powerful Julia program
 ## Limitations
 
 * Only zero-thickness, planar FSS/PSS sheets are currently supported.
-* Frequency sweeps are fast for normal incidence or for the case where unit cell 
-  incremental phase shifts *ψ₁* and *ψ₂* are  constant with frequency (as in a waveguide).
-  Frequency sweeps where the angle of incidence is held constant with frequency are generally 
-  much slower (except for normal incidence).
+* Frequency sweeps are fastest for normal incidence or for the case where unit cell incremental phase shifts ψ₁ and ψ₂ are
+  constant with frequency (as in a waveguide).  This is due to the use of a wide-band expansion of the 
+  potential Green's functions for a stratified medium with quasi-periodic excitation. Frequency sweeps for non-normal
+  angle of incidence are typically slower. However, as of PSSFSS version 1.1, all frequency sweeps are now much faster, 
+  often by more than an order of magnitude, compared to previous versions.  The speedup is due to the use of a fast interpolated sweep by default.
 
 ## Installation
 You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character of the command prompt):

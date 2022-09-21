@@ -110,8 +110,10 @@ results_m = analyze(strata, flist, steering, showprogress=false,
 nothing #hide
 ````
 
-Each 50-frequency run of `analyze` takes about 14 seconds
-for this geometry of 720 triangles on my machine.
+The first 50-frequency run of `analyze` takes about 9 seconds
+for this geometry of 720 triangles on my machine, and the second
+run takes 4 seconds.  The additional time for the first run is
+due to JIT (just-in-time) compilation.
 More detailed timing information is available in the log file
 (which is omitted for generating this documentation).
 
@@ -293,7 +295,7 @@ end
 ````
 
 Looping over the four sheet resistance values, each evaluated at 119 frequencies
-required approximately 20 seconds on my machine.
+required approximately 20 seconds total on my machine.
 
 We plot the results, including those digitized from the paper for comparison:
 
@@ -388,7 +390,7 @@ for eps in [1, 2, 4]
 end
 ````
 
-The above loop requires about 85 seconds of execution time on my machine.
+The above loop requires about 25 seconds of execution time on my machine.
 Compare PSSFSS results to those digitized from the dissertation figure:
 
 ````@example cross_on_dielectric_substrate
@@ -461,7 +463,7 @@ savefig("sqloop1.png"); nothing  # hide
 
 ![](sqloop1.png)
 
-This run takes about 83 seconds on my machine.
+This PSSFSS run of three geometries takes about 20 seconds on my machine.
 
 ````@example square_loop_absorber
 p
@@ -559,7 +561,7 @@ strata = [
     Layer()
     ]
 
-freqs = union(1:0.1:2, 2.02:0.02:3, 3.1:0.05:14)
+freqs = 1:0.02:14)
 steering = (θ = 0, ϕ = 0)
 results = analyze(strata, freqs, steering)
 s11dbvv = extract_result(results, @outputs s11db(v,v))
@@ -575,11 +577,15 @@ plot!(p, dat[:,1], dat[:,2], label="Fabian (CST)")
 
 ![](./assets/fabian2021_comparison.png)
 
+This run of 651 frequencies requires about 40 seconds on my machine.
 Generally good agreement is seen between the PSSFSS predicted reflection amplitude and that
 digitized from the paper. (The latter was obtained from a CST frequency domain analysis,
 according to the paper's authors.) However, there is a small discrepancy in the predicted resonant
 frequencies that increases
 with frequency, likely because both results are less well converged at higher frequencies.
+Also, the reflection amplitudes of the higher-frequency peaks are less than unity for the CST
+results, possibly because the authors may have included the finite conductivity of the metal traces.
+This detail was not reported in the paper.
 
 ```@meta
 EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/band_pass_filter.jl"
@@ -653,7 +659,7 @@ savefig("bpf3.png"); nothing  # hide
 
 ![](bpf3.png)
 
-This analysis takes about 57 seconds for 191 frequencies on my machine.  Note that
+This analysis takes about 18 seconds for 191 frequencies on my machine.  Note that
 rather than including two separate invocations of the `loadedcross` function when
 defining the strata, I referenced the same sheet object in the two different locations.
 This allows PSSFSS to recognize that the triangulations are identical, and to exploit
@@ -668,7 +674,7 @@ so the savings from reusing the same sheet definition can be substantial.
 Very good agreement is obtained versus CST over a large dynamic range.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss_optimization.jl"
+EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss1.jl"
 ```
 
 ## Meanderline-Based CPSS
@@ -687,7 +693,7 @@ reflection, and reflects RHCP (without changing its sense!) almost without atten
 
 Here is the script that analyzes their design:
 
-````@example cpss_optimization
+````@example cpss1
 using PSSFSS
 # Define convenience functions for sheets:
 outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=600, rot=rot)
@@ -726,24 +732,24 @@ nothing #hide
 
 Here are plots of the five meanderline sheets:
 
-````@example cpss_optimization
+````@example cpss1
 using Plots
 plot(outer(rot0), unitcell=true, title="Sheet1")
 ````
 
-````@example cpss_optimization
+````@example cpss1
 plot(inner(rot0-45), unitcell=true, title="Sheet2")
 ````
 
-````@example cpss_optimization
+````@example cpss1
 plot(center(rot0-2*45), unitcell=true, title="Sheet3 (Center)")
 ````
 
-````@example cpss_optimization
+````@example cpss1
 plot(inner(rot0-3*45), unitcell=true, title="Sheet4")
 ````
 
-````@example cpss_optimization
+````@example cpss1
 plot(outer(rot0-4*45), unitcell=true, title="Sheet5")
 ````
 
@@ -824,11 +830,12 @@ modes to 2 because of unequal unit cells.  Also, in the dielectric layer list it
 that these layers are assigned 2 modes each.  The thin layers adjacent to sheets are assigned 0
 modes because these sheets are incorporated into so-called "GSM blocks" or "Gblocks" wherein
 the presence of the thin layer is accounted for using the stratified medium Green's functions.
+Analyzing this multilayer structure at 101 frequencies required about 22 seconds on my machine.
 
 Here is the script that compares PSSFSS predicted performance with very
 high accuracy predictions from CST and COMSOL that were digitized from figures in the paper.
 
-````@example cpss_optimization
+````@example cpss1
 using Plots, DelimitedFiles
 RL11rr = -extract_result(results, @outputs s11db(r,r))
 AR11r = extract_result(results, @outputs ar11db(r))
@@ -851,7 +858,7 @@ savefig("cpssa1.png"); nothing  # hide
 
 ![](cpssa1.png)
 
-````@example cpss_optimization
+````@example cpss1
 p = plot(flist,AR11r,title="RHCP → RHCP Reflected Axial Ratio", label="PSSFSS",
          xlim=(10,20), ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_reflected.csv", ',')
@@ -864,7 +871,7 @@ savefig("cpssa2.png"); nothing  # hide
 
 ![](cpssa2.png)
 
-````@example cpss_optimization
+````@example cpss1
 p = plot(flist,IL21L,title="LHCP → LHCP Insertion Loss", label="PSSFSS",
          xlim=(10,20), ylim=(0,2), ytick=0:0.25:2)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_il.csv", ',')
@@ -877,7 +884,7 @@ savefig("cpssa3.png"); nothing  # hide
 
 ![](cpssa3.png)
 
-````@example cpss_optimization
+````@example cpss1
 p = plot(flist,AR21L,title="LHCP → LHCP Transmitted Axial Ratio", label="PSSFSS",
          xlim=(10,20), ylim=(0,3), ytick=0:0.5:3)
 cst = readdlm("../src/assets/cpss_cst_fine_digitized_ar_transmitted.csv", ',')
@@ -899,11 +906,16 @@ the sheets in the structure varies from sheet to sheet, higher order Floquet mod
 sheets cannot be defined, so we are forced to use only the dominant (0,0) modes which are independent of
 the periodicity.  This limitation is removed in a later example.
 Meanwhile, it is of interest to note that their high-accuracy runs
-required 10 hours for CST and 19 hours for COMSOL on large engineering workstations.  The PSSFSS run
-took about 50 seconds on my desktop machine.
+required 10 hours for CST and 19 hours for COMSOL on large engineering workstations versus about 22
+seconds for PSSFSS on my desktop machine.
 
-### Design Based on PSSFSS Optimization with CMAES
-Here we use PSSFSS in conjunction with the CMAES optimizer from the
+```@meta
+EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss_optimization.jl"
+```
+
+## CPSS Optimization
+Here we design a CPSS (circular polarization selective structure) similar to the previous example
+using PSSFSS in conjunction with the CMAES optimizer from the
 [CMAEvolutionStrategy](https://github.com/jbrea/CMAEvolutionStrategy.jl) package.  I've used CMAES
 in the past with good success on some tough optimization problems.  Here is the code that defines
 the objective function:
@@ -1015,25 +1027,38 @@ opt = minimize(objective, x0, 1.0;
 Note that I set the population size to twice the normal default value.  Based
 on previous experience, using 2 to 3 times the default population size helps the
 optimizer to do better on tough objective functions like the present one.
-I let the optimizer run overnight for about 17 hours, during which time it reduced the objective function
-value from 11.48 dB to -0.12 dB. Since it appeared to have essentially converged, I terminated the run.
+The optimizer finished after about 12 hours, having used up its budget of 9000 objective function
+evaluations. During which time it reduced the objective function
+value from 35.75 dB to -0.14 dB.
 
-Here is a look at the beginning and final portions of the file "optimization_best.log":
+Here are the first and last few lines of the file "optimization_best.log" created during the optimization run:
 ```
-11.47502 at x = [4.3371, 3.6377, 4.6978, 3.0065, 4.2178, 3.7151, 0.3456, 1.4562, 0.3345, 2.1578, 0.3498, 2.0437, 3.3593, 3.5733]  #2022-09-13T14:35:39.320
-8.83597 at x = [4.3381, 4.8048, 3.4625, 4.7309, 3.051, 3.5356, 0.1072, 3.585, 0.1039, 2.2732, 0.3206, 1.1203, 3.8363, 2.2236]  #2022-09-13T14:35:57.550
-6.61653 at x = [3.4206, 3.1036, 3.0215, 3.2064, 3.0201, 3.4882, 0.1034, 1.5586, 0.103, 2.3935, 0.2026, 2.1608, 4.2708, 2.4485]  #2022-09-13T14:36:06.768
-6.17284 at x = [4.6927, 3.9841, 4.6078, 3.8153, 3.2699, 3.0023, 0.3254, 3.0281, 0.3167, 1.0311, 0.3334, 1.3243, 4.9482, 2.5076]  #2022-09-13T14:37:01.227
-4.14975 at x = [4.4617, 4.105, 3.9944, 4.8857, 4.6484, 3.6307, 0.3457, 2.0488, 0.3354, 1.9338, 0.3275, 1.5484, 3.2037, 2.683]  #2022-09-13T14:37:17.647
-2.2661 at x = [4.7303, 4.1483, 3.4428, 3.3463, 3.607, 3.2735, 0.1572, 2.2432, 0.35, 2.2474, 0.2468, 1.376, 2.6822, 2.3709]  #2022-09-13T14:39:58.103
-1.57851 at x = [4.95, 4.1857, 4.0174, 3.3486, 4.9004, 3.678, 0.12, 1.6691, 0.2451, 1.0522, 0.2964, 1.7673, 3.6622, 2.6612]  #2022-09-13T14:41:33.641
+35.74591 at x = [3.0822, 3.851, 3.0639, 3.1239, 3.7074, 3.1435, 0.3477, 2.4549, 0.1816, 2.9164, 0.335, 1.9599, 4.6263, 3.8668]  #2022-09-20T17:58:29.168
+34.98097 at x = [4.1331, 3.9279, 3.3677, 3.4181, 3.0029, 4.5767, 0.2332, 1.3751, 0.1181, 3.2087, 0.3212, 1.7239, 3.7246, 3.7646]  #2022-09-20T17:58:35.329
+21.45525 at x = [3.0427, 3.1525, 4.2728, 4.8541, 4.1922, 3.426, 0.102, 1.1193, 0.35, 2.0465, 0.1142, 1.9158, 3.4733, 4.0413]  #2022-09-20T17:58:45.925
+13.85918 at x = [4.2285, 4.3504, 3.873, 4.3875, 3.7093, 3.8152, 0.118, 2.1575, 0.31, 3.5789, 0.3475, 3.0538, 5.5819, 2.9443]  #2022-09-20T17:59:45.984
+7.71171 at x = [3.3824, 3.7428, 4.0395, 3.0979, 4.4467, 3.6702, 0.1304, 0.8826, 0.2323, 1.8111, 0.1534, 2.5018, 4.4872, 2.8612]  #2022-09-20T17:59:56.203
+7.34573 at x = [4.2534, 4.7094, 4.0162, 3.3676, 3.2118, 4.4815, 0.1251, 2.6005, 0.3312, 1.5494, 0.3153, 1.5827, 2.0242, 4.181]  #2022-09-20T18:00:00.968
+3.07587 at x = [4.9501, 4.6063, 4.9145, 4.6475, 4.3812, 3.1389, 0.1147, 2.2538, 0.3489, 2.1218, 0.1052, 0.8864, 3.6838, 3.4847]  #2022-09-20T18:00:12.513
+3.05626 at x = [4.2391, 4.9991, 4.4545, 4.3303, 3.8393, 3.4906, 0.1207, 1.4096, 0.1421, 2.5086, 0.3435, 1.3212, 3.1339, 2.7907]  #2022-09-20T18:01:51.282
+2.41192 at x = [3.7758, 4.9686, 4.0366, 4.5324, 4.2108, 3.9565, 0.1304, 2.0133, 0.345, 0.753, 0.1746, 1.0458, 2.7633, 2.8851]  #2022-09-20T18:02:04.960
+2.19734 at x = [3.5704, 3.3381, 4.8014, 3.9773, 4.95, 3.5487, 0.1265, 2.3151, 0.2854, 1.1389, 0.108, 1.4173, 3.8662, 2.5112]  #2022-09-20T18:02:59.465
 ...
--0.11824 at x = [3.0642, 4.8748, 4.1393, 3.0066, 3.8585, 3.0047, 0.344, 3.0002, 0.3469, 1.4042, 0.2502, 2.3751, 3.766, 2.3372]  #2022-09-14T06:37:45.783
--0.1184 at x = [3.0416, 4.8731, 4.148, 3.0012, 3.8553, 3.0103, 0.3449, 3.0104, 0.3482, 1.4088, 0.2533, 2.3858, 3.7593, 2.3347]  #2022-09-14T06:38:57.587
--0.11896 at x = [3.0454, 4.881, 4.1304, 3.0001, 3.8389, 3.01, 0.345, 3.0042, 0.348, 1.413, 0.2524, 2.3719, 3.7682, 2.3398]  #2022-09-14T06:50:21.349
--0.11961 at x = [3.069, 4.8773, 4.1652, 3.002, 3.8446, 3.0055, 0.3439, 3.0101, 0.3468, 1.4051, 0.2518, 2.3774, 3.7652, 2.3401]  #2022-09-14T06:59:09.133
--0.11961 at x = [3.0661, 4.8788, 4.155, 3.0014, 3.8314, 3.0069, 0.3441, 2.9933, 0.3476, 1.4168, 0.2516, 2.3689, 3.7816, 2.3322]  #2022-09-14T07:06:13.332
--0.1197 at x = [3.0657, 4.8757, 4.1549, 3.0018, 3.8331, 3.0061, 0.3436, 3.0024, 0.3468, 1.4055, 0.2517, 2.3716, 3.7758, 2.3382]  #2022-09-14T07:15:07.056
+-0.13539 at x = [3.1913, 4.8684, 3.5625, 3.0614, 3.5238, 3.1521, 0.3499, 2.8795, 0.3371, 1.2669, 0.2726, 2.3683, 3.9736, 2.3058]  #2022-09-21T05:32:23.953
+-0.13572 at x = [3.2131, 4.8659, 3.5518, 3.0545, 3.5278, 3.1605, 0.35, 2.868, 0.3365, 1.2666, 0.2749, 2.3801, 3.9877, 2.2922]  #2022-09-21T05:32:34.131
+-0.13595 at x = [3.2096, 4.8665, 3.5728, 3.0472, 3.4952, 3.1517, 0.35, 2.8719, 0.3369, 1.2747, 0.274, 2.3782, 3.983, 2.2889]  #2022-09-21T05:34:20.813
+-0.13598 at x = [3.1954, 4.8681, 3.567, 3.0514, 3.4953, 3.1516, 0.35, 2.8779, 0.3366, 1.2694, 0.273, 2.3704, 3.9765, 2.2992]  #2022-09-21T05:35:16.363
+-0.13599 at x = [3.1931, 4.862, 3.5728, 3.0501, 3.5085, 3.1609, 0.3499, 2.8702, 0.3366, 1.2717, 0.2757, 2.3794, 3.9833, 2.2925]  #2022-09-21T05:35:41.565
+-0.13615 at x = [3.2057, 4.8631, 3.5908, 3.0483, 3.5005, 3.1543, 0.3498, 2.869, 0.3371, 1.2736, 0.2743, 2.3792, 3.9859, 2.2878]  #2022-09-21T05:36:42.633
+-0.13664 at x = [3.177, 4.8596, 3.598, 3.0483, 3.4378, 3.1504, 0.3498, 2.8722, 0.3373, 1.2771, 0.2753, 2.3737, 3.9777, 2.291]  #2022-09-21T05:38:59.901
+-0.13678 at x = [3.1939, 4.8634, 3.5887, 3.0558, 3.4491, 3.1507, 0.35, 2.8725, 0.3381, 1.2715, 0.2744, 2.3721, 3.9811, 2.2932]  #2022-09-21T05:43:47.228
+-0.13692 at x = [3.1669, 4.8616, 3.6063, 3.0555, 3.4097, 3.1535, 0.35, 2.8759, 0.3369, 1.2722, 0.2765, 2.3676, 3.9739, 2.2998]  #2022-09-21T05:56:14.160
+-0.13694 at x = [3.1666, 4.8568, 3.609, 3.053, 3.387, 3.1645, 0.35, 2.8688, 0.3368, 1.2743, 0.2806, 2.3778, 3.981, 2.2902]  #2022-09-21T05:57:50.537
+-0.137 at x = [3.1638, 4.8589, 3.603, 3.0576, 3.3991, 3.1654, 0.35, 2.8714, 0.3365, 1.2687, 0.2796, 2.3729, 3.978, 2.2978]  #2022-09-21T05:58:19.459
+-0.13701 at x = [3.1611, 4.859, 3.6064, 3.0629, 3.3962, 3.1529, 0.35, 2.8733, 0.3375, 1.2688, 0.2766, 2.3659, 3.9759, 2.3007]  #2022-09-21T05:58:34.762
+-0.13712 at x = [3.1711, 4.86, 3.6049, 3.0547, 3.4055, 3.1535, 0.35, 2.8727, 0.3386, 1.2797, 0.2774, 2.3738, 3.9777, 2.2907]  #2022-09-21T06:01:01.374
+-0.13717 at x = [3.1659, 4.8555, 3.6091, 3.0577, 3.3919, 3.1635, 0.35, 2.8698, 0.337, 1.2668, 0.2792, 2.3721, 3.9804, 2.2971]  #2022-09-21T06:10:03.148
+-0.13759 at x = [3.1576, 4.8557, 3.605, 3.0616, 3.3655, 3.1612, 0.3499, 2.8687, 0.3368, 1.2662, 0.2796, 2.3696, 3.9802, 2.2976]  #2022-09-21T06:10:13.351
 ```
 
 The final sheet geometries and performance of this design are shown below:

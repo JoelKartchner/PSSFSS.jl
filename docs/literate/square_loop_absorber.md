@@ -46,7 +46,7 @@ savefig("sqloop1.png"); nothing  # hide
 
 ![](sqloop1.png)
 
-This run takes about 83 seconds on my machine.
+This PSSFSS run of three geometries takes about 20 seconds on my machine.
 
 ````@example square_loop_absorber
 p

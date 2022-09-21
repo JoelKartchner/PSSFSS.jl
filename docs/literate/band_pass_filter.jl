@@ -61,7 +61,7 @@ plot!(p2, dat[:,1], dat[:,4], label="CST", color=:blue)
 #-
 #md # ![](bpf3.png)
 
-# This analysis takes about 57 seconds for 191 frequencies on my machine.  Note that
+# This analysis takes about 18 seconds for 191 frequencies on my machine.  Note that
 # rather than including two separate invocations of the `loadedcross` function when
 # defining the strata, I referenced the same sheet object in the two different locations.
 # This allows PSSFSS to recognize that the triangulations are identical, and to exploit

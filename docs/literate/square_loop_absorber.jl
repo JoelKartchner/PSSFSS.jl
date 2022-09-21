@@ -41,7 +41,7 @@ plot(ps..., layout=(1,3))
 #-
 #md # ![](sqloop1.png)
 #-
-# This run takes about 83 seconds on my machine.
+# This PSSFSS run of three geometries takes about 20 seconds on my machine.
 p
 #md savefig(p,"sqloop2.png"); nothing  # hide
 #-
