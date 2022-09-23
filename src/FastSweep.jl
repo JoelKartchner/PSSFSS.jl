@@ -29,7 +29,7 @@ Rational function interpolation using a Path II Neville lozenge, as defined in t
 
 ## Reference
 Ma, X., Wan, G. and Wan, W., 2012. "A Multi-Dimensional Adaptive Sampling Method for Analysis 
-and Design of Frequnecy Selective Surface with Arbitrary Element". 
+and Design of Frequency Selective Surface with Arbitrary Element". 
 Progress In Electromagnetics Research B, 41, pp.213-230.
 """
 function interp_path2(
@@ -100,7 +100,8 @@ end
 Rational function interpolation of the function `f` evaluated at each element of `x`. 
 
 `f` is a function that returns either a number, vector, or matrix such that `LinearAlgebra.norm(f[x[i]])`
-is defined for any `i ∈ eachindex(x)`.  `max_err_lim_db` is the maximum allowed estimated error in dB
+ and `zero(f[x[i]])` are defined for any `i ∈ eachindex(x)`.  
+`max_err_lim_db` is the maximum allowed estimated error in dB
 for any of the interpolated points, and `nrepeat` is the number of times this error criterion must be 
 consecutively met during the interpolation procedure before it has been considered to be satisfied.  Note
 that the default values are very strict.  The return value is a vector of the same length as `x` containing
@@ -123,14 +124,15 @@ function interpolate_band(
     end
 
     crclear = "\r\u1b[K" # carriage return and clear rest of line
+
     showprogress && println("")
     f1 = f(x[knots[1]])
     showprogress && print(crclear, "1 knot at ", x[knots[1]], " ", xlabel, ", maxerrdB = Inf")
     fknots = Array{typeof(f1), 1}(undef, length(knots))
     fknots[1] = f1
-    for k = 2:length(knots)
+    for k in (1+firstindex(knots)):lastindex(knots)
         fknots[k] = f(x[knots[k]])
-        showprogress && print(crclear, k, " knots. Added ", x[knots[1]], " ", xlabel, ", maxerrdB = Inf")
+        showprogress && print(crclear, k, " knots. Added ", x[knots[k]], " ", xlabel, ", maxerrdB = Inf")
     end
     errs = ones(len)
     errs[knots] .= 0.0
@@ -159,11 +161,12 @@ function interpolate_band(
             maxerrdB = round(20*log10(max_err), digits=2)
             print(crclear, length(knots), " knots. Added ", x[knots[end]], " ", xlabel, ", maxerrdB = ", maxerrdB)
         end
+        iszero(max_err) && break
         max_err ≤ max_err_lim && (repeats += 1)
         max_err > max_err_lim && (repeats = 0)
     end
 
-    showprogress && println("")
+    showprogress && print("\u1b[1F") # Move to start of prev line
     return fvalues
 end # function
 

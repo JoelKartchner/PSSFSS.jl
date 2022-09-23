@@ -870,7 +870,9 @@ end
     flist = 10
 
     @precompile_all_calls begin
-        results = analyze(strata, flist, steering; resultfile=tempname(), logfile=tempname())
+        results = redirect_stdout(devnull) do
+            results = analyze(strata, flist, steering; resultfile=tempname(), logfile=tempname())
+        end
         RL11rr = -extract_result(results, @outputs s11db(r,r))
         AR11r = extract_result(results, @outputs ar11db(r))
         IL21L = -extract_result(results, @outputs s21db(L,L))
