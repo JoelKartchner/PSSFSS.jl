@@ -68,7 +68,7 @@ Base.isfile(f::Base.DevNull) = false
 Base.open(f::Base.DevNull, ::AbstractString) = f
 
 """
-    analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", 
+    result = analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", 
     showprogress::Bool=true, fastsweep=true)
 
 Analyze a full FSS/PSS structure over a range of frequencies and steering angles/phasings.  
@@ -117,6 +117,11 @@ Generate output files as specified in `outlist`.
 
 - `fastsweep`: If true (default) use an interpolated fast sweep for each frequency loop.
 
+## Return Value
+
+- `result`: A vector of `Result` objects, one for each scan angle/frequency combination. This 
+vector can be passed as an input to the [`extract_result`](@refs) function to obtain any desired 
+performance parameters that are supported by the [`@outputs`](@refs) macro.
 """
 function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log",
     resultfile="pssfss.res", showprogress::Bool=true, fastsweep::Bool=true)
@@ -207,6 +212,12 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
 - `tstart`: Nanoseconds since epoch at start of program execution.
 
 - `fastsweep`: If true (default), use an interpolated fast sweep for each frequency loop.
+
+## Return Value
+
+- `result`: A vector of `Result` objects, one for each scan angle/frequency combination. This 
+vector can be passed as an input to the [`extract_result`](@refs) function to obtain any desired 
+performance parameters that are supported by the [`@outputs`](@refs) macro.
 """
 function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     outlist=[], resultfile="pssfss.res", showprogress::Bool=true, tstart=time(), fastsweep=true)
@@ -311,6 +322,7 @@ function _analyze(layers, sheets, junc, freqs, stkeys, stvalues;
     date, clock = split(string(now()), 'T')
     telapsed = round(time() - tstart, digits=1)
     @logfile "\n\n PSSFSS analysis exiting on $(date) at $(clock) ($(telapsed) seconds elapsed time)\n\n"
+    showprogress && println("")
     return results
 end # function
 
