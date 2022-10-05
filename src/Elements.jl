@@ -904,7 +904,7 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
     end
     for i in 1:nring-1
         b[i] ≥ a[i+1] && throw(ArgumentError("b[$i] ≥ a[$(i+1)]"))
-        a[i+i] - a[i] ≤ 0 && throw(ArgumentError("Elements of a must be strictly increasing"))
+        a[i+1] - a[i] ≤ 0 && throw(ArgumentError("Elements of a must be strictly increasing"))
         b[i+1] - b[i] ≤ 0 && i < nring - 1 &&
             throw(ArgumentError("All but final element of b must be strictly increasing"))
     end
