@@ -92,7 +92,7 @@ of inputs results in a lower objective function value, `bestf` is updated with t
 the inputs and objective function value are
 written to the file "optimization_best.log", along with a date/time stamp.  This allows the user
 to monitor the optimization and to terminate the it prematurely, if desired, without losing the
-best result achieved so far. Each objective function evaluation takes about 9 seconds on my machine.
+best result achieved so far. Each objective function evaluation takes about 4.5 seconds on my machine.
 
 Here is the code for running the optimization:
 
@@ -117,7 +117,7 @@ Note that I set the population size to twice the normal default value.  Based
 on previous experience, using 2 to 3 times the default population size helps the
 optimizer to do better on tough objective functions like the present one.
 The optimizer finished after about 12 hours, having used up its budget of 9000 objective function
-evaluations. During which time it reduced the objective function
+evaluations. During this time it reduced the objective function
 value from 35.75 dB to -0.14 dB.
 
 Here are the first and last few lines of the file "optimization_best.log" created during the optimization run:
