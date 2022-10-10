@@ -47,7 +47,7 @@ RecipesBase = "1.1"
 Reexport = "^1.0.0"
 SnoopPrecompile = "1.0"
 StaticArrays = "1.1"
-Triangulate = "1.0, 2"
+Triangulate = "2.2"
 Unitful = "1.7"
 julia = "1"
 
