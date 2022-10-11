@@ -3,7 +3,7 @@
 
 | **Documentation**   |  **Tests**     | **CodeCov**  |
 |:--------:|:---------------:|:-------:|
-|[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://simonp0420.github.io/PSSFSS.jl/stable)  [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://simonp0420.github.io/PSSFSS.jl/dev)| [![CI](https://github.com/simonp0420/PSSFSS.jl/workflows/CI/badge.svg?branch=main)](https://github.com/simonp0420/PSSFSS.jl/actions) | [![codecov.io](https://codecov.io/github/simonp0420/PSSFSS.jl/coverage.svg?branch=main)](https://codecov.io/github/simonp0420/PSSFSS.jl?branch=main) |
+|[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://simonp0420.github.io/PSSFSS.jl/stable/manual)  [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://simonp0420.github.io/PSSFSS.jl/dev/manual)| [![CI](https://github.com/simonp0420/PSSFSS.jl/workflows/CI/badge.svg?branch=main)](https://github.com/simonp0420/PSSFSS.jl/actions) | [![codecov.io](https://codecov.io/github/simonp0420/PSSFSS.jl/coverage.svg?branch=main)](https://codecov.io/github/simonp0420/PSSFSS.jl?branch=main) |
 
 `PSSFSS` is a Julia package for analyzing 
 [polarization selective surfaces](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=polarization+selective+surface&btnG=) (PSSs), [frequency selective surfaces](https://en.wikipedia.org/wiki/Frequency_selective_surface) (FSSs), 
@@ -65,7 +65,7 @@ or with `using Pkg; Pkg.add("PSSFSS")`.
 
 ## Documentation
 - The theory documentation is [here](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/TheoryDocs/theorydoc.pdf)
-- The user manual is [here](https://simonp0420.github.io/PSSFSS.jl/stable)
+- The user manual is [here](https://simonp0420.github.io/PSSFSS.jl/stable/manual)
 - If you prefer interactive documentation using Jupyter notebooks, the user documentation in the form of notebooks is
   [here](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/notebooks)
 

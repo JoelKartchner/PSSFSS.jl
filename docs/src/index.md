@@ -64,7 +64,7 @@ or with `using Pkg; Pkg.add("PSSFSS")`.
 
 ## Documentation
 - The theory documentation is [here](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/TheoryDocs/theorydoc.pdf)
-- The user manual is [here](https://simonp0420.github.io/PSSFSS.jl/stable)
+- The user manual is [here](https://simonp0420.github.io/PSSFSS.jl/stable/manual)
 - If you prefer to explore the documentation more interactively, Jupyter notebooks containing documentation can be found
   [here](https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/notebooks) 
 
