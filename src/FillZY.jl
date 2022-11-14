@@ -227,12 +227,12 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
                     zcontrib[savecounter] += match_flag * (jω * dotprod - Φ_i)
                     #zmat[mbf,sbf] += match_flag * (jω*dotprod - Φ_i)
                     # Add surface loading, if applicable:
-                    if self_tri && metal.fr[ifm] ≠ 0
+                    if self_tri && metal.fz[ifm] ≠ 0
                         if self_edge
-                            Zload = metal.fr[ifs] / area48 *
-                                    (3 * (ls[next[isl]]^2 + ls[prev[isl]]^2) - ls[isl]^2) * one(ComplexF64)  # Eq. (7-34)
+                            Zload = metal.fz[ifs] / area48 *
+                                    (3 * (ls[next[isl]]^2 + ls[prev[isl]]^2) - ls[isl]^2)   # Eq. (7-34)
                         else
-                            Zload = metal.fr[ifs] / area48 * source_flag * match_flag *
+                            Zload = metal.fz[ifs] / area48 * source_flag * match_flag *
                                     (ls[isl]^2 + ls[iml]^2 - 3 * ls[third[isl, iml]]^2) # Eq. (7-35)
                         end
                         zcontrib[savecounter] += Zload

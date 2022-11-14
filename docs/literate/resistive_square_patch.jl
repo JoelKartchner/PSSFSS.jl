@@ -12,7 +12,7 @@
 # We start by defining a function that creates a patch of the desired sheet resistance:
 
 using Plots, PSSFSS
-patch(R) = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm, Rsheet=R)
+patch(Z) = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm, Zsheet=Z)
 plot(patch(0), unitcell=true)
 #md savefig("resistive1.png"); nothing  # hide
 #-

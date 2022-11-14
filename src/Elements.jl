@@ -108,9 +108,16 @@ end
 Check the validity of the optional keyword arguments passed to one of the 
 user-callable, specific sheet constructor functions.  If any of the arguments
 were not passed, assign appropriate default values. 
+
+Also, replace obsolete `:Rsheet` with `:Zsheet`
 """
 function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
-    defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, :Rsheet => 0.0, :save => "", :fufp => false)
+    if haskey(kwargs, :Rsheet)
+        kwargs[:Zsheet] = kwargs[:Rsheet]
+        delete!(kwargs, :Rsheet)
+    end
+
+    defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, :Zsheet => 0.0, :save => "", :fufp => false)
     validkws = keys(defaults)
 
     badkws = setdiff(keys(kwargs), validkws)
@@ -125,15 +132,12 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
     val = kwargs[key]
     val ≠ 'J' && val ≠ 'M' && error("Illegal value $val for $key")
 
-    for key in [:dx, :dy, :rot, :Rsheet]
-        val = kwargs[key]
-        val isa Real || error("$key must be a Real")
-        key == :Rsheet && val < 0 && error("$key must be nonnegative")
+    for key in [:dx, :dy, :rot]
+        kwargs[key] isa Real || error("$key must be a Real")
     end
+    real(kwargs[:Zsheet]) < 0 && error("real(Zsheet) must be nonnegative")
 
-    key = :save
-    val = kwargs[key]
-    val isa AbstractString || error("$key must be an AbstractString")
+    kwargs[:save] isa AbstractString || error("save value must be an AbstractString")
 
     return
 end
@@ -147,7 +151,7 @@ const optional_kwargs = """
                                    unit cell and its contents.  Length units are as specified in the `units` keyword. 
                         - `rot::Real=0.0`:  Counterclockwise rotation angle in degrees applied to the entire unit cell and its contents. 
                                    This rotation is applied prior to any offsets specified in `dx` and `dy`.
-                        - `Rsheet::Real=0.0`:  The surface resistance of the FSS conductor in units of Ohm per square.  
+                        - `Zsheet::Complex=0.0`:  The surface impedance of the FSS conductor in units of Ohm per square.  
                                     This is only meaningful for a sheet of class `'J'`.
                         - `fufp::Bool`:  This keyword is not usually required. 
                                         `fufp` is mnemonic for "Find Unique Face Pairs".  If true, the code will search the 
@@ -251,8 +255,8 @@ function diagstrip(; P::Real, w::Real, orient::Real, Nl::Int, Nw::Int, units::PS
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
     facecount = size(sheet.fv, 2)
-    Rsheet = float(kwargs[:Rsheet])
-    sheet.fr = fill(Rsheet, facecount)
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz = fill(Zsheet, facecount)
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -465,8 +469,8 @@ function jerusalemcross(; P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real
         holes=holes, area=areatri, ntri=ntri)
 
     # Set the face sheet resistance values.
-    Rsheet = kwargs[:Rsheet]
-    sheet.fr .= Rsheet  # Broadcast value to entire array.
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz .= Zsheet  # Broadcast value to entire array.
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -630,8 +634,8 @@ function loadedcross(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Rea
         holes=holes, area=areatri, ntri=ntri)
 
     # Set the face sheet resistance values.
-    Rsheet = kwargs[:Rsheet]
-    sheet.fr .= Rsheet  # Broadcast value to entire array.
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz .= Zsheet  # Broadcast value to entire array.
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -805,9 +809,9 @@ function meander(; a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
         sheet.ρ = [SV2(xform(ρ[1], ρ[2])) for ρ in sheet.ρ]
     end
     # Set the face sheet resistance values.
-    sheet.fr = zeros(size(sheet.fv, 2))
-    Rsheet = kwargs[:Rsheet]
-    sheet.fr .= Rsheet  # Broadcast value to entire array.
+    sheet.fz = zeros(size(sheet.fv, 2))
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz .= Zsheet  # Broadcast value to entire array.
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1052,8 +1056,8 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
         holes=holes, area=areatri, ntri=ntri)
 
     # Set the face sheet resistance values.
-    Rsheet = kwargs[:Rsheet]
-    sheet.fr .= Rsheet  # Broadcast value to entire array.
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz .= Zsheet  # Broadcast value to entire array.
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1119,8 +1123,8 @@ function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, u
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
     facecount = size(sheet.fv, 2)
-    Rsheet = float(kwargs[:Rsheet])
-    sheet.fr = fill(Rsheet, facecount)
+    Zsheet = float(kwargs[:Zsheet])
+    sheet.fz = fill(Zsheet, facecount)
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1364,8 +1368,8 @@ function splitring(;
         holes=holes, area=areatri, ntri=ntri)
 
     # Set the face sheet resistance values.
-    Rsheet = kwargs[:Rsheet]
-    sheet.fr .= Rsheet  # Broadcast value to entire array.
+    Zsheet = kwargs[:Zsheet]
+    sheet.fz .= Zsheet  # Broadcast value to entire array.
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
