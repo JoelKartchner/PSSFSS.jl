@@ -728,16 +728,20 @@ end
     unique_indices(v::Vector)
 
 Return a vector `ui` of the same length as `v`. 
-`ui[k]` contains the smallest `i` such that 'i ≤ k` and `ui[i] === ui[k]`
+`ui[k]` contains the index into a list of unique, nonidentical entries in `v`, where two entries
+are considered identical using `===`.
 """
 function unique_indices(v::Vector)
     n = length(v)
-    ui = collect(1:n)
-    for io in 1:n-1
-        ui[io] ≠ io && continue
+    nexti = 0
+    ui = zeros(Int, n)
+    for io in 1:n
+        iszero(ui[io]) || continue
+        nexti += 1
+        ui[io] = nexti
         for it in io+1:n
-            ui[it] ≠ it && continue
-            v[io] === v[it] && (ui[it] = io)
+            iszero(ui[it]) || continue
+            v[io] === v[it] && (ui[it] = nexti)
         end
     end
     return ui
@@ -807,15 +811,7 @@ function get_gbldup(gbls::Vector{Gblock}, layers::Vector{Layer}, sheets::Vector{
 end # function
 
 
-function report_layers_sheets(layers, sheets, junc, rwgdat, usi_in)
-    origs = unique(usi_in)
-    usi = similar(usi_in)
-    for (k, orig) in enumerate(origs)
-        for (j, u) in enumerate(usi_in)
-            u == orig && (usi[j] = k)
-        end
-    end
-
+function report_layers_sheets(layers, sheets, junc, rwgdat, usi)
     @logfile "Dielectric layer information... \n"
     @logfile " Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y"
     @logfile " ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------"
