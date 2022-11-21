@@ -92,5 +92,21 @@ end
     end
 end
 
+@testset "CapacitiveSheet" begin
+    Px = Py = Lx = Ly = 0.05
+    Nx = Ny = 1
+    η₀ = 376.730313668
+    Zsheet = complex(0.0, -η₀)
+    Ynorm = 1 + η₀/Zsheet
+    s11_expected = (1 - Ynorm) / (1 + Ynorm)
+    FGHz = 11.80285
+    steering = (θ=0, ϕ=0)
+    sheet = rectstrip(; Px, Py, Lx, Ly, Nx, Ny, units=inch, Zsheet)
+    results = analyze([Layer(), sheet, Layer()], FGHz, steering, logfile=devnull,
+        resultfile=devnull, showprogress=false)
+    s11 = extract_result(results, @outputs s11(te,te))[1]
+    @test s11 ≈ s11_expected atol=1e4
+end
+
 global_logger(oldlogger)
 nothing

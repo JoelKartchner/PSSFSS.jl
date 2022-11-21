@@ -21,5 +21,21 @@ sh1 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch)
     @test sh1.s₂ == [0, 1]
     @test sh1.β₁ ≈ 2π .* [1, 0]
     @test sh1.β₂ ≈ 2π .* [0, 1]
+    @test all(iszero, sh1.fz)
 end
 
+Z = 0.2 + 0.3im
+sh2 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Zsheet=Z)
+@testset "Zsheet" begin
+    @test all(isequal(Z), sh2.fz)
+end
+
+R = 0.25
+sh3 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Rsheet=R)
+@testset "Rsheet" begin
+    @test all(isequal(R), sh3.fz)
+end
+
+@testset "badZsheet" begin
+    @test_throws ErrorException rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Zsheet=-0.2+0.2im)
+end

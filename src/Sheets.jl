@@ -31,7 +31,7 @@ mutable struct RWGSheet <: Sheet
     e2::Vector{Int} # Edge connect. list. e2[i] is the terminal node of edge i
     fv::Array{Int,2} #  Face/vertex list. fv[:,i] lists vertices of face i
     fe::Array{Int,2} #  Face/edge list. fe[:,i] lists edges of face i
-    fr::Vector{Float64} # Face resistance list. fr[i] is the sheet resistance of face i (Ω/□)
+    fz::Vector{ComplexF64} # Face surface impedance list. fz[i] is the sheet surface impedance of face i (Ω/□)
     # The following fields are storage for face/face integrals:
     J::Vector{ComplexF64}
     J_ξ::Vector{ComplexF64}
