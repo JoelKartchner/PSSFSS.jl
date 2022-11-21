@@ -31,6 +31,6 @@ end
 @safetestset "FastSweep Tests" begin
     include("FastSweep_test.jl")
 end
-@safetestset "SymStripFull Tests" begin
+@safetestset "Full Tests" begin
     include("full_test.jl")
 end

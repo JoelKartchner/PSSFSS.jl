@@ -35,3 +35,7 @@ sh3 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Rsheet=R)
 @testset "Rsheet" begin
     @test all(isequal(R), sh3.fz)
 end
+
+@testset "badZsheet" begin
+    @test_throws ErrorException rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Zsheet=-0.2+0.2im)
+end

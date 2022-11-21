@@ -67,7 +67,7 @@ function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
         end
     end
     return msdata
-end    
+end
 
 """
     _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.MultiPolygon, ρ₀)
@@ -95,7 +95,7 @@ Compute the reciprocal lattice vectors from the direct lattice vectors.
 Inputs and outputs are static 2-vectors from StaticArrays.
 """
 function s₁s₂2β₁β₂(s₁, s₂)
-    fact = 2π / abs(s₁[1]*s₂[2] - s₁[2]*s₂[1])
+    fact = 2π / abs(s₁[1] * s₂[2] - s₁[2] * s₂[1])
     β₁ = -fact * zhatcross(s₂)
     β₂ = fact * zhatcross(s₁)
     return β₁, β₂
@@ -128,14 +128,16 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
         haskey(kwargs, key) || (kwargs[key] = val)
     end
 
-    key = :class
-    val = kwargs[key]
-    val ≠ 'J' && val ≠ 'M' && error("Illegal value $val for $key")
+    class = kwargs[:class]
+    class ≠ 'J' && class ≠ 'M' && error("Illegal value $class for class")
 
     for key in [:dx, :dy, :rot]
         kwargs[key] isa Real || error("$key must be a Real")
     end
-    real(kwargs[:Zsheet]) < 0 && error("real(Zsheet) must be nonnegative")
+
+    Zsheet = kwargs[:Zsheet]
+    class ≠ 'J' && !iszero(Zsheet) && error("Nonzero surface impedance only allowed for J-class sheet")
+    real(Zsheet) < 0 && error("real(Zsheet) must be nonnegative")
 
     kwargs[:save] isa AbstractString || error("save value must be an AbstractString")
 
@@ -1152,12 +1154,12 @@ Create a LibGEOS regular polygon.
 * `center`: A 2-vector containing the coordinates of the polygon center.
 * `orient`: Orientation angle of the first vertex wrt the center location.
 """
-function _makeregpoly(radius, sides, center = [0.,0.], orient = 0.0)
+function _makeregpoly(radius, sides, center=[0.0, 0.0], orient=0.0)
     io = IOBuffer()
     write(io, "POLYGON((")
     for i in 0:sides
-        s, c = sincosd(orient + i * 360/sides)
-        print(io, center[1] + radius*c, " ", center[2] + radius*s)
+        s, c = sincosd(orient + i * 360 / sides)
+        print(io, center[1] + radius * c, " ", center[2] + radius * s)
         i < sides && write(io, ",")
     end
     write(io, "))")
@@ -1177,8 +1179,8 @@ Create a LibGEOS annular regular polygon.
 * `center`: A 2-vector containing the coordinates of the annulus center.
 * `orient`: Orientation angle of the first vertex wrt the center location.
 """
-function _makering(a, b, sides, center = SV2[0.,0.], orient = 0.0)
-    return LibGEOS.difference(_makeregpoly(b,sides,center,orient), _makeregpoly(a,sides,center,orient))
+function _makering(a, b, sides, center=SV2[0.0, 0.0], orient=0.0)
+    return LibGEOS.difference(_makeregpoly(b, sides, center, orient), _makeregpoly(a, sides, center, orient))
 end
 
 
@@ -1191,9 +1193,9 @@ Angles are in degrees.
 function _makewedge(center, radius, centerangle, wedgeangle; sides=20)
     io = IOBuffer()
     print(io, "POLYGON((", center[1], " ", center[2], ",")
-    for θ in range(start=centerangle-wedgeangle/2, stop=centerangle+wedgeangle/2, length=sides)
+    for θ in range(start=centerangle - wedgeangle / 2, stop=centerangle + wedgeangle / 2, length=sides)
         s, c = sincosd(θ)
-        print(io, center[1] + radius*c, " ", center[2] + radius*s, ",")
+        print(io, center[1] + radius * c, " ", center[2] + radius * s, ",")
     end
     print(io, center[1], " ", center[2], "))")
     s = String(take!(io))
@@ -1208,9 +1210,9 @@ Make a LibGeos rectangle centered on angle `centerangle` of specified width and 
 Angles are in degrees.
 """
 function _makerect(center, len, centerangle, width)
-    x1, y1 = 0.0, -width/2
+    x1, y1 = 0.0, -width / 2
     x2, y3 = len, y1 + width
-    prevertices = SV2[[x1,y1], [x2,y1], [x2,y3], [x1,y3], [x1,y1]]
+    prevertices = SV2[[x1, y1], [x2, y1], [x2, y3], [x1, y3], [x1, y1]]
     s, c = sincosd(centerangle)
     rotmat = SA[c -s; s c]
     io = IOBuffer()
@@ -1284,9 +1286,9 @@ function splitring(;
     sides::Int,
     ntri::Int,
     units::PSSFSSLength,
-    gapcenter::Union{Real, Vector, Nothing}=nothing,
-    gapwidth::Union{Real, Vector, Nothing}=nothing,
-    gapangle::Union{Real, Vector, Nothing}=nothing,
+    gapcenter::Union{Real,Vector,Nothing}=nothing,
+    gapwidth::Union{Real,Vector,Nothing}=nothing,
+    gapangle::Union{Real,Vector,Nothing}=nothing,
     orient::Real=0.0,
     kwarg...)::RWGSheet
 
@@ -1295,7 +1297,7 @@ function splitring(;
     check_optional_kw_arguments!(kwargs)
     nring = length(a)
     isngc, isngw, isnga = isnothing.((gapcenter, gapwidth, gapangle))
-    if !isngc 
+    if !isngc
         if (isngw && isnga) || (!isngw && !isnga)
             throw(ArgumentError("Exactly one of gapwidth or gapangle must be specified"))
         end
@@ -1315,17 +1317,17 @@ function splitring(;
         gaps = false
     end
 
-    all(x -> length(x) == nring, (b, gcenter, gaorw)) || 
+    all(x -> length(x) == nring, (b, gcenter, gaorw)) ||
         throw(ArgumentError("Incompatible lengths for a, b, gapcenter, gapwidth, or gapangle"))
-    for (gc,gaw) in zip(gcenter, gaorw)
-        length(gc) == length(gaw) || 
+    for (gc, gaw) in zip(gcenter, gaorw)
+        length(gc) == length(gaw) ||
             throw(ArgumentError("Incompatible gapcenter and gap width/angle"))
     end
     sides ≥ 3 || throw(ArgumentError("Number of sides must be 3 or more"))
     @testpos(ntri)
     @testpos(a)
     @testpos(b)
-    @testpos(b-a)
+    @testpos(b - a)
     (length(s1) == length(s2) == 2) || throw(ArgumentError("s1 and s2 must have length 2"))
 
     for i in 1:nring
@@ -1345,9 +1347,9 @@ function splitring(;
         for (gapcen, gapspec) in zip(gcenter[iring], gaorw[iring])
             gapspec == 0 && continue
             if usewedge
-                poly = _makewedge(ρ₀, 1.2*b[iring], gapcen, gapspec)
+                poly = _makewedge(ρ₀, 1.2 * b[iring], gapcen, gapspec)
             else
-                poly = _makerect(ρ₀, 1.2*b[iring], gapcen, gapspec)
+                poly = _makerect(ρ₀, 1.2 * b[iring], gapcen, gapspec)
             end
             ring = LibGEOS.difference(ring, poly)
         end
