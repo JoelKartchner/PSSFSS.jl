@@ -3,8 +3,9 @@ export fillz, filly
 
 
 using Statistics: mean
-using StaticArrays: SMatrix, MVector, @SVector
+using StaticArrays: SMatrix, MVector, @SVector, SVector
 using OffsetArrays
+using MetalSurfaceImpedance: Zsurface
 using Unitful # for ustrip and u"m"
 using LinearAlgebra: norm, ⋅
 using ..Constants: μ₀, ϵ₀, c₀, twopi, fourpi, tol, tdigits
@@ -69,12 +70,7 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     (Σm1_func, Σm2_func) = electric_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers, s, β₁, β₂, β₀₀, 1e-7)
 
     # floquet_factor is indexed into using values in rwgdat.eci:
-    floquet_factor = OffsetArray(zeros(ComplexF64, 5), 0:4)
-    floquet_factor[0] = 1.0       # Edges not on unit cell boundary
-    floquet_factor[1] = 1.0       # Edges at ξ=0 boundary.
-    floquet_factor[2] = cis(-ψ₁)  # Edges at ξ=1 boundary.
-    floquet_factor[3] = 1.0       # Edges at η=0 boundary.
-    floquet_factor[4] = cis(-ψ₂)  # Edges at η=1 boundary.
+    floquet_factor = OffsetArray(SVector(1.0, 1.0, cis(-ψ₁), 1.0, cis(-ψ₂)), 0:4)
 
     # Set up aliases into data structures for more convenient reference:
     bfe = rwgdat.bfe
@@ -96,6 +92,13 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
     A_factor = μ₀ / fourpi * μ̃
     Φ_factor = im / (ϵ̄ * twopi * ω * ϵ₀)
 
+    # Update Zs if it depends on conductivity
+    Zs = metal.Zs
+    if metal.σ > 0
+        fhz = k0 * c₀ / twopi
+        Zs = Zsurface(fhz, metal.σ, metal.Rq, metal.disttype)
+        metal.Zs = Zs
+    end
 
     # Check whether or not the frequency-independent face/face integrals are up to date:
     if ψ₁ ≠ metal.ψ₁ || ψ₂ ≠ metal.ψ₂ || metal.u == 0 ||
@@ -227,12 +230,12 @@ function fillz(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, metal::RWG
                     zcontrib[savecounter] += match_flag * (jω * dotprod - Φ_i)
                     #zmat[mbf,sbf] += match_flag * (jω*dotprod - Φ_i)
                     # Add surface loading, if applicable:
-                    if self_tri && metal.fz[ifm] ≠ 0
+                    if self_tri && !iszero(Zs)
                         if self_edge
-                            Zload = metal.fz[ifs] / area48 *
+                            Zload = Zs / area48 *
                                     (3 * (ls[next[isl]]^2 + ls[prev[isl]]^2) - ls[isl]^2)   # Eq. (7-34)
                         else
-                            Zload = metal.fz[ifs] / area48 * source_flag * match_flag *
+                            Zload = Zs / area48 * source_flag * match_flag *
                                     (ls[isl]^2 + ls[iml]^2 - 3 * ls[third[isl, iml]]^2) # Eq. (7-35)
                         end
                         zcontrib[savecounter] += Zload
@@ -302,12 +305,7 @@ function filly(k0, u, layers::AbstractVector{Layer}, s, ψ₁, ψ₂, apert, rwg
     (Σm1_func, Σm2_func) = magnetic_modal_sum_funcs(k0, u, ψ₁, ψ₂, layers, s, β₁, β₂, β₀₀, 1e-7)
 
     # floquet_factor is indexed into using values in rwgdat.eci:
-    floquet_factor = OffsetArray(zeros(ComplexF64, 5), 0:4)
-    floquet_factor[0] = 1.0       # Edges not on unit cell boundary
-    floquet_factor[1] = 1.0       # Edges at ξ=0 boundary.
-    floquet_factor[2] = cis(-ψ₁)  # Edges at ξ=1 boundary.
-    floquet_factor[3] = 1.0       # Edges at η=0 boundary.
-    floquet_factor[4] = cis(-ψ₂)  # Edges at η=1 boundary.
+    floquet_factor = OffsetArray(SVector(1.0, 1.0, cis(-ψ₁), 1.0, cis(-ψ₂)), 0:4)
 
     # Set up aliases into data structures for more convenient reference:
     bfe = rwgdat.bfe

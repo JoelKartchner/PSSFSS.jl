@@ -106,7 +106,6 @@ function meshsub(; points::Matrix{<:Real}, seglist::Matrix{<:Integer},
             !found && error("triangle edge not found connecting vertices $m1 and $m2 for face $tri")
         end
     end
-    sh.fz = zeros(ComplexF64, size(sh.fv, 2)) # Face resistance vector
     return sh
 end # function
 

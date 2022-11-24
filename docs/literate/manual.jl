@@ -210,6 +210,22 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # patch, capacitive, etc. elements, while `'M'`-class is used for slot, aperture, inductive, etc. elements.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
+# ### Metal Properties
+# By default, any `RWGSheet` represents a zero-thickness, perfectly conducting sheet.  But for sheets of class `J`,
+# one can specify the frequency-independent sheet surface impedance in units of [Ω] using the optional
+# keyword argument `Zsheet`.  Alternatively, one can specify the metal's bulk, DC conductivity and
+# optionally, the RMS surface roughness and associated probability distribution. Conductivity is specified by 
+# either of the keywords `sigma` or `σ` in units of [S/m], while RMS surface roughness is specified by the keyword 
+#`Rq` in units of [m]. The RMS surface roughness defaults to 0, denoting a smooth surface.  The probability 
+# distribution function for roughness is specified by the keyword `disttype` which can be either `:normal` (the 
+# default value, suitable for the so-called "oxide side" of a planar conductor, or `:rayleigh` (suitable for the 
+# "foil side" of the conductor, i.e. the side bonded to the dielectric substrate). Together, the conductivity, 
+# surface conductance, and distribution type are used by PSSFSS internally to compute a frequency-dependent surface 
+# impedance, using the so-called Gradient Model, as described in D. N. Grujić, “Simple and Accurate Approximation of 
+# Rough Conductor Surface Impedance,” IEEE Trans. Microwave Theory Tech., vol. 70, no. 4, pp. 2053-2059, April 2022. 
+# Obviously, only one of `Zsheet` and `sigma` may be specified as keyword arguments for a given `RWGSheet`.
+
+#nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ### Plotting Sheets
 # We can visualize the triangulation using the `plot` function of the [`Plots`](https://docs.juliaplots.org) package.
 

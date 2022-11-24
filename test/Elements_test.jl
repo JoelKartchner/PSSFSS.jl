@@ -21,19 +21,19 @@ sh1 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch)
     @test sh1.s₂ == [0, 1]
     @test sh1.β₁ ≈ 2π .* [1, 0]
     @test sh1.β₂ ≈ 2π .* [0, 1]
-    @test all(iszero, sh1.fz)
+    @test sh1.Zs == 0
 end
 
 Z = 0.2 + 0.3im
 sh2 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Zsheet=Z)
 @testset "Zsheet" begin
-    @test all(isequal(Z), sh2.fz)
+    @test Z == sh2.Zs
 end
 
 R = 0.25
 sh3 = rectstrip(Lx=1, Ly=1.0, Nx=1, Ny=1, Px=1, Py=1, units=inch, Rsheet=R)
 @testset "Rsheet" begin
-    @test all(isequal(R), sh3.fz)
+    @test R == sh3.Zs
 end
 
 @testset "badZsheet" begin

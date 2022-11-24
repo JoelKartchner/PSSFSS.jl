@@ -4,6 +4,7 @@ using PSSFSS.GSMs: GSM
 using LinearAlgebra: norm
 using Test
 using Logging: Error, ConsoleLogger, default_metafmt, global_logger
+using MetalSurfaceImpedance: Zsurface
 
 
 testlogger = ConsoleLogger(stderr, Error,
@@ -94,7 +95,7 @@ end
 
 @testset "CapacitiveSheet" begin
     Px = Py = Lx = Ly = 0.05
-    Nx = Ny = 1
+    Nx = Ny = 5
     η₀ = 376.730313668
     Zsheet = complex(0.0, -η₀)
     Ynorm = 1 + η₀/Zsheet
@@ -105,7 +106,26 @@ end
     results = analyze([Layer(), sheet, Layer()], FGHz, steering, logfile=devnull,
         resultfile=devnull, showprogress=false)
     s11 = extract_result(results, @outputs s11(te,te))[1]
-    @test s11 ≈ s11_expected atol=1e4
+    @test s11 ≈ s11_expected atol=1e-5
+end
+
+@testset "RoughSheet" begin
+    Px = Py = Lx = Ly = 0.05
+    Nx = Ny = 5
+    η₀ = 376.730313668
+    σ = 5e6
+    Rq = 2e-6
+    disttype = :rayleigh
+    FGHz = 11.80285
+    Zsheet = Zsurface(FGHz*1e9, σ, Rq, disttype)
+    Ynorm = 1 + η₀/Zsheet
+    s11_expected = (1 - Ynorm) / (1 + Ynorm)
+    steering = (θ=0, ϕ=0)
+    sheet = rectstrip(; Px, Py, Lx, Ly, Nx, Ny, units=inch, σ, Rq, disttype)
+    results = analyze([Layer(), sheet, Layer()], FGHz, steering, logfile=devnull,
+        resultfile=devnull, showprogress=false)
+    s11 = extract_result(results, @outputs s11(te,te))[1]
+    @test s11 ≈ s11_expected atol=1e-5
 end
 
 global_logger(oldlogger)

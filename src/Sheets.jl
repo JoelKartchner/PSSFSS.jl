@@ -31,7 +31,6 @@ mutable struct RWGSheet <: Sheet
     e2::Vector{Int} # Edge connect. list. e2[i] is the terminal node of edge i
     fv::Array{Int,2} #  Face/vertex list. fv[:,i] lists vertices of face i
     fe::Array{Int,2} #  Face/edge list. fe[:,i] lists edges of face i
-    fz::Vector{ComplexF64} # Face surface impedance list. fz[i] is the sheet surface impedance of face i (Ω/□)
     # The following fields are storage for face/face integrals:
     J::Vector{ComplexF64}
     J_ξ::Vector{ComplexF64}
@@ -55,6 +54,10 @@ mutable struct RWGSheet <: Sheet
     # The following flag tells rwg_setup whether (.true.) or not (.false.)
     # to Find Unique Face Pairs.
     fufp::Bool
+    σ::Float64 # Bulk, DC conductivity for J-class surfaces [S/m].  If < 0, ignore it.
+    Rq::Float64 # RMS surface roughness for J-class [m]
+    disttype::Symbol # :normal or :rayleigh 
+    Zs::ComplexF64 # Surface impedance [Ω] for J-class. If σ₀ > 0, recompute for each frequency.
 end # struct
 import Base.==
 ==(sh1::RWGSheet, sh2::RWGSheet) = all((getfield(sh1, f) == getfield(sh2, f) for
@@ -71,7 +74,6 @@ RWGSheet() = RWGSheet("", u"mm",            # style, units
     Int[], Int[],         # e1, e2
     Array{Int}(undef, 0, 0), # fv
     Array{Int}(undef, 0, 0), # fe
-    Float64[],            # fr
     ComplexF64[],         # J
     ComplexF64[],         # J_ξ
     ComplexF64[],         # J_η
@@ -82,7 +84,8 @@ RWGSheet() = RWGSheet("", u"mm",            # style, units
     Float64[],            # rinv
     0.0, 0.0, 0.0,        # ψ₁, ψ₂, u
     ' ', "",              # class, info
-    true, false)          # ξη_check, fufp
+    true, false,          # ξη_check, fufp
+    -Inf, 0.0, :normal, 0.0im)     # σ, Rq, disttype, Zs
 
 """
     nodecount(s::RWGSheet)
@@ -113,8 +116,13 @@ function Base.show(io::IO, ::MIME"text/plain", s::RWGSheet)
     elseif s.class == 'H'
         print(io, "RWGSheet: perfect magnetic conducting wall")
     else
-        print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", nodecount(s), " nodes, ", edgecount(s),
-            " edges, ", facecount(s), " faces")
+        if s.σ > 0 
+            print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", nodecount(s), " nodes, ", edgecount(s),
+            " edges, ", facecount(s), " faces, σ=", s.σ, " S/m, Rq=", s.Rq, " m (:", s.disttype, ")")
+        else
+            print(io, "RWGSheet: style=", s.style, ", class=", s.class, ", ", nodecount(s), " nodes, ", edgecount(s),
+                " edges, ", facecount(s), " faces, Zs=", s.Zs, " Ω")
+        end
     end
 end
 
