@@ -101,6 +101,14 @@ function s₁s₂2β₁β₂(s₁, s₂)
     return β₁, β₂
 end
 
+function replace_kw_arg!(kwargs, badkw, goodkw)
+    if haskey(kwargs, badkw)
+        kwargs[goodkw] = kwargs[badkw]
+        delete!(kwargs, badkw)
+    end
+    kwargs
+end
+
 
 """
     check_optional_kw_arguments!(kwargs:: AbstractDict{Symbol,T} where T)
@@ -112,12 +120,17 @@ were not passed, assign appropriate default values.
 Also, replace obsolete `:Rsheet` with `:Zsheet`
 """
 function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
-    if haskey(kwargs, :Rsheet)
-        kwargs[:Zsheet] = kwargs[:Rsheet]
-        delete!(kwargs, :Rsheet)
+    for (badkw, goodkw) in zip((:Rsheet, :sigma), (:Zsheet, :σ))
+        replace_kw_arg!(kwargs, badkw, goodkw)
     end
 
-    defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, :Zsheet => 0.0, :save => "", :fufp => false)
+    haskey(kwargs, :Zsheet) && haskey(kwargs, :σ) && error("Zsheet and σ cannot both be specified")
+    haskey(kwargs, :Zsheet) && haskey(kwargs, :Rq) && error("Zsheet and Rq cannot both be specified")
+    haskey(kwargs, :Zsheet) && haskey(kwargs, :disttype) && error("Zsheet and disttype cannot both be specified")
+
+
+    defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, 
+    :Zsheet => 0.0, :σ => -Inf, :Rq => 0.0, :disttype => :normal, :save => "", :fufp => false)
     validkws = keys(defaults)
 
     badkws = setdiff(keys(kwargs), validkws)
@@ -139,7 +152,20 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
     class ≠ 'J' && !iszero(Zsheet) && error("Nonzero surface impedance only allowed for J-class sheet")
     real(Zsheet) < 0 && error("real(Zsheet) must be nonnegative")
 
+    σ = kwargs[:σ]
+    if class ≠ 'J' 
+        σ ≠ -Inf && error("Conductivity only allowed for J-class sheet")
+    else
+        -Inf < σ ≤ 0 && error("Conductivity must be nonnegative")
+    end
+
+    Rq = kwargs[:Rq]
+    Rq < 0 && error("Rq must be nonnegative")
+
     kwargs[:save] isa AbstractString || error("save value must be an AbstractString")
+
+    disttype = kwargs[:disttype]
+    disttype == :normal || disttype == :rayleigh || error("Illegal value $disttype for disttype")
 
     return
 end
@@ -153,8 +179,17 @@ const optional_kwargs = """
                                    unit cell and its contents.  Length units are as specified in the `units` keyword. 
                         - `rot::Real=0.0`:  Counterclockwise rotation angle in degrees applied to the entire unit cell and its contents. 
                                    This rotation is applied prior to any offsets specified in `dx` and `dy`.
-                        - `Zsheet::Complex=0.0`:  The surface impedance of the FSS conductor in units of Ohm per square.  
-                                    This is only meaningful for a sheet of class `'J'`.
+                        - `Zsheet::Complex=0.0`:  The frequency-independent surface impedance of the FSS conductor in 
+                          units of [Ω].  May only be specified for a sheet of class `'J'`.  If `Zsheet` is specified, then 
+                          `sigma` (or `σ`) may not be specified.                          )
+                        - `sigma` or `σ`: DC, bulk conductivity [S/m].  Only allowed for sheets of class `'J'`.  Cannot be 
+                          simultaneously specified with `Zsheet`.  Is used with `Rq` by PSSFSS to calculate an effective 
+                          sheet surface impedance at each frequency, using the Gradient Model (Grujić 2022).
+                        - `Rq=0.0`: RMS surface roughness [m].  Only legal for class `'J'`. Only used if `sigma` (or `σ``) is 
+                           also specified.  In that case is is used along with `sigma` to calculate a frequency-dependent
+                           sheet impedance using the Gradient Model.  The default value of 0 denotes a smooth surface.
+                        - `disttype::Symbol=:normal`: Probability distrubution type for surface roughness.  defaults
+                          to `:normal`.  The other legal value is `:rayleigh`.
                         - `fufp::Bool`:  This keyword is not usually required. 
                                         `fufp` is mnemonic for "Find Unique Face Pairs".  If true, the code will search the 
                                         triangulation for classes of triangle
@@ -256,9 +291,10 @@ function diagstrip(; P::Real, w::Real, orient::Real, Nl::Int, Nw::Int, units::PS
     sheet.s₂ = SV2([0.0, P])
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
-    facecount = size(sheet.fv, 2)
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz = fill(Zsheet, facecount)
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -470,9 +506,10 @@ function jerusalemcross(; P::Real, L1::Real, L2::Real, A::Real, B::Real, w::Real
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
 
-    # Set the face sheet resistance values.
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz .= Zsheet  # Broadcast value to entire array.
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -635,9 +672,10 @@ function loadedcross(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Rea
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
 
-    # Set the face sheet resistance values.
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz .= Zsheet  # Broadcast value to entire array.
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -810,10 +848,11 @@ function meander(; a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     if morient ≠ 0
         sheet.ρ = [SV2(xform(ρ[1], ρ[2])) for ρ in sheet.ρ]
     end
-    # Set the face sheet resistance values.
-    sheet.fz = zeros(size(sheet.fv, 2))
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz .= Zsheet  # Broadcast value to entire array.
+
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1057,9 +1096,10 @@ function polyring(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::Vector{<:Real}
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
 
-    # Set the face sheet resistance values.
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz .= Zsheet  # Broadcast value to entire array.
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1124,9 +1164,10 @@ function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, u
     sheet.s₂ = SV2([0.0, Py])
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
 
-    facecount = size(sheet.fv, 2)
-    Zsheet = float(kwargs[:Zsheet])
-    sheet.fz = fill(Zsheet, facecount)
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
@@ -1369,9 +1410,10 @@ function splitring(;
     sheet = meshsub(points=points, seglist=segments, segmarkers=segmarkers,
         holes=holes, area=areatri, ntri=ntri)
 
-    # Set the face sheet resistance values.
-    Zsheet = kwargs[:Zsheet]
-    sheet.fz .= Zsheet  # Broadcast value to entire array.
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
 
     # Handle remaining optional arguments
     sheet.fufp = kwargs[:fufp]
