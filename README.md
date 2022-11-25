@@ -52,7 +52,11 @@ performed in the same analysis script using the immensely powerful Julia program
   angle of incidence are typically slower. However, as of PSSFSS version 1.1, all frequency sweeps are now much faster, 
   often by more than an order of magnitude, compared to previous versions.  The speedup is due to the use of a fast interpolated sweep by default.
 
-
+## News
+- Version 1.1: A highly reliable fast sweep is now the default, resulting in order-of-magnitude speedups.
+- Version 1.2: Sheet resistance has been replaced by a possibly complex sheet impedance.  Also, sheet
+  conductivity and surface roughness may now be specified.
+  
 ## Installation
 You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character of the command prompt):
 

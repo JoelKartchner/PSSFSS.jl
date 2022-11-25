@@ -199,11 +199,7 @@ one can specify the frequency-independent sheet surface impedance in units of [Î
 keyword argument `Zsheet`.  Alternatively, one can specify the metal's bulk, DC conductivity and
 optionally, the RMS surface roughness and associated probability distribution. Conductivity is specified by
 either of the keywords `sigma` or `Ïƒ` in units of [S/m], while RMS surface roughness is specified by the keyword
-
-```@repl manual
-#`Rq` in units of [m]. The RMS surface roughness defaults to 0, denoting a smooth surface.  The probability
-```
-
+`Rq` in units of [m]. The RMS surface roughness defaults to 0, denoting a smooth surface.  The probability
 distribution function for roughness is specified by the keyword `disttype` which can be either `:normal` (the
 default value, suitable for the so-called "oxide side" of a planar conductor, or `:rayleigh` (suitable for the
 "foil side" of the conductor, i.e. the side bonded to the dielectric substrate). Together, the conductivity,
