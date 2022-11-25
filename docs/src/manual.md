@@ -181,7 +181,7 @@ patch elements.
 A call to [`rectstrip`](@ref) generates a rectangular strip, which by default (i.e. when `rot=0`) is oriented with its sides parallel
 to the x and y axes.  It should be noted that it is permissible for either or both strip side lengths to be equal to
 the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`).  Currently, this is the only way to model an
-imperfectly conducting ground plane (`Rsheet` > 0) that completely fills the unit cell.
+imperfectly conducting ground plane (with `real(Zsheet)` > 0) that completely fills the unit cell.
 
 Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
 [`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), and [`splitring`](@ref).
@@ -192,6 +192,25 @@ currents flowing on a metalized region.  Alternatively, one can specify `class='
 create the `RWGSheet` object, in which case the triangulation represents equivalent magnetic current
 in an aperture in an otherwise solid metallic surface.  So `'J'`-class is used for metal wire, strip,
 patch, capacitive, etc. elements, while `'M'`-class is used for slot, aperture, inductive, etc. elements.
+
+#### Metal Properties
+By default, any `RWGSheet` represents a zero-thickness, perfectly conducting sheet.  But for sheets of class `J`,
+one can specify the frequency-independent sheet surface impedance in units of [Ω] using the optional
+keyword argument `Zsheet`.  Alternatively, one can specify the metal's bulk, DC conductivity and
+optionally, the RMS surface roughness and associated probability distribution. Conductivity is specified by
+either of the keywords `sigma` or `σ` in units of [S/m], while RMS surface roughness is specified by the keyword
+
+```@repl manual
+#`Rq` in units of [m]. The RMS surface roughness defaults to 0, denoting a smooth surface.  The probability
+```
+
+distribution function for roughness is specified by the keyword `disttype` which can be either `:normal` (the
+default value, suitable for the so-called "oxide side" of a planar conductor, or `:rayleigh` (suitable for the
+"foil side" of the conductor, i.e. the side bonded to the dielectric substrate). Together, the conductivity,
+surface conductance, and distribution type are used by PSSFSS internally to compute a frequency-dependent surface
+impedance, using the so-called Gradient Model, as described in D. N. Grujić, “Simple and Accurate Approximation of
+Rough Conductor Surface Impedance,” IEEE Trans. Microwave Theory Tech., vol. 70, no. 4, pp. 2053-2059, April 2022.
+Obviously, only one of `Zsheet` and `sigma` may be specified as keyword arguments for a given `RWGSheet`.
 
 ### Plotting Sheets
 We can visualize the triangulation using the `plot` function of the [`Plots`](https://docs.juliaplots.org) package.

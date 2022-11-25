@@ -195,7 +195,7 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # A call to [`rectstrip`](@ref) generates a rectangular strip, which by default (i.e. when `rot=0`) is oriented with its sides parallel 
 # to the x and y axes.  It should be noted that it is permissible for either or both strip side lengths to be equal to
 # the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`).  Currently, this is the only way to model an
-# imperfectly conducting ground plane (`Rsheet` > 0) that completely fills the unit cell.
+# imperfectly conducting ground plane (with `real(Zsheet)` > 0) that completely fills the unit cell.
 #
 # Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
 # [`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), and [`splitring`](@ref).
@@ -210,7 +210,7 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # patch, capacitive, etc. elements, while `'M'`-class is used for slot, aperture, inductive, etc. elements.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
-# ### Metal Properties
+# #### Metal Properties
 # By default, any `RWGSheet` represents a zero-thickness, perfectly conducting sheet.  But for sheets of class `J`,
 # one can specify the frequency-independent sheet surface impedance in units of [Ω] using the optional
 # keyword argument `Zsheet`.  Alternatively, one can specify the metal's bulk, DC conductivity and

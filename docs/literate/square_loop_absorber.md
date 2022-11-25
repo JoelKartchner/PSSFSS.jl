@@ -26,7 +26,7 @@ p = plot(title="Costa Absorber", xlim=(0,25),ylim=(-35,0),xtick=0:5:25,ytick=-35
 ps = []
 for (i,(ri, ro, label, color, R)) in enumerate(zip(r_inner, r_outer, labels, colors, Rs))
     sheet = polyring(sides=4, s1=[D, 0], s2=[0, D], ntri=700, orient=45,
-                     a=[ri], b=[ro], Rsheet=R, units=mm)
+                     a=[ri], b=[ro], Zsheet=R, units=mm)
     push!(ps, plot(sheet, unitcell=true, title=label, lc=color))
     strata = [Layer()
               sheet
