@@ -1276,7 +1276,7 @@ end
 """
     splitring(; s1, s2, a, b, sides, ntri, gapwidth, gapcenter, gapangle, units, kwargs...) --> RWGSheet
 
-Return a variable of type `RWGSheet` that contains the triangulation for one or more concentric annular regions bounded by polygons.
+Return a variable of type `RWGSheet` similar to a `polyring` but with zero or more gaps in each concentric annular region.
 
 # Arguments:
 
@@ -1298,16 +1298,11 @@ All arguments are keyword arguments which can be entered in any order.
             is zero, then the resulting geometry is similar to a `polyring`. If a ring is to have multiple gaps, then
             the widths of the gaps for that ring should be passed as a tuple.  For example, suppose there are three
             rings and the second ring has 2 gaps, with the others having a single gap.  Then `gapwidth = [0.5, (0.4, 0.6), 0.3]`
-            would be an appropriately formatted input in this case.
-            If the gap width `gapwidth[i]` for the `i`th ring is less than or equal to 
-            `2 * a[i] * sin(π/sides)`, then the gap is implemented as a straight segment 
-            removed from the center of one of the annular polygon sides. For gap widths greater
-            than this amount (which is the length of one of the sides of the inner bounding polygon of the 
-            annulus), The gap is a formed as if a pie-shaped wedge (circular sector) is removed, with the 
-            gap width measured along the arc of radius `(a[i] + b[i])/2`.  Note that only one of `gapwidth` and 
-            `gapangularwidth` can be specified.
-- `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular widths of the gaps.
-            Like `gapwidth`, for any rings with multiple gaps, the corresponding entry in `gapangle` should be a 
+            would be an appropriately formatted input in this case. A gap are implemented as if a rectangular
+            region is removed from one of the annular polygonal rings. Note that only one of `gapwidth` and 
+            `gapangle` can be specified.
+- `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular widths of the gaps in degrees.
+            As with `gapwidth`, for any rings with multiple gaps, the corresponding entry in `gapangle` should be a 
             tuple of the same length as the number of gaps for that ring. The gap(s) in the `m`th ring 
             is/are formed as if pie-shaped wedge(s) with wedge angle(s) `gapangle[m]`, are removed from the ring(s).
             The locations and sizes of the tuples in `gapangle` must agree with those in `gapcenter`.
