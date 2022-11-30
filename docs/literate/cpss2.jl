@@ -12,28 +12,27 @@
 # high-order modes in the generalized scattering matrix (GSM) formulation. 
 #
 #-
-# We begin by computing the skin depth and sheet resistance for the 
-# copper traces.  The conductivity and thickness are as stated in the paper:
+# We begin by computing the skin depth for the copper traces.  The conductivity and thickness 
+# are as stated in the paper:
 
-## Compute skin depth and sheet resistance:
+## Compute skin depth:
 using PSSFSS.Constants: μ₀ # free-space permeability [H/m]
 f = (10:0.1:20) * 1e9 # frequencies in Hz
 σ = 58e6 # conductivity of metalization [S/m]
 t = 18e-6 # metalization thickness [m]
 Δ = sqrt.(2 ./ (2π*f*σ*μ₀)) # skin depth [m]
 @show extrema(t./Δ)
-#-
-Rs = 1 ./ (σ * Δ)
-@show extrema(Rs)
 
-# We see that the metal is many skin depths thick (effectively infinitely thick) so that we can use
-# the thick metal surface sheet resistance formula.  Since the latter varies with frequency, we approximate
-# it over the band 10-20 GHz by a value near its mean: 0.032 Ω/□.
+# We see that the metal is many skin depths thick (effectively infinitely thick) so that we 
+# can safely use the thick metal surface sheet impedance formula from the 
+# [MetalSurfaceImpedance](https://github.com/simonp0420/MetalSurfaceImpedance.jl) package that is 
+# employed internally by PSSFSS.  
+
 
 # Here is the script that analyzes the design from the referenced paper:
 
 using PSSFSS
-P = 5.2 # side length of unit square
+P = 5.2 # side length of unit cell square
 d1 = 2.61 # Inner layer thickness
 d2 = 3.81 # Outer layer thickness
 h0 = 2.44 # Inner meanderline dimension (using paper's definition of h)
@@ -43,11 +42,12 @@ w0y = 0.58 # Inner meanderline line thickness of traces running along y
 w1 = 0.21 # Rectangular strips width
 w2x = 0.25   # Outer meanderline line thickness of traces running along x
 w2y = 0.17 # Outer meanderline line thickness of traces running along y
-
-outer(orient) = meander(a=P, b=P, w1=w2y, w2=w2x, h=h2+w2x, units=mm, ntri=600, 
-                        Rsheet=0.032, orient=orient)
-inner = meander(a=P, b=P, w1=w0y, w2=w0x, h=h0+w0x, units=mm, ntri=600, Rsheet=0.032)
-strip(orient) = diagstrip(P=P, w=w1, units=mm, Nl=60, Nw=4, orient=orient, Rsheet=0.032)
+a = b = P
+ntri = 600
+units = mm
+outer(orient) = meander(;a, b, w1=w2y, w2=w2x, h=h2+w2x, units, ntri, σ, orient=orient)
+inner = meander(;a, b, w1=w0y, w2=w0x, h=h0+w0x, units, ntri, σ)
+strip(orient) = diagstrip(;P, w=w1, units, Nl=60, Nw=4, orient=orient, σ)
 
 substrate = Layer(width=0.127mm, epsr=2.17, tandel=0.0009)
 foam(w) = Layer(width=w, epsr=1.043, tandel=0.0017)
@@ -76,7 +76,8 @@ results = analyze(strata, flist, steering, logfile=devnull,
                   resultfile=devnull, showprogress=false)
 #md nothing # hide
 
-# The PSSFSS run took about 55 seconds on my machine.  Here are plots of the five sheets:
+# The PSSFSS run of this 5-sheet structure at 101 frequencies required only 13 seconds on my machine.
+# Here are plots of the five sheets:
 
 using Plots
 default()
@@ -94,17 +95,17 @@ plot(ps..., layout=5)
 # PSSFSS to use additional modes in the GSM cascading procedure:
 #-
 # ```
-# Starting PSSFSS 1.0.0 analysis on 2022-09-14 at 13:22:05.118
-# Julia Version 1.8.1
-# Commit afb6c60d69a (2022-09-06 15:09 UTC)
+# Starting PSSFSS 1.2.1 analysis on 2022-11-30 at 09:30:18.299
+# Julia Version 1.8.2
+# Commit 36034abf26 (2022-09-29 15:21 UTC)
 # Platform Info:
-#   OS: Linux (x86_64-linux-gnu)
+#   OS: Windows (x86_64-w64-mingw32)
 #   CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
 #   WORD_SIZE: 64
 #   LIBM: libopenlibm
 #   LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
 #   Threads: 8 on 8 virtual cores
-#   BLAS: LBTConfig([ILP64] libopenblas64_.so)
+#   BLAS: LBTConfig([ILP64] libopenblas64_.dll)
 # 
 # 
 # 
@@ -128,6 +129,7 @@ plot(ps..., layout=5)
 #  ==================  Sheet   5  ========================  1208.3    -0.0    -0.0  1208.3
 #     10    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
 #     11    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3    -0.0    -0.0  1208.3
+# 
 # ...
 # ```
 #-
