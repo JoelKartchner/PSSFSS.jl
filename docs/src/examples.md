@@ -1289,11 +1289,11 @@ This allows us to employ the `diagstrip` element and the `orient` keyword for th
 we allow PSSFSS to rigorously account for the inter-sheet coupling using multiple
 high-order modes in the generalized scattering matrix (GSM) formulation.
 
-We begin by computing the skin depth and sheet resistance for the
-copper traces.  The conductivity and thickness are as stated in the paper:
+We begin by computing the skin depth for the copper traces.  The conductivity and thickness
+are as stated in the paper:
 
 ````@example cpss2
-# Compute skin depth and sheet resistance:
+# Compute skin depth:
 using PSSFSS.Constants: μ₀ # free-space permeability [H/m]
 f = (10:0.1:20) * 1e9 # frequencies in Hz
 σ = 58e6 # conductivity of metalization [S/m]
@@ -1302,20 +1302,16 @@ t = 18e-6 # metalization thickness [m]
 @show extrema(t./Δ)
 ````
 
-````@example cpss2
-Rs = 1 ./ (σ * Δ)
-@show extrema(Rs)
-````
-
-We see that the metal is many skin depths thick (effectively infinitely thick) so that we can use
-the thick metal surface sheet resistance formula.  Since the latter varies with frequency, we approximate
-it over the band 10-20 GHz by a value near its mean: 0.032 Ω/□.
+We see that the metal is many skin depths thick (effectively infinitely thick) so that we
+can safely use the thick metal surface sheet impedance formula from the
+[MetalSurfaceImpedance](https://github.com/simonp0420/MetalSurfaceImpedance.jl) package that is
+employed internally by PSSFSS.
 
 Here is the script that analyzes the design from the referenced paper:
 
 ````@example cpss2
 using PSSFSS
-P = 5.2 # side length of unit square
+P = 5.2 # side length of unit cell square
 d1 = 2.61 # Inner layer thickness
 d2 = 3.81 # Outer layer thickness
 h0 = 2.44 # Inner meanderline dimension (using paper's definition of h)
@@ -1325,11 +1321,12 @@ w0y = 0.58 # Inner meanderline line thickness of traces running along y
 w1 = 0.21 # Rectangular strips width
 w2x = 0.25   # Outer meanderline line thickness of traces running along x
 w2y = 0.17 # Outer meanderline line thickness of traces running along y
-
-outer(orient) = meander(a=P, b=P, w1=w2y, w2=w2x, h=h2+w2x, units=mm, ntri=600,
-                        Rsheet=0.032, orient=orient)
-inner = meander(a=P, b=P, w1=w0y, w2=w0x, h=h0+w0x, units=mm, ntri=600, Rsheet=0.032)
-strip(orient) = diagstrip(P=P, w=w1, units=mm, Nl=60, Nw=4, orient=orient, Rsheet=0.032)
+a = b = P
+ntri = 600
+units = mm
+outer(orient) = meander(;a, b, w1=w2y, w2=w2x, h=h2+w2x, units, ntri, σ, orient=orient)
+inner = meander(;a, b, w1=w0y, w2=w0x, h=h0+w0x, units, ntri, σ)
+strip(orient) = diagstrip(;P, w=w1, units, Nl=60, Nw=4, orient=orient, σ)
 
 substrate = Layer(width=0.127mm, epsr=2.17, tandel=0.0009)
 foam(w) = Layer(width=w, epsr=1.043, tandel=0.0017)
@@ -1359,7 +1356,8 @@ results = analyze(strata, flist, steering, logfile=devnull,
 nothing # hide
 ````
 
-The PSSFSS run took about 55 seconds on my machine.  Here are plots of the five sheets:
+The PSSFSS run of this 5-sheet structure at 101 frequencies required only 13 seconds on my machine.
+Here are plots of the five sheets:
 
 ````@example cpss2
 using Plots
@@ -1379,17 +1377,17 @@ We can see from the log file (of a previous run where it was not suppressed) tha
 PSSFSS to use additional modes in the GSM cascading procedure:
 
 ```
-Starting PSSFSS 1.0.0 analysis on 2022-09-14 at 13:22:05.118
-Julia Version 1.8.1
-Commit afb6c60d69a (2022-09-06 15:09 UTC)
+Starting PSSFSS 1.2.1 analysis on 2022-11-30 at 09:30:18.299
+Julia Version 1.8.2
+Commit 36034abf26 (2022-09-29 15:21 UTC)
 Platform Info:
-  OS: Linux (x86_64-linux-gnu)
+  OS: Windows (x86_64-w64-mingw32)
   CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
   WORD_SIZE: 64
   LIBM: libopenlibm
   LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
   Threads: 8 on 8 virtual cores
-  BLAS: LBTConfig([ILP64] libopenblas64_.so)
+  BLAS: LBTConfig([ILP64] libopenblas64_.dll)
 
 
 
@@ -1413,6 +1411,7 @@ Dielectric layer information...
  ==================  Sheet   5  ========================  1208.3    -0.0    -0.0  1208.3
     10    0.1270  mm    2.17 0.0009    1.00 0.0000     0     0.0     0.0     0.0     0.0
     11    0.0000  mm    1.00 0.0000    1.00 0.0000     2  1208.3    -0.0    -0.0  1208.3
+
 ...
 ```
 
@@ -1474,4 +1473,158 @@ savefig("cpssb5.png"); nothing  # hide
 
 Differences between the PSSFSS and CST predictions are attributed to the fact that the
 metalization thickness of 18 μm was included in the CST model but cannot be accommodated by PSSFSS.
+
+```@meta
+EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/splitring_cpss.jl"
+```
+
+## Split Ring-Based CPSS
+This circular polarization selective surface (CPSS) example comes from the paper
+L.-X. Wu, K. Chen, T. Jiang, J. Zhao and Y. Feng, "Circular-Polarization-Selective
+Metasurface and Its Applications to Transmit-Reflect-Array Antenna and Bidirectional
+Antenna," in IEEE Trans. Antennas and Propag., vol. 70, no. 11, pp. 10207-10217,
+Nov. 2022, doi: 10.1109/TAP.2022.3191213.
+The design consists of three sequentially rotated split rings separated by dielectric
+layers. Since the unit cells for all three rings are identical, PSSFSS can rigorously
+account for multiple scattering between the individual sheets using multiple
+high-order modes in the generalized scattering matrix (GSM) formulation.
+
+We begin by defining the three `splitring` sheets:
+
+````@example splitring_cpss
+using PSSFSS
+b = [3.8, 4.18, 3.8] # outer radius of each ring
+a = b - [1, 1.1, 1]  # inner radius of each ring
+gw = [3.1, 1.0, 3.1] # gap widths
+gc = [90, 45, 0]     # gap centers
+s1 = [10, 0]; s2 = [0, 10] # lattice vectors
+units = mm; sides = 42; ntri = 900
+sheets = [splitring(;units, sides, ntri, a=[a[i]], b=[b[i]],
+          s1, s2, gapwidth=gw[i], gapcenter=gc[i])  for i in 1:3]
+````
+
+We generate a plot of the three sheets:
+
+````@example splitring_cpss
+using Plots
+default() #hide
+ps = []
+for i in 1:3
+    push!(ps, plot(sheets[i], unitcell=true, lc=:red, title="Sheet $i", size=(400,400)))
+end
+p = plot(ps..., layout = (1,3), size=(900,300), margin=5Plots.mm)
+savefig("wu2022_sheets.png"); nothing  #hide
+````
+
+![](wu2022_sheets.png)
+
+Next we define the dielectric layers: `F4B` and `prepreg` (the latter is the bonding agent),
+then set up and run the PSSFSS analysis:
+
+````@example splitring_cpss
+F4B = Layer(ϵᵣ=2.55, tanδ=0.002, width=3mm)
+prepreg = Layer(ϵᵣ=3.71, width=0.07mm)
+strata = [
+    Layer()
+    sheets[1]
+    F4B
+    prepreg
+    sheets[2]
+    F4B
+    prepreg
+    sheets[3]
+    Layer()
+    ]
+freqs = 8:0.05:12
+steering = (θ = 0, ϕ = 0)
+results = analyze(strata, freqs, steering, logfile=devnull, resultfile=devnull, showprogress=false)
+nothing #hide
+````
+
+PSSFSS analysis of this 3-sheet structure at 81 frequencies required 28 seconds on my machine.
+As seen from the portion of the log file below (from a previous run where the log file was not discarded),
+PSSFSS chose 42 modes in layers 2 and 4 to ensure acccurate cascading of the GSMs.
+```
+Starting PSSFSS 1.2.1 analysis on 2022-12-01 at 09:48:54.807
+Julia Version 1.8.3
+Commit 0434deb161 (2022-11-14 20:14 UTC)
+Platform Info:
+  OS: Windows (x86_64-w64-mingw32)
+  CPU: 8 × Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-13.0.1 (ORCJIT, skylake)
+  Threads: 8 on 8 virtual cores
+  BLAS: LBTConfig([ILP64] libopenblas64_.dll)
+
+
+
+Dielectric layer information...
+
+ Layer  Width  units  epsr   tandel   mur  mtandel modes  beta1x  beta1y  beta2x  beta2y
+ ----- ------------- ------- ------ ------- ------ ----- ------- ------- ------- -------
+     1    0.0000  mm    1.00 0.0000    1.00 0.0000     2   628.3    -0.0    -0.0   628.3
+ ==================  Sheet   1  ========================   628.3    -0.0    -0.0   628.3
+     2    3.0000  mm    2.55 0.0020    1.00 0.0000    42   628.3    -0.0    -0.0   628.3
+     3    0.0700  mm    3.71 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
+ ==================  Sheet   2  ========================   628.3    -0.0    -0.0   628.3
+     4    3.0000  mm    2.55 0.0020    1.00 0.0000    42   628.3    -0.0    -0.0   628.3
+     5    0.0700  mm    3.71 0.0000    1.00 0.0000     0     0.0     0.0     0.0     0.0
+ ==================  Sheet   3  ========================   628.3    -0.0    -0.0   628.3
+     6    0.0000  mm    1.00 0.0000    1.00 0.0000     2   628.3    -0.0    -0.0   628.3
+```
+
+The circular polarization reflection and transmission amplitudes are now extracted from the PSSFSS
+results and are plotted along with digitized results from the reference.  We first plot the case
+where the excitation is a LHCP polarized plane wave traveling in the positive $z$ direction, incident upon Region 1:
+
+````@example splitring_cpss
+using DelimitedFiles
+default(lw=2)
+(s11ll,s11rl,s21ll, s21rl) = eachcol(extract_result(results, @outputs s11db(L,L) s11db(R,L) s21db(L,L) s21db(R,L)))
+p = plot(xlabel="Frequency (GHz)", ylabel="Amplitude (dB)", xminorticks=2, yminorticks=2, framestyle=:box,
+    xtick=8:12, xlim=(8, 12), ytick = -30:5:0, ylim=(-20,0), legend=:top, gridalpha=0.3)
+plot!(p, freqs, s11ll, lc=:black, label = "PSSFSS S11(L,L)")
+plot!(p, freqs, s11rl, lc=:red, label = "PSSFSS S11(R,L)")
+plot!(p, freqs, s21rl, lc=:blue, label = "PSSFSS S21(R,L)")
+plot!(p, freqs, s21ll, lc=:green, label = "PSSFSS S21(L,L)")
+data = readdlm("../src/assets/rll_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:black, ls=:dash, label = "Wu S11(L,L)")
+data = readdlm("../src/assets/rrl_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:red, ls=:dash, label = "Wu S11(R,L)")
+data = readdlm("../src/assets/trl_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:blue, ls=:dash, label = "Wu S21(R,L)")
+data = readdlm("../src/assets/tll_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:green, ls=:dash, label = "Wu S21(L,L)")
+savefig("wu2022_fig2a_compare.png"); nothing  #hide
+````
+
+![](wu2022_fig2a_compare.png)
+
+And then the case where the excitation is a RHCP polarized plane wave:
+
+````@example splitring_cpss
+(s11lr,s11rr,s21lr, s21rr) = eachcol(extract_result(results, @outputs s11db(L,R) s11db(R,R) s21db(L,R) s21db(R,R)))
+p = plot(xlabel="Frequency (GHz)", ylabel="Amplitude (dB)", xminorticks=2, yminorticks=2, framestyle=:box,
+    xtick=8:12, xlim=(8, 12), ytick = -30:5:0, ylim=(-20,0), legend=:top, gridalpha=0.3)
+plot!(p, freqs, s11lr, lc=:black, label = "PSSFSS S11(L,R)")
+plot!(p, freqs, s11rr, lc=:red, label = "PSSFSS S11(R,R)")
+plot!(p, freqs, s21rr, lc=:blue, label = "PSSFSS S21(R,R)")
+plot!(p, freqs, s21lr, lc=:green, label = "PSSFSS S21(L,R)")
+data = readdlm("../src/assets/rlr_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:black, ls=:dash, label = "Wu S11(L,R)")
+data = readdlm("../src/assets/rrr_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:red, ls=:dash, label = "Wu S11(R,R)")
+data = readdlm("../src/assets/trr_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:blue, ls=:dash, label = "Wu S21(R,R)")
+data = readdlm("../src/assets/tlr_wu_digitized.csv", ',')
+plot!(p, data[:,1], data[:,2], lc=:green, ls=:dash, label = "Wu S21(L,R)")
+savefig("wu2022_fig2b_compare.png"); nothing  #hide
+````
+
+![](wu2022_fig2b_compare.png)
+
+The agreement between Wu et al and PSSFSS is generally quite good, with larger differences at smaller
+amplitudes.  This is attributed to the fact that conductor thickness was included in the reference but
+can not yet be accommodated by PSSFSS.
 

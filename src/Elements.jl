@@ -1298,15 +1298,15 @@ All arguments are keyword arguments which can be entered in any order.
             is zero, then the resulting geometry is similar to a `polyring`. If a ring is to have multiple gaps, then
             the widths of the gaps for that ring should be passed as a tuple.  For example, suppose there are three
             rings and the second ring has 2 gaps, with the others having a single gap.  Then `gapwidth = [0.5, (0.4, 0.6), 0.3]`
-            would be an appropriately formatted input in this case. A gap are implemented as if a rectangular
-            region is removed from one of the annular polygonal rings. Note that only one of `gapwidth` and 
-            `gapangle` can be specified.
+            would be an appropriately formatted input in this case. When `gapwidth` is specified, the gaps are
+            implemented as if a rectangular region is removed from the annular polygonal rings. Note that only 
+            one of `gapwidth` and `gapangle` can be specified.
 - `gapangle`: A scalar or vector of the same length as `a` and `b` containing the angular widths of the gaps in degrees.
             As with `gapwidth`, for any rings with multiple gaps, the corresponding entry in `gapangle` should be a 
-            tuple of the same length as the number of gaps for that ring. The gap(s) in the `m`th ring 
-            is/are formed as if pie-shaped wedge(s) with wedge angle(s) `gapangle[m]`, are removed from the ring(s).
-            The locations and sizes of the tuples in `gapangle` must agree with those in `gapcenter`.
-            Note that only one of `gapangle` and `gapwidth` can be specified.
+            tuple of the same length as the number of gaps for that ring. When `gapangle` is specified, the gap(s) 
+            in the `m`th ring is/are formed as if pie-shaped wedge(s) with wedge angle(s) `gapangle[m]`, are 
+            removed from the ring(s). The locations and sizes of the tuples in `gapangle` must agree with those 
+            in `gapcenter`.  Note that only one of `gapangle` and `gapwidth` can be specified.
 - `ntri`:  The desired total number of triangles distributed among all the annular regions. This is a guide, the actual number 
            will likely be different.
 $(optional_kwargs)
