@@ -534,7 +534,6 @@ end # function
 """
     loadedcross(;s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real, w::Real, 
                  ntri::Int, units::PSSFSSLength, kwargs...)
-    !
  
 # Description:
 
@@ -581,7 +580,7 @@ at a 45 degree angle wrt the x-axis.
 All arguments are keyword arguments which can be entered in any order.
 
 ## Required arguments:
-- `P`: The period, i.e. the side length of the square unit cell.
+- `s1` and `s2`:  2-vectors containing the unit cell lattice vectors.
 - `L1`,`L2`,`w`: Geometrical parameters as defined above.  Note that it is permissible
    to specify `w ≥ L2/2` in which case a solid (i.e., singly-connected) cross will be 
    generated.  In that case the `L2` dimension will be used for the width of the cross pieces.
