@@ -185,7 +185,7 @@ const optional_kwargs = """
                         - `sigma` or `σ`: DC, bulk conductivity [S/m].  Only allowed for sheets of class `'J'`.  Cannot be 
                           simultaneously specified with `Zsheet`.  Is used with `Rq` by PSSFSS to calculate an effective 
                           sheet surface impedance at each frequency, using the Gradient Model (Grujić 2022).
-                        - `Rq=0.0`: RMS surface roughness [m].  Only legal for class `'J'`. Only used if `sigma` (or `σ``) is 
+                        - `Rq=0.0`: RMS surface roughness [m].  Only legal for class `'J'`. Only used if `sigma` (or `σ`) is 
                            also specified.  In that case is is used along with `sigma` to calculate a frequency-dependent
                            sheet impedance using the Gradient Model.  The default value of 0 denotes a smooth surface.
                         - `disttype::Symbol=:normal`: Probability distrubution type for surface roughness.  defaults
