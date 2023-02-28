@@ -37,7 +37,7 @@ will have fields `β₁` and `β₂` appropriately set, and will have the arrays
 
 - `sheets`: A vector of Sheet objects.
 
-- `junc`: An integer vector.  `junk[k]` contains the sheet number located at junction `k` or `0` if 
+- `junc`: An integer vector.  `junc[k]` contains the sheet number located at junction `k` or `0` if 
   no sheet is present.
 
 - `gbl`: An collection of `Gblock`s containing the definitions of the GSM block entities.
