@@ -89,8 +89,8 @@ function meshsub(; points::Matrix{<:Real}, seglist::Matrix{<:Integer},
     sh.e1 = triout.edgelist[1, :]
     sh.e2 = triout.edgelist[2, :]
     sh.fv = copy(triout.trianglelist)
-    # Set up sh.fe so that for any triangle, edge 1 connects nodes 1 and 3,
-    # edge 2 connects nodes 1 and 2, and edge 3 connects nodes 2 and 3:
+    # Set up sh.fe so that for any triangle, edge 1 connects nodes 2 and 3,
+    # edge 2 connects nodes 1 and 3, and edge 3 connects nodes 1 and 2:
     sh.fe = similar(sh.fv) # Preallocation
     for tri in 1:size(sh.fv, 2)
         n1, n2, n3 = sh.fv[:, tri]
