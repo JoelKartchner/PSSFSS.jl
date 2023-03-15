@@ -11,6 +11,7 @@ facecount
 jerusalemcross
 Layer
 loadedcross
+manji
 meander
 nodecount
 @outputs
