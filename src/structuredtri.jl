@@ -355,7 +355,6 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
     # Triangulation of the upper arm:
     # unique x and y vertices for arm, total area, and armarea:
     ymin = max(ao2, wo2)
-    ymino2 = ymin / 2
     if armsfolded
         xrequired = [-wo2, wo2, L1-3wo2, L1-wo2]
         yrequired = [ymin, L2, L2+w, L2+L3-w, L2+L3]
@@ -365,7 +364,7 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
         yrequired = [ymin, L2, L2+L3]
         areaarm = (L2 - ymin) * w + L1 * L3
     end
-    areat = ymin^2 + 4 * areaarm
+    areat = (2*ymin)^2 + 4 * areaarm
     if w2 > 0 
         #push!(xrequired, Po2-w2half, Po2)
         areat += 4 * (P - w2half) * w2half
@@ -398,7 +397,7 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
     if centersquare
         xrsquare = sort!(push!(xrsquare, -ao2, ao2))
     end
-    areasquare = ymin^2
+    areasquare = (2*ymin)^2
     ntrisquare = round(ntri * areasquare / areat)
     square = make_plaid_mesh(xrsquare, xrsquare, areasquare, ntrisquare, (x,y) -> true)
 
