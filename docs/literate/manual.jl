@@ -198,7 +198,7 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # imperfectly conducting ground plane (with `real(Zsheet)` > 0) that completely fills the unit cell.
 #
 # Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
-# [`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), and [`splitring`](@ref).
+# [`manji`](@ref), [`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), and [`splitring`](@ref).
 # 
 #-
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
