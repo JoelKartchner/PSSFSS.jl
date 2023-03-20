@@ -38,7 +38,7 @@ Update `msdata` for the new LibGEOS Polygon object. If the object has any holes,
 then it is assumed that the polygon is actually a regular polygonal annular ring
 centered on the point ρ₀.
 """
-function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
+function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀; minlength::Real=0.0)
     allcoords = GeoInterface.coordinates(obj)
     ngeom = GeoInterface.ngeom(obj)
     @assert ngeom == length(allcoords)
@@ -53,11 +53,10 @@ function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
         msdata.area += area
         msdata.boundary += 1
         nodesave = msdata.node + 1
-        testlen = 0.05 * max(norm(coords[1]-coords[2]), norm(coords[2]-coords[3]), norm(coords[3]-coords[4]))
         for (i, ρ) in enumerate(coords)
             i == length(coords) && break # Last point is repeat of first
             rho21 = coords[i+1] - coords[i]
-            norm(rho21)< testlen && continue # Eliminate duplicate points
+            norm(rho21)< minlength && continue # Eliminate duplicate points
             msdata.node += 1
             push!(msdata.e1, msdata.node)
             push!(msdata.e2, msdata.node + 1)
@@ -1442,18 +1441,50 @@ Create a LibGEOS ringarc, i.e. a portion of an annular ring within a pie-shaped 
 * `ϕ1`, `ϕ2`: Beginning and ending ϕ angles in degrees for the wedge.
 * `sides`: Number of sides of the boundary polygons.
 * `center`: A 2-vector containing the coordinates of the annulus center.
+* `gap`: If > 0, the constant gap width between the ϕ = constant boundary and the side of the ring.
 """
-function _makeringarc(a::Real, b::Real, sides::Int, ϕ1::Real, ϕ2::Real; center::AbstractVector=SV2(0.0, 0.0))
+function _makeringarc(a::Real, b::Real, sides::Int, ϕ1::Real, ϕ2::Real; gap::Real=0.0, center::AbstractVector=SV2(0.0, 0.0))
+    @testnonneg(gap)
+    @testpos(a)
+    @testpos(b)
+    @testpos(sides)
+    ϕ21 = ϕ2 - ϕ1
+    @testpos(ϕ21)
+
+    x0a = sqrt(a^2 - gap^2)
+    x0b = sqrt(b^2 - gap^2)
+    s1, c1 = sincosd(ϕ1)
+    x1a, y1a = SA[c1 -s1; s1 c1] * SV2(x0a, gap)
+    x1b, y1b = SA[c1 -s1; s1 c1] * SV2(x0b, gap)
+    s2, c2 = sincosd(ϕ2)
+    x2a, y2a = SA[c2 -s2; s2 c2] * SV2(x0a, -gap)
+    x2b, y2b = SA[c2 -s2; s2 c2] * SV2(x0b, -gap)
+    ϕ1a, ϕ1b, ϕ2a, ϕ2b = atand.((y1a, y1b, y2a, y2b), (x1a, x1b, x2a, x2b)) 
+    ϕ1a > ϕ2a && (ϕ2a += 360)
+    ϕ1b > ϕ2b && (ϕ2b += 360)
     io = IOBuffer()
     write(io, "POLYGON((")
     for i in 0:sides
-        s, c = sincosd(ϕ1 + i * (ϕ2 - ϕ1) / sides)
-        i == 0 &&  print(io, center[1] + a * c, " ", center[2] + a * s, ",")
-        print(io, center[1] + b * c, " ", center[2] + b * s, ",")
+        s, c = sincosd(ϕ1b + i * (ϕ2b - ϕ1b) / sides)
+        if i == 0
+            print(io, center[1] + x1a, " ", center[2] + y1a, ",")
+            print(io, center[1] + x1b, " ", center[2] + y1b, ",")
+        elseif i == sides
+            print(io, center[1] + x2b, " ", center[2] + y2b, ",")
+        else
+            print(io, center[1] + b * c, " ", center[2] + b * s, ",")
+        end
     end
     for i in sides:-1:0
-        s, c = sincosd(ϕ1 + i * (ϕ2 - ϕ1) / sides)
-        print(io, center[1] + a * c, " ", center[2] + a * s)
+        s, c = sincosd(ϕ1a + i * (ϕ2a - ϕ1a) / sides)
+        rotmat = SA[c -s; s c]
+        if i == sides
+            print(io, center[1] + x2a, " ", center[2] + y2a)
+        elseif i == 0
+            print(io, center[1] + x1a, " ", center[2] + y1a)
+        else
+            print(io, center[1] + a * c, " ", center[2] + a * s)
+        end
         i > 0 && print(io, ",")
     end
     write(io, "))")
@@ -1463,7 +1494,7 @@ function _makeringarc(a::Real, b::Real, sides::Int, ϕ1::Real, ϕ2::Real; center
 end
 
 """
-    _makerhspoke(a, b, ϕ, w, rhside::Bool)
+    _makespoke(a, b, ϕ, w, rhside::Bool; gap=0.0)
 
 Create a LibGEOS side spoke for the sinuous element.
 
@@ -1472,22 +1503,26 @@ Create a LibGEOS side spoke for the sinuous element.
 * `ϕ`: Azimuthal angle in degrees for outer (in azimuth) boundary of the spoke.
 * `w`: The width of the spoke
 * `rhside`: True if the spoke is on the right-hand side, false for left-hand side.
+* `gap`: Gap between constant ϕ line and side of arm.
 """
-function _makespoke(a::Real, b::Real, ϕ::Real, w::Real, rhside::Bool)
+function _makespoke(a::Real, b::Real, ϕ::Real, w::Real, rhside::Bool; gap::Real=0.0)
     io = IOBuffer()
     write(io, "POLYGON((")
     s, c = sincosd(ϕ)
-    ρ1 = a * SV2(c, s)
-    ρ2 = b * SV2(c, s)
-    ρ21 = ρ2 - ρ1
-    ρshift = w / norm(ρ21) * SV2(-ρ21[2], ρ21[1])
-    !rhside && (ρshift *= -1)
-    ρ3 = ρ2 + ρshift
-    ρ4 = ρ1 + ρshift
-    for ρ in (ρ1, ρ2, ρ3, ρ4)
-        print(io, ρ[1], " ", ρ[2], ",")
+    rotmat = SA[c -s; s c]
+    x0a = iszero(a) ? 0.0 : sqrt(a^2 - gap^2)
+    x0b = sqrt(b^2 - gap^2)
+    if rhside
+        prepoints = ((x0a, gap), (x0b, gap), (x0b, gap+w), (x0a, gap+w), (x0a, gap))
+    else
+        prepoints = ((x0a, -gap), (x0b, -gap), (x0b, -(gap+w)), (x0a, -(gap+w)), (x0a, -gap))
     end
-    print(io, ρ1[1], " ", ρ1[2], "))")
+    for i in eachindex(prepoints)
+        x, y = rotmat * SV2(prepoints[i])
+        print(io, x, " ", y)
+        i < lastindex(prepoints) && print(io, ",")
+    end
+    print(io, "))")
     s = String(take!(io))
     poly = LibGEOS.readgeom(s)
     return poly
@@ -1703,7 +1738,7 @@ end # function splitring
 
 
 """
-    sinuous(; arms, b, w, gapangle, sides, ntri, units, s1, s2, kwargs...) --> RWGSheet
+    sinuous(; arms, b, w, g, sides, ntri, units, s1, s2, kwargs...) --> RWGSheet
 
 Return a variable of type `RWGSheet` representing a sinuous cross a shown in this diagram:
 ![https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png](https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png)
@@ -1719,7 +1754,7 @@ All arguments are keyword arguments which can be entered in any order.
 - `b`:  n-vector (n ≥ 1) providing the outer radii of the polygonal rings. Entries must
   be positive and strictly increasing.
 - `w`: The width of the traces in the arms.
-- `gapangle`: A scalar containing the angular width in degrees of the gap separating adjacent arms.
+- `g`: A scalar containing the rectangular gap width in separating adjacent arms.
 - `sides::Int`:  The number (>= 4) of polygon sides for the background regular annular polygon(s) from which the 
   ring sections are created. 
 - `ntri::Int`:  The desired total number of triangles.
@@ -1746,12 +1781,12 @@ function sinuous(;
     sides::Int,
     ntri::Int,
     units::PSSFSSLength,
-    gapangle::Real,
+    g::Real,
     L2::Real=0.0,
     w2::Real=0.0,
     c2::Real=0.0,
     orient::Real=0.0,
-    kwarg...)::RWGSheet
+    kwarg...)#::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
     haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
@@ -1762,7 +1797,7 @@ function sinuous(;
     @testpos(b)
     @testpos(w)
     @testpos(arms)
-    @testpos(gapangle)
+    @testpos(g)
     @testnonneg(w2)
     @testnonneg(c2)
     @testnonneg(L2)
@@ -1780,8 +1815,7 @@ function sinuous(;
         b[i+1] - b[i] > w || error("radius increment b[n]-b[n-1] must exceed w for all rings")
     end
 
-    ϕarm = 360 / arms - gapangle # Central angle subtended by each arm.
-    ϕarm > 0 || error("gapangle too large for $(arms) arms")
+    ϕarm = 360 / arms # Central angle subtended by each arm.
     sidesarm = ceil(Int, ϕarm / 360 * sides) # Number of polygonal segments in outer arm arcs
     ϕarmo2 = ϕarm / 2
 
@@ -1800,11 +1834,11 @@ function sinuous(;
         rhs = true
         for iring in 1:nring
             ringsides = max(2, ceil(Int, sidesarm * b[iring] / b[end]))
-            ring = _makeringarc(b[iring] - w, b[iring], ringsides, orient-ϕarmo2+armrot, orient+ϕarmo2+armrot)
+            ring = _makeringarc(b[iring] - w, b[iring], ringsides, orient-ϕarmo2+armrot, orient+ϕarmo2+armrot, gap=g/2)
             body = LibGEOS.union(body, ring)
             r1 = iring == 1 ? 0.0 : b[iring - 1] - w/2
             r2 = b[iring] - w/2
-            spoke = _makespoke(r1, r2, orient - (-1)^(!rhs) * ϕarmo2 + armrot, w, rhs)
+            spoke = _makespoke(r1, r2, orient - (-1)^(!rhs) * ϕarmo2 + armrot, w, rhs; gap=g/2)
             body = LibGEOS.union(body, spoke)
             rhs = !rhs
         end 
@@ -1813,7 +1847,9 @@ function sinuous(;
 
     msdata = MeshsubData()
 
-    _add_libgeos_geom!(msdata, body, origin)
+    minlength = min(w, minimum(diff(b)) - w, rc, g) / 8
+
+    _add_libgeos_geom!(msdata, body, origin; minlength)
     if w2 > 0
         arearim = c2 > 0 ? _plain_rim_area(L2, w2) : _fancy_rim_area(L2, w2, c2)
     else
@@ -1834,7 +1870,6 @@ function sinuous(;
     end
 
     sheet = meshsub(;points, seglist, segmarkers, holes, area=areatri, ntri=ntriarms)
-    println("triangles in arms = ", size(sheet.fe, 2), ", wanted = ", ntriarms)
 
     if w2 > 0
         # Add rim
