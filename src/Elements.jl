@@ -1,6 +1,6 @@
 module Elements
 
-export diagstrip, jerusalemcross, loadedcross, manji, meander, pecsheet, pmcsheet, polyring, rectstrip, splitring
+export diagstrip, jerusalemcross, loadedcross, manji, meander, pecsheet, pmcsheet, polyring, rectstrip, sinuous, splitring
 
 using ..PSSFSSLen: mm, cm, inch, mil, PSSFSSLength
 using ..Sheets: RWGSheet, rotate!, translate!, combine, recttri, SV2
@@ -14,6 +14,9 @@ import PolygonOps
 
 macro testpos(var)
     return :(all($(esc(var)) .> 0) || error($(esc(string(var))) * " must be positive!"))
+end
+macro testnonneg(var)
+    return :(all($(esc(var)) .≥ 0) || error($(esc(string(var))) * " must be ≥ 0!"))
 end
 
 mutable struct MeshsubData
@@ -50,8 +53,11 @@ function _add_libgeos_geom!(msdata::MeshsubData, obj::LibGEOS.Polygon, ρ₀)
         msdata.area += area
         msdata.boundary += 1
         nodesave = msdata.node + 1
+        testlen = 0.05 * max(norm(coords[1]-coords[2]), norm(coords[2]-coords[3]), norm(coords[3]-coords[4]))
         for (i, ρ) in enumerate(coords)
             i == length(coords) && break # Last point is repeat of first
+            rho21 = coords[i+1] - coords[i]
+            norm(rho21)< testlen && continue # Eliminate duplicate points
             msdata.node += 1
             push!(msdata.e1, msdata.node)
             push!(msdata.e2, msdata.node + 1)
@@ -1426,6 +1432,67 @@ function _makering(a, b, sides, center=SV2[0.0, 0.0], orient=0.0)
     return LibGEOS.difference(_makeregpoly(b, sides, center, orient), _makeregpoly(a, sides, center, orient))
 end
 
+"""
+    _makeringarc(a, b, sides, ϕ1, ϕ2; center=[0., 0.])
+
+Create a LibGEOS ringarc, i.e. a portion of an annular ring within a pie-shaped wedge.
+
+## Arguments:
+* `a`, `b`: Radii of vertices on the ring's inner and outer boundaries, respectively.
+* `ϕ1`, `ϕ2`: Beginning and ending ϕ angles in degrees for the wedge.
+* `sides`: Number of sides of the boundary polygons.
+* `center`: A 2-vector containing the coordinates of the annulus center.
+"""
+function _makeringarc(a::Real, b::Real, sides::Int, ϕ1::Real, ϕ2::Real; center::AbstractVector=SV2(0.0, 0.0))
+    io = IOBuffer()
+    write(io, "POLYGON((")
+    for i in 0:sides
+        s, c = sincosd(ϕ1 + i * (ϕ2 - ϕ1) / sides)
+        i == 0 &&  print(io, center[1] + a * c, " ", center[2] + a * s, ",")
+        print(io, center[1] + b * c, " ", center[2] + b * s, ",")
+    end
+    for i in sides:-1:0
+        s, c = sincosd(ϕ1 + i * (ϕ2 - ϕ1) / sides)
+        print(io, center[1] + a * c, " ", center[2] + a * s)
+        i > 0 && print(io, ",")
+    end
+    write(io, "))")
+    s = String(take!(io))
+    poly = LibGEOS.readgeom(s)
+    return poly
+end
+
+"""
+    _makerhspoke(a, b, ϕ, w, rhside::Bool)
+
+Create a LibGEOS side spoke for the sinuous element.
+
+## Arguments:
+* `a`, `b`: Radii of vertices on the spoke's inner and outer boundaries, respectively.
+* `ϕ`: Azimuthal angle in degrees for outer (in azimuth) boundary of the spoke.
+* `w`: The width of the spoke
+* `rhside`: True if the spoke is on the right-hand side, false for left-hand side.
+"""
+function _makespoke(a::Real, b::Real, ϕ::Real, w::Real, rhside::Bool)
+    io = IOBuffer()
+    write(io, "POLYGON((")
+    s, c = sincosd(ϕ)
+    ρ1 = a * SV2(c, s)
+    ρ2 = b * SV2(c, s)
+    ρ21 = ρ2 - ρ1
+    ρshift = w / norm(ρ21) * SV2(-ρ21[2], ρ21[1])
+    !rhside && (ρshift *= -1)
+    ρ3 = ρ2 + ρshift
+    ρ4 = ρ1 + ρshift
+    for ρ in (ρ1, ρ2, ρ3, ρ4)
+        print(io, ρ[1], " ", ρ[2], ",")
+    end
+    print(io, ρ1[1], " ", ρ1[2], "))")
+    s = String(take!(io))
+    poly = LibGEOS.readgeom(s)
+    return poly
+end
+
 
 """
     _makewedge(center, radius, centerangle, wedgeangle; sides=20)
@@ -1633,6 +1700,176 @@ function splitring(;
     return sheet
 
 end # function splitring
+
+
+"""
+    sinuous(; arms, b, w, gapangle, sides, ntri, units, s1, s2, kwargs...) --> RWGSheet
+
+Return a variable of type `RWGSheet` representing a sinuous cross a shown in this diagram:
+![https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png](https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png)
+
+
+# Arguments:
+
+All arguments are keyword arguments which can be entered in any order.
+
+## Required arguments:
+- `arms::Int`: The number of arms in the structure.
+- `rc::Real > 0`: The radius of the central circle.  `rc` must be greater than or equal to `w`.
+- `b`:  n-vector (n ≥ 1) providing the outer radii of the polygonal rings. Entries must
+  be positive and strictly increasing.
+- `w`: The width of the traces in the arms.
+- `gapangle`: A scalar containing the angular width in degrees of the gap separating adjacent arms.
+- `sides::Int`:  The number (>= 4) of polygon sides for the background regular annular polygon(s) from which the 
+  ring sections are created. 
+- `ntri::Int`:  The desired total number of triangles.
+- `units`:  Length units (`mm`, `cm`, `inch`, or `mil`)
+- `s1` and `s2`:  2-vectors containing the unit cell lattice vectors.
+
+## Optional arguments:
+- `orient::Real=0.0`:  Counterclockwise rotation angle in degrees used to locate center of the first arm.
+- `w2::Real=0.0`: The trace width of the enclosing square loop "rim".  Note that `w2 > 0` is only permitted for a square unit cell.
+- `L2`: The outer dimension (i.e. the full side length) of the square "rim" present when `w2 > 0`.  The user is responsible for
+  choosing `L2` large enough that the rim does not intefere with the sinuous arms of the structure.  `L2` must be less than
+  or equal to the square unit cell dimension.  It defaults to the unit cell dimension if it is not specified.
+- `c2::Real=0.0`: The outer dimension of the small squares shown in the corners of the enclosing square loop "rim". If 
+  `c2==0` then the squares are not included, and the outer loop is a simple square loop.
+$(optional_kwargs)
+"""
+function sinuous(;
+    s1::Vector{<:Real},
+    s2::Vector{<:Real},
+    b::Vector{<:Real},
+    w::Real,
+    rc::Real,
+    arms::Int,
+    sides::Int,
+    ntri::Int,
+    units::PSSFSSLength,
+    gapangle::Real,
+    L2::Real=0.0,
+    w2::Real=0.0,
+    c2::Real=0.0,
+    orient::Real=0.0,
+    kwarg...)::RWGSheet
+
+    kwargs = Dict{Symbol,Any}(kwarg)
+    haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
+    check_optional_kw_arguments!(kwargs)
+    (nring = length(b)) > 0 || error("Empty b not permitted")
+    4 ≤ sides || throw(ArgumentError("Number of sides must be 4 or more"))
+    @testpos(ntri)
+    @testpos(b)
+    @testpos(w)
+    @testpos(arms)
+    @testpos(gapangle)
+    @testnonneg(w2)
+    @testnonneg(c2)
+    @testnonneg(L2)
+    rc ≥ w || error("rc must be ≥ w")
+    (length(s1) == length(s2) == 2) || throw(ArgumentError("s1 and s2 must have length 2"))
+    s1norm, s2norm = norm.((s1, s2))
+    squnitcell = abs(s1 ⋅ s2) / (s1norm * s2norm) < 1e-10 && s1norm ≈ s2norm
+    if w2 > 0 
+        squnitcell || error("w2 > 0 not allowed unless unit cell is square")
+        iszero(L2) && (L2 = s1norm) # Default to entire unit cell for rim
+        L2 > s1norm && error("L2 may not exceed unit cell dimension")
+    end
+    b[1] > rc + w || error("Radius of first ring b[1] must exceed rc+w")
+    for i in 1:nring - 1
+        b[i+1] - b[i] > w || error("radius increment b[n]-b[n-1] must exceed w for all rings")
+    end
+
+    ϕarm = 360 / arms - gapangle # Central angle subtended by each arm.
+    ϕarm > 0 || error("gapangle too large for $(arms) arms")
+    sidesarm = ceil(Int, ϕarm / 360 * sides) # Number of polygonal segments in outer arm arcs
+    ϕarmo2 = ϕarm / 2
+
+    for i in 1:(nring-1)
+        b[i + 1] - b[i] ≤ 0 && throw(ArgumentError("Elements of b must be strictly increasing"))
+    end
+
+    ρ₀ = 0.5 * (s1 + s2) # calculate center of polygon.
+    origin = SV2(0.0, 0.0)
+    
+    discsides = max(20, ceil(Int, sides * rc / b[end]))
+    body = _makeregpoly(rc, discsides) # Center circular region
+
+    armrot = 0.0
+    for arm in 1:arms
+        rhs = true
+        for iring in 1:nring
+            ringsides = max(2, ceil(Int, sidesarm * b[iring] / b[end]))
+            ring = _makeringarc(b[iring] - w, b[iring], ringsides, orient-ϕarmo2+armrot, orient+ϕarmo2+armrot)
+            body = LibGEOS.union(body, ring)
+            r1 = iring == 1 ? 0.0 : b[iring - 1] - w/2
+            r2 = b[iring] - w/2
+            spoke = _makespoke(r1, r2, orient - (-1)^(!rhs) * ϕarmo2 + armrot, w, rhs)
+            body = LibGEOS.union(body, spoke)
+            rhs = !rhs
+        end 
+        armrot += 360 / arms
+    end
+
+    msdata = MeshsubData()
+
+    _add_libgeos_geom!(msdata, body, origin)
+    if w2 > 0
+        arearim = c2 > 0 ? _plain_rim_area(L2, w2) : _fancy_rim_area(L2, w2, c2)
+    else
+        arearim = 0.0
+    end
+    totalarea = msdata.area + arearim
+    ntririm = ceil(Int, ntri * arearim / totalarea)
+    ntriarms = ceil(Int, ntri * msdata.area / totalarea)
+    # Set up call to meshsub
+    areatri = msdata.area / ntriarms # Desired area of a single triangle
+    ρ, e1, e2, ρhole, segmarkers = msdata.ρ, msdata.e1, msdata.e2, msdata.holes, msdata.segmarkers
+    points = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρ), (2, length(ρ))))
+    seglist = convert(Matrix{Cint}, transpose(hcat(e1, e2)))
+    if isempty(ρhole)
+        holes = Array{Cdouble}(undef, 2, 0)
+    else
+        holes = convert(Matrix{Cdouble}, reshape(reinterpret(Cdouble, ρhole), (2, length(ρhole))))
+    end
+
+    sheet = meshsub(;points, seglist, segmarkers, holes, area=areatri, ntri=ntriarms)
+    println("triangles in arms = ", size(sheet.fe, 2), ", wanted = ", ntriarms)
+
+    if w2 > 0
+        # Add rim
+        rimsheet = _squarerim(L2, w2, c2, ntririm)
+        println("triangles in rim = ", size(rimsheet.fe, 2), ", wanted = ", ntririm)
+        sheet = combine(sheet, rimsheet, ' ', Inf)
+    end
+
+    sheet.ρ .= (ρ₀ + xy for xy in sheet.ρ)
+    sheet.Zs = kwargs[:Zsheet]
+    sheet.σ = kwargs[:σ]
+    sheet.Rq = kwargs[:Rq]
+    sheet.disttype = kwargs[:disttype]
+
+    # Handle remaining optional arguments
+    sheet.fufp = kwargs[:fufp]
+    sheet.class = kwargs[:class]
+    rotate!(sheet, kwargs[:rot])
+    dxdy = SV2([kwargs[:dx], kwargs[:dy]])
+    if dxdy ≠ [0.0, 0.0]
+        sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
+    end
+
+    sheet.style = "sinuous"
+    sheet.ξη_check = w2 > 0 && L2 == s1norm
+    sheet.units = units
+    sheet.s₁ = SV2(s1)
+    sheet.s₂ = SV2(s2)
+    sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
+
+    return sheet
+
+end # function sinuous
+
+
 
 """
     _tritri(w::Real, nw::Int) -> sh::RWGSheet

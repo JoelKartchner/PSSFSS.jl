@@ -551,3 +551,81 @@ function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_
     sh.fe = fe
     return sh
 end
+
+_plain_rim_area(P, w) = 4 * (P * w - w^2)
+function _fancy_rim_area(P, w, c)
+    qarea = 3 * _plain_rim_area(c, w) # corner squares
+    qarea += 4 * w^2 # strips connecting corner squares
+    qarea += 2w * 
+        (
+        (P/2 - (2c + 3w)) + # top horiz segment
+        (c + 2w) + # vertical segment
+        c # bottom horiz segment
+        )
+    area = 4 * qarea
+    return area
+end
+
+"""
+    _squarerim(P, w, c, ntri) -> sheet::RWGSheet
+
+Create a triangulated sheet consisting of a square loop, with optional corner decorations.
+
+# Input Arguments
+- `P`: Outer side dimension of the loop.
+- `w`: Trace width of the loop.
+- `c`: If `c>0`, the outside dimension of the small squares in the corners of the large loop.
+  If `c==0` then no corner decorations are included.
+- `ntri`: The desired number of triangles.
+"""
+function _squarerim(P::Real, w::Real, c::Real, ntri::Integer)
+    @testnonneg(c)
+    @testpos(P)
+    @testpos(w)
+    @testpos(ntri)
+    Po2 = P / 2
+    plain_inside(x,y) = Po2-w ≤ abs(x) ≤ Po2 || Po2-w ≤ abs(y) ≤ Po2 
+    function fancy_inside(x,y)
+        x, y = abs.((x, y))  # (x,y) now in 1st quadrant
+        y > x && ((x,y) = (y,x)) # (x,y) now in 1st octant
+        if y ≤ Po2 - 2c - 3w
+            Po2 - w ≤ x ≤ Po2 && return true
+        elseif Po2 - 2c - 3w ≤ y ≤ Po2 - 2c - 2w
+            Po2 - c - 2w ≤ x ≤ Po2 && return true
+        elseif Po2 - 2c - 3w ≤ y && Po2 - c - 2w ≤ x ≤ Po2 - c - w && return true
+        elseif Po2 - 2c - w ≤ y ≤ Po2 - 2c
+            Po2 - c ≤ x ≤ Po2 && return true
+        elseif Po2 - 2c ≤ y ≤ Po2 - c - 2w
+            Po2 - c ≤ x ≤ Po2 - c + w && return true
+            Po2 - w ≤ x ≤ Po2 && return true
+        elseif Po2 - c - 2w ≤ y ≤ Po2 - c - w
+            Po2 - c - 3w ≤ x ≤ Po2 && return true
+        elseif Po2 - c - w ≤ y ≤ Po2 - c
+            Po2 - c ≤ x ≤ Po2 - c + w && return true
+        elseif Po2 - c ≤ y ≤ Po2 - c + w
+            x ≥ y && return true
+        elseif Po2 - c + w ≤ y
+            Po2 - w ≤ x ≤ Po2 && return true
+        end
+        return false
+    end
+
+    if iszero(c)
+        # plain square ring
+        xr = [-Po2, -Po2+w, Po2-w, Po2]
+        yr = xr
+        area = _plain_rim_area(P, w)
+        sheet = make_plaid_mesh(xr, yr, area, ntri, plain_inside)
+    else
+        # fancy rim
+        x1 = Po2 - (2c + 3w)
+        xr = [x1, x1+w, x1+2w, x1+3w,  x1+w+c, x1+2w+c, Po2-c, Po2-c+w, Po2-w, Po2]
+        xr = vcat(reverse(-1*xr), xr)
+        yr = xr
+        area = _fancy_rim_area(P, w, c)
+        sheet = make_plaid_mesh(xr, yr, area, ntri, fancy_inside)
+    end
+
+    return sheet
+end
+
