@@ -1874,7 +1874,6 @@ function sinuous(;
     if w2 > 0
         # Add rim
         rimsheet = _squarerim(L2, w2, c2, ntririm)
-        println("triangles in rim = ", size(rimsheet.fe, 2), ", wanted = ", ntririm)
         sheet = combine(sheet, rimsheet, ' ', Inf)
     end
 
