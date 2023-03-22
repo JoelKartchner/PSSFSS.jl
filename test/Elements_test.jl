@@ -103,3 +103,21 @@ end
     sheet = manji(; s1=[1.1, 0], s2=[0, 1.1], units=cm, L1, L2, L3, w, w2, a, ntri=1000)
     @test facecount(sheet) == 1024
 end
+
+@testset "Sinuous" begin
+    P = 0.55; L2 = 0.95P
+    s1 = P * [1, 0]; s2 = P * [0, 1]; sides = 45; units = cm
+    ntri = 1400; w = w2 = 0.03; g = 0.02; rc = 0.05
+    b=[0.1, 0.15, 0.2]
+    sheet = sinuous(; arms=2, b, w, rc, g, w2, L2, sides, ntri, units, s1, s2)
+    @test facecount(sheet) == 1525
+
+
+    s1 = [1, 0]; s2 = [0, 1]
+    b = [0.12, 0.2, 0.3]
+    sides = 50; ntri = 2800; units = cm
+    sheet = sinuous(; arms=4, b, w=0.03, rc=0.05, s1, s2,
+                   L2=0.95, w2=0.03, c2=0.12, g=0.04, sides, ntri, units)
+    mycount = Sys.isapple() ? 3328 : 3393
+    @test facecount(sheet) == mycount
+end
