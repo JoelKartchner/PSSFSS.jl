@@ -18,7 +18,7 @@ plot(sheet, unitcell=true, linecolor=:red)
 #-
 #md # ![](cross1.png)
 
-# A few things to note. First, as of PSSFSS version 1.3, the mesh is *unstructured*.  
+# A few things to note. First, as of PSSFSS version 1.3, the mesh is *structured*.  
 # So there are redundant triangle face-pairs that PSSFSS can exploit to reduce execution time.
 # Second, the number of triangle faces generated is only approximately equal to the requested value
 # of 600.  This can be verified by entering the Julia variable `sheet` at the 
