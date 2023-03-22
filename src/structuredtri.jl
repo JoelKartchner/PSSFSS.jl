@@ -335,7 +335,7 @@ function manji(; L1::Real, L2::Real, L3::Real, L4::Real=0.0, a::Real=0.0, w::Rea
     s1::AbstractVector{<:Real}, s2=AbstractVector{<:Real}, CCW::Bool=false, 
     ntri::Int, units::PSSFSSLength, orient::Real=0, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
-    haskey(kwargs, :fufp) || (kwargs[:fufp] = true)
+    !haskey(kwargs, :fufp) && (kwargs[:fufp] = w2 > 0)
     check_optional_kw_arguments!(kwargs)
     @testpos(L1)
     @testpos(L2)
@@ -460,7 +460,7 @@ function manji(; L1::Real, L2::Real, L3::Real, L4::Real=0.0, a::Real=0.0, w::Rea
     end
 
     sheet.style = "manji"
-    sheet.ξη_check = w2 > 0
+    sheet.ξη_check = w2 > 0 && L4 == s1norm
     sheet.units = units
     sheet.s₁ = s1
     sheet.s₂ = s2

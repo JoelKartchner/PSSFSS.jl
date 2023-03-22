@@ -1793,7 +1793,7 @@ function sinuous(;
     kwarg...)#::RWGSheet
 
     kwargs = Dict{Symbol,Any}(kwarg)
-    haskey(kwargs, :fufp) || (kwargs[:fufp] = false)
+    !haskey(kwargs, :fufp) && (kwargs[:fufp] = w2 > 0)
     check_optional_kw_arguments!(kwargs)
     (nring = length(b)) > 0 || error("Empty b not permitted")
     4 ≤ sides || throw(ArgumentError("Number of sides must be 4 or more"))
