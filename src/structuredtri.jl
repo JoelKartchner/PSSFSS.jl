@@ -317,9 +317,13 @@ All arguments are keyword arguments which can be entered in any order.
 - `a::Real=0`: A geometrical parameter defined in the above referenced diagram.  If `a` ≤ `w`
   then the center square shown in that figure will be absent, and the arms will continue uninterrupted
   to the center of the structure.
-- `w2::Real=0`: The width of the square ring border between adjacent unit cells, as shown in 
+- `w2::Real=0`: The width of the square ring border shown in 
   the above-referenced diagram.  If `w2` ≤ 0 the square ring will not be included in the triangulation.
   Note that `w2 > 0` is only allowed for square unit cells.
+- `L4`: The outer side length of the square ring border.  `0 < L4 ≤ norm(s1)`. If not specified,
+  when `w2 > 0`, the default value for `L4` is the unit cell square dimension. It is the user's 
+  responsibility to ensure that `L4` is large enough to prevent the square ring from interfering
+  with other parts of the `manji` structure.  
 - `CCW::Bool=false`: By default, the chiral structure has a clockwise sense.  If 
   `CCW` is `true`, the structure will be counter-clockwise.
 - `orient::Real=0.0`:  Counterclockwise rotation angle in degrees applied to the structure within the
@@ -327,7 +331,7 @@ All arguments are keyword arguments which can be entered in any order.
   use of a nonzero `orient` value.
 $(optional_kwargs)
 """
-function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
+function manji(; L1::Real, L2::Real, L3::Real, L4::Real=0.0, a::Real=0.0, w::Real, w2::Real=0.0,
     s1::AbstractVector{<:Real}, s2=AbstractVector{<:Real}, CCW::Bool=false, 
     ntri::Int, units::PSSFSSLength, orient::Real=0, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
@@ -336,16 +340,17 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
     @testpos(L1)
     @testpos(L2)
     @testpos(L3)
+    @testnonneg(L4)
     @testpos(w)
     @testpos(ntri)
     length(s1) == length(s2) == 2 || error("s1 and s2 must be 2-vectors")
-    w2half = w2 / 2
     if w2 > 0 
         s1norm, s2norm = norm.((s1, s2))
         squnitcell = abs(s1 ⋅ s2) / (s1norm * s2norm) < 1e-10 && s1norm ≈ s2norm
         squnitcell || error("w2 > 0 not allowed unless unit cell is square")
         P = s1norm
-        Po2 = P / 2
+        iszero(L4) && (L4 = P)
+        L4o2 = L4 / 2
     end
     a < 2L2 || error("a must be less than 2*L2")
     ρ₀ = 0.5 * (s1 + s2) # Calculate center of polygon.
@@ -366,8 +371,7 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
     end
     areat = (2*ymin)^2 + 4 * areaarm
     if w2 > 0 
-        #push!(xrequired, Po2-w2half, Po2)
-        areat += 4 * (P - w2half) * w2half
+        areat += 4 * (L2 - w2) * w2
     end
 
     function arm_inside(x::Real, y::Real)
@@ -420,10 +424,10 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
 
     if w2 > 0
         # Add outer ring
-        xr = [-Po2, -Po2+w2half, Po2-w2half, Po2]
+        xr = [-L4o2, -L4o2+w2, L4o2-w2, L4o2]
         yr = xr
-        oring_inside(x,y) = Po2-w2half ≤ abs(x) ≤ Po2 || Po2-w2half ≤ abs(y) ≤ Po2 
-        arearing = 4 * (P * w2half - w2half^2)
+        oring_inside(x,y) = L4o2-w2 ≤ abs(x) ≤ L4o2 || L4o2-w2 ≤ abs(y) ≤ L4o2 
+        arearing = 4 * (L4 * w2 - w2^2)
         ntriring = round(Int, ntri * arearing / areat)
         ring = make_plaid_mesh(xr, yr, arearing, ntriring, oring_inside)
         sheet = combine(sheet, ring, ' ', Inf)
@@ -434,7 +438,7 @@ function manji(; L1::Real, L2::Real, L3::Real, a::Real=0, w::Real, w2::Real=0,
     rotmat = SA[c -s; s c]
     for n in eachindex(sheet.ρ)
         x, y = sheet.ρ[n]
-        if w2 > 0 && (Po2 - w2half ≤ abs(x) ≤ Po2 || Po2 - w2half ≤ abs(y) ≤ Po2)
+        if w2 > 0 && (L4o2 - w2 ≤ abs(x) ≤ L4o2 || L4o2 - w2 ≤ abs(y) ≤ L4o2)
                 sheet.ρ[n] = sheet.ρ[n] + ρ₀ # Don't rotate points in outer loop
         else
             sheet.ρ[n] = rotmat * sheet.ρ[n] + ρ₀
