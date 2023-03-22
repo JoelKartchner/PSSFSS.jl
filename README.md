@@ -60,6 +60,7 @@ performed in the same analysis script using the immensely powerful Julia program
   using a structured mesh, by default, resulting in reduced execution times.  To obtain the old, 
   unstructured mesh on these elements, specify `structuredtri = false` in the constructor argument list.
 - Version 1.4: New, chiral `manji` element added.
+- Version 1.5: `sinuous` element added.
   
 ## Installation
 You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character at the command prompt):
@@ -68,7 +69,7 @@ You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first char
 (@v1.8) pkg> add PSSFSS
 ```
 
-or with `using Pkg; Pkg.add("PSSFSS")`.
+(and then hitting <Backspace> to return to the REPL) or with `import Pkg; Pkg.add("PSSFSS")`.
 
 
 ## Documentation
