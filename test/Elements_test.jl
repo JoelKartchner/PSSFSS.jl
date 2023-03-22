@@ -97,9 +97,9 @@ end
     a = 0.15
     w2 = 0.04
     sheet = manji(; s1=[1.1, 0], s2=[0, 1.1], units=cm, L1, L2, L3, w, w2, a, ntri=1000)
-    @test facecount(sheet) == 1080
+    @test facecount(sheet) == 1634
 
     L3 = 0.16
     sheet = manji(; s1=[1.1, 0], s2=[0, 1.1], units=cm, L1, L2, L3, w, w2, a, ntri=1000)
-    @test facecount(sheet) == 1024
+    @test facecount(sheet) == 1448
 end

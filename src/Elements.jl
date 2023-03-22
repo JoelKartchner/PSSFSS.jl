@@ -16,6 +16,10 @@ macro testpos(var)
     return :(all($(esc(var)) .> 0) || error($(esc(string(var))) * " must be positive!"))
 end
 
+macro testnonneg(var)
+    return :(all($(esc(var)) .≥ 0) || error($(esc(string(var))) * " must be nonnegative!"))
+end
+
 mutable struct MeshsubData
     ρ::Vector{SV2}
     e1::Vector{Cint}
