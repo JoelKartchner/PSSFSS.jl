@@ -185,7 +185,10 @@ imperfectly conducting ground plane (with `real(Zsheet)` > 0) that completely fi
 
 Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
 [`manji`](@ref), [`meander`](@ref), [`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), [`sinuous`](@ref),
-and [`splitring`](@ref).
+and [`splitring`](@ref).  A later section of this documentation, the
+[Element Gallery](https://simonp0420.github.io/PSSFSS.jl/stable/PSS_&_FSS_Element_Gallery/),
+provides several plots of each element type in "demo card" format.  Clicking on one of these cards will open a page containing
+detailed geometry plots and the code used to generate them.
 
 #### RWGSheet Classes
 The default class for a `RWGSheet` is `'J'` meaning the triangulation represents electric surface
