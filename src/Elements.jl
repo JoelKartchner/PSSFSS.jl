@@ -19,10 +19,6 @@ macro testnonneg(var)
     return :(all($(esc(var)) .≥ 0) || error($(esc(string(var))) * " must be ≥ 0!"))
 end
 
-macro testnonneg(var)
-    return :(all($(esc(var)) .≥ 0) || error($(esc(string(var))) * " must be nonnegative!"))
-end
-
 mutable struct MeshsubData
     ρ::Vector{SV2}
     e1::Vector{Cint}
@@ -1744,7 +1740,7 @@ end # function splitring
 """
     sinuous(; arms, b, w, g, sides, ntri, units, s1, s2, kwargs...) --> RWGSheet
 
-Return a variable of type `RWGSheet` representing a sinuous cross a shown in this diagram:
+Return a variable of type `RWGSheet` representing a sinuous element as shown in this diagram:
 ![https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png](https://simonp0420.github.io/PSSFSS.jl/stable/assets/sinuousdef.png)
 
 
@@ -1756,12 +1752,12 @@ All arguments are keyword arguments which can be entered in any order.
 - `arms::Int`: The number of arms in the structure.
 - `rc::Real > 0`: The radius of the central circle.  `rc` must be greater than or equal to `w`.
 - `b`:  n-vector (n ≥ 1) providing the outer radii of the polygonal rings. Entries must
-  be positive and strictly increasing.
+  be positive and strictly increasing, with the difference between adjacent rings exceeding `w`.
 - `w`: The width of the traces in the arms.
-- `g`: A scalar containing the rectangular gap width in separating adjacent arms.
+- `g`: A scalar containing the rectangular gap width separating adjacent arms.
 - `sides::Int`:  The number (>= 4) of polygon sides for the background regular annular polygon(s) from which the 
   ring sections are created. 
-- `ntri::Int`:  The desired total number of triangles.
+- `ntri::Int`:  The desired total number of triangles. This is a guide/request, the actual number will likely be different.
 - `units`:  Length units (`mm`, `cm`, `inch`, or `mil`)
 - `s1` and `s2`:  2-vectors containing the unit cell lattice vectors.
 
