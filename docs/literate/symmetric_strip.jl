@@ -110,10 +110,8 @@ tpar_exact = -rperp_exact;
 
 # Obtain PSSFSS results for electric and magnetic currents:
 outrequest = @outputs s11(v,v) s21(v,v) s11(h,h) s21(h,h)
-rperp_j, tperp_j, rpar_j, tpar_j = 
-      collect.(eachcol(extract_result(results_j, outrequest)))
-rperp_m, tperp_m, rpar_m, tpar_m = 
-      collect.(eachcol(extract_result(results_m, outrequest)));
+rperp_j, tperp_j, rpar_j, tpar_j = eachcol(extract_result(results_j, outrequest))
+rperp_m, tperp_m, rpar_m, tpar_m = eachcol(extract_result(results_m, outrequest));
 
 # Generate the comparison plots:
 angdeg(z) = rad2deg(angle(z)) # Convenience function
