@@ -2,12 +2,14 @@ module Sheets
 
 export RWGSheet, read_sheet_data, write_sheet_data, find_unique_periods
 export rotate!, translate!, combine, recttri, SV2, MV2, nodecount, facecount, edgecount
+export export_sheet, STL_ASCII, STL_BINARY
 
 using StaticArrays: SVector, MVector, SMatrix
 using ..PSSFSSLen
 using JLD2
 using LinearAlgebra: norm
 using RecipesBase
+using Printf: @printf
 
 
 const MV2 = MVector{2,Float64}
@@ -151,6 +153,57 @@ function write_sheet_data(filename::AbstractString, sheet::RWGSheet)
         file["sheet"] = sheet
     end
 end
+
+abstract type CAD_Export end
+struct STL_ASCII <: CAD_Export end
+struct STL_BINARY <: CAD_Export end
+
+export_sheet(fname::AbstractString, sheet::RWGSheet, t) = error("Unknown CAD export type $t")
+
+"""
+    export_sheet(fname::AbstractString, sheet::RWGSheet, export_type)
+
+Export an `RWGSheet` triangulation to an STL CAD file.  `export_type` may be either
+`STL_ASCII` or `STL_BINARY`.
+"""
+function export_sheet(fname::AbstractString, sheet::RWGSheet, export_type::Type{STL_ASCII})
+    open(fname, "w") do io
+        write(io, "solid vcg\n") # header
+        for i in eachcol(sheet.fv)
+            @printf(io, "  facet normal %e %e %e\n", 0.0, 0.0, 1.0)
+            write(io, "    outer loop\n")
+            for v in @view sheet.ρ[i]
+                @printf(io, "      vertex  %e %e %e\n", v[1], v[2], 0.0)
+            end
+            write(io, "    endloop\n")
+            write(io, "  endfacet\n")
+        end
+        write(io,"endsolid vcg\n")
+    end
+    return nothing
+end
+
+function export_sheet(fname::AbstractString, sheet::RWGSheet, export_type::Type{STL_BINARY})
+    open(fname, "w") do io
+          # Implementation made according to https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL
+        for i in 1:80 # write empty header
+            write(io, 0x00)
+        end
+
+        write(io, UInt32(facecount(sheet))) # write triangle count
+        n = (0.0f0, 0.0f0, 1.0f0)
+        for i in eachcol(sheet.fv)
+            foreach(j -> write(io, n[j]), 1:3)
+            for point in @view sheet.ρ[i]
+                point3 = (Float32(point[1]), Float32(point[2]), 0.0f0)
+                foreach(p -> write(io, p), point3)
+            end
+            write(io, 0x0000) # write 16bit empty bit
+        end
+    end
+    return nothing
+end
+
 
 
 """

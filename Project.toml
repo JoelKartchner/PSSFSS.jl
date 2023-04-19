@@ -54,13 +54,8 @@ Unitful = "1.7"
 julia = "1"
 
 [extras]
-Cubature = "667455a9-e2ce-5579-9412-b964f529a492"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
-SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 docs = ["Documenter", "Literate"]
-test = ["Test", "Cubature", "HCubature", "SafeTestsets"]

@@ -203,6 +203,8 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # [Element Gallery](https://simonp0420.github.io/PSSFSS.jl/stable/PSS_&_FSS_Element_Gallery/),
 # provides several plots of each element type in "demo card" format.  Clicking on one of these cards will open a page containing
 # detailed geometry plots and the code used to generate them.
+#
+# Sheet triangulations can be exported to ASCII or binary STL files using the [`export_sheet`](@ref) function.
 # 
 #-
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}

@@ -190,6 +190,8 @@ and [`splitring`](@ref).  A later section of this documentation, the
 provides several plots of each element type in "demo card" format.  Clicking on one of these cards will open a page containing
 detailed geometry plots and the code used to generate them.
 
+Sheet triangulations can be exported to ASCII or binary STL files using the [`export_sheet`](@ref) function.
+
 #### RWGSheet Classes
 The default class for a `RWGSheet` is `'J'` meaning the triangulation represents electric surface
 currents flowing on a metalized region.  Alternatively, one can specify `class='M'` in the call to

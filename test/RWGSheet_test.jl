@@ -1,6 +1,7 @@
 using PSSFSS
 import PSSFSS.Sheets: SV2, recttri, combine, read_sheet_data, write_sheet_data
 using Test
+using FileIO: load
 
 bl = SV2([0.0, 0.0])
 tr = SV2([1.0, 1.0])
@@ -85,4 +86,27 @@ end
     write_sheet_data(fname, sh3)
     sh4 = read_sheet_data(fname)
     @test sh3 == sh4
+end
+
+@testset "export_sheet" begin
+    s1 = [1, 0]; s2 = [0, 1]
+    b = [0.12, 0.2, 0.3]
+    sides = 50; ntri = 2800; units = cm
+    sheet = sinuous(; arms=4, b, w=0.03, rc=0.05, s1, s2,
+                      L2=0.95, w2=0.03, c2=0.12, g=0.04, sides, ntri, units)
+    td = tempdir()
+    asciifile = "temp_ascii.stl"
+    binaryfile= "temp_binary.stl"
+    export_sheet(joinpath(td, asciifile), sheet, STL_ASCII)
+    export_sheet(joinpath(td, binaryfile), sheet, STL_BINARY)
+    msha = load(joinpath(td, asciifile))
+    mshb = load(joinpath(td, binaryfile))
+
+    @test facecount(sheet) == length(msha) == length(mshb)
+    positions = [[Float32(v[1]), Float32(v[2]), 0.0f0] for v in vec(sheet.ρ[sheet.fv])]
+    @test mshb.position == positions
+    @test msha.position ≈ mshb.position
+    @test all(==([0,0,1]), msha.normals)
+    @test all(==([0,0,1]), mshb.normals)
+
 end
