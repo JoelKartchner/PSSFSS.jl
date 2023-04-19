@@ -5,6 +5,7 @@
 analyze
 diagstrip
 edgecount
+export_sheet
 extract_result
 extract_result_file
 facecount
