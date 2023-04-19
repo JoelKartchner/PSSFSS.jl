@@ -46,7 +46,8 @@ include("Outputs.jl")
 include("FastSweep.jl")
 
 using .Rings
-@reexport using .Sheets: Sheet, RWGSheet, read_sheet_data, nodecount, facecount, edgecount
+@reexport using .Sheets: Sheet, RWGSheet, read_sheet_data, nodecount, facecount, edgecount, 
+                         export_sheet, STL_ASCII, STL_BINARY
 using .RWG: setup_rwg, rwgbfft!, RWGData
 using .GSMs: GSM, cascade, cascade!, gsm_electric_gblock, gsm_magnetic_gblock,
     gsm_slab_interface, translate_gsm!, choose_gblocks, Gblock, pecgsm, pmcgsm
