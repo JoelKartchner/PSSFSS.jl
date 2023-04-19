@@ -158,6 +158,7 @@ abstract type CAD_Export end
 struct STL_ASCII <: CAD_Export end
 struct STL_BINARY <: CAD_Export end
 
+# The code for export_sheet was adapted from that in package MeshIO
 export_sheet(fname::AbstractString, sheet::RWGSheet, t) = error("Unknown CAD export type $t")
 
 """
