@@ -70,7 +70,7 @@ You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first char
 (@v1.8) pkg> add PSSFSS
 ```
 
-(and then hitting <Backspace> to return to the REPL) or with `import Pkg; Pkg.add("PSSFSS")`.
+(and then hitting `<Backspace>` to return to the REPL) or with `import Pkg; Pkg.add("PSSFSS")`.
 
 
 ## Documentation
