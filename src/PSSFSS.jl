@@ -26,7 +26,7 @@ using StaticArrays: StaticArrays, SVector, SArray, @SVector, MArray
 using Unitful: ustrip, @u_str
 using Logging: with_logger
 using ProgressMeter
-using SnoopPrecompile
+using PrecompileTools
 
 include("Constants.jl")
 include("Log.jl")
@@ -855,7 +855,7 @@ function report_layers_sheets(layers, sheets, junc, rwgdat, usi)
 end
 
 
-@precompile_setup begin
+@setup_workload begin
     # Putting some things in `setup` can reduce the size of the
     # precompile file and potentially make loading faster.
     outer(rot) = meander(a=3.97, b=3.97, w1=0.13, w2=0.13, h=2.53+0.13, units=mm, ntri=30, rot=rot)
@@ -878,7 +878,7 @@ end
     steering = (θ=0:1, ϕ=0)
     flist = 10
 
-    @precompile_all_calls begin
+    @compile_workload begin
         results = redirect_stdout(devnull) do
             results = analyze(strata, flist, steering; resultfile=tempname(), logfile=tempname())
         end
