@@ -81,10 +81,7 @@ function interp_path2(
             den1 = Sjkm1[j+1] - Sjkm2[j+1]
             num2 = x0j[j+k] - x0
             den2 = Sjkm1[j] - Sjkm2[j+1]
-            bigden = num1 * den2 + num2 * den1
-            for i in eachindex(bigden)
-                iszero(bigden[i]) && (bigden[i] = one(eltype(bigden)))
-            end
+            bigden = fixbigden(num1 * den2 + num2 * den1)
             Sjk[j] = Sjkm2[j+1] 
             Sjk[j] += (x0j[j+k] - x0j[j]) * den1 .* den2 ./ bigden
         end
@@ -92,6 +89,14 @@ function interp_path2(
     return (Sjk[0], norm(Sjk[0] - Sjkm1[0]), Inf)
 end
 
+fixbigden(x::T) where {T <: Number} = ifelse(iszero(x), one(T), x)
+
+function fixbigden(x::AbstractArray{T}) where {T}
+    for i in eachindex(x)
+        x[i] = ifelse(iszero(x[i]), one(T), x[i])
+    end
+    return x
+end
 
 
 """
