@@ -8,7 +8,7 @@ end
 
 examples_list = ["symmetric_strip.jl", "resistive_square_patch.jl", 
                  "cross_on_dielectric_substrate.jl", 
-                 "square_loop_absorber.jl", "splitringexample.jl", "reflectarray_example.jl",
+                 "square_loop_absorber.jl", "flexible_absorber.jl", "splitringexample.jl", "reflectarray_example.jl",
                  "band_pass_filter.jl", "cpss1.jl", "cpss_optimization.jl", "cpss2.jl", "splitring_cpss.jl"]
 
 # Adds examples as subsections to the Examples page:
