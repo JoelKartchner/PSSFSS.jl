@@ -104,11 +104,14 @@ results_m = analyze(strata, flist, steering, showprogress=false,
 nothing #hide
 ````
 
-The first 50-frequency run of `analyze` takes about 9 seconds
+Under Julia 1.8, the first 50-frequency run of `analyze` takes about 9 seconds
 for this geometry of 720 triangles on my machine, and the second
 run takes 4 seconds.  The additional time for the first run is
-due to JIT (just-in-time) compilation.
-More detailed timing information is available in the log file
+due to JIT (just-in-time) compilation.  Under Julia 1.9 the time of the
+first run is 3.8 seconds and the second run requires 3.2 seconds, a much
+smaller difference.  This is due to improvements in Julia 1.9's ability
+to save precompiled native code for later reuse.
+More detailed timing information for PSSFSS runs is available in the log file
 (which is omitted for generating this documentation).
 
 We will compare the PSSFSS results to the analytic solution:

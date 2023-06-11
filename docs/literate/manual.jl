@@ -85,12 +85,13 @@
 # ### Recommendations for Hardware and Software
 
 # [PSSFSS](https://github.com/simonp0420/PSSFSS) is 
-# written in the [Julia](https://julialang.org/) programming language.
-# You must have Julia installed to use PSSFSS.
-# For Windows users, I recommend using the 
-# [Juliaup](https://github.com/JuliaLang/juliaup#readme) app. 
-# At the time of this writing, Juliaup is supposed to be available shortly
-# to many Linux and Mac users.  If it is not yet available for your platform,
+# written in the [Julia](https://julialang.org/) programming language
+# which means that you must have Julia installed to use PSSFSS.
+# For most users, I recommend using the 
+# [Juliaup](https://github.com/JuliaLang/juliaup#readme) app to handle
+# installation and updating of Julia. 
+# At the time of this writing, Juliaup is available for Windows, Macs and
+# most Linux distributions. If it is not yet available for your platform,
 # then consider using [JILL.py](https://github.com/johnnychen94/jill.py) to 
 # manage the installation.
 
@@ -105,7 +106,7 @@
 # 64 GBytes (Linux) RAM, with multi-threading enabled via the `-t auto` Julia startup option. 
 # **Multi-threading must be explicitly enabled in Julia.**  Please see 
 # [this section](https://docs.julialang.org/en/v1/manual/multi-threading/#man-multithreading) of the Julia
-# documentation for details.  On Windows I have experienced significant speedups by using the 
+# documentation for details.  On Windows I have (for some cases) experienced significant speedups by using the 
 # [MKL](https://github.com/JuliaLinearAlgebra/MKL.jl) package.  On Linux, I find that the `MKL` package 
 # sometimes actually results in slower execution. YMMV.
 
@@ -116,9 +117,10 @@
 # [julia-vscode](https://github.com/julia-vscode/julia-vscode) extension.
 # Whatever your choice of editor, installation and 
 # use of the [JuliaMono](https://juliamono.netlify.app) fonts is 
-# highly recommended. JuliaMono exploits Julia's support for Unicode fonts and 
-# allows one to use standard engineering/mathematical symbols for 
-# electromagnetic quantities directly in Julia scripts; symbols such as ϵᵣ, μᵣ, θ, ϕ, and tanδ.
+# highly recommended. JuliaMono has extensive coverage of Unicode mathematical symbols. With JuliaMono
+# installed on your system, Julia's support for Unicode fonts allows one to use standard 
+# engineering/mathematical symbols for electromagnetic quantities directly in Julia scripts; 
+# symbols such as ϵᵣ, μᵣ, θ, ϕ, and tanδ.
 
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "subslide"}}
@@ -126,7 +128,7 @@
 # [IJulia](https://github.com/JuliaLang/IJulia.jl) package for further details.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "fragment"}}
-# It is strongly suggested that PSSFSS users also install the [Plots](https://github.com/JuliaPlots/Plots.jl)
+# It is almost essential that PSSFSS users also install the [Plots](https://github.com/JuliaPlots/Plots.jl)
 # package.  This will allow easy visualization of the FSS/PSS element triangulations produced by PSSFSS, in 
 # addition to providing a convenient means to plot analysis results.
 
@@ -159,7 +161,7 @@
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "fragment"}}
 # 7. Plot or export extracted outputs.
 
-# We dissect these steps below...
+# Each of these steps is examined in detail below...
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ## Strata 
@@ -174,11 +176,13 @@ Layer(ϵᵣ=2.2, tanδ=0.003, width=20mil) # Available length units include mil,
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "fragment"}}
 # Layers and sheets can be assigned to Julia variables to avoid repetitive typing:
 duroid = Layer(ϵᵣ=2.2, tanδ=0.003, width=20mil)
-foam = Layer(epsr=1.05, width=0.25inch, tandel=0.001) # You can stick to ASCII if you prefer
+foam = Layer(width=0.25inch, tandel=0.001, epsr=1.05) # You can stick to ASCII if you prefer
+# As you can see from the above examples, the keywords can be passed in any order, and there
+# are pure ASCII alternatives to the Unicode symbols used for some keywords.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ### RWGSheet
-# Ac `RWGSheet` object represents the triangulation of an FSS/PSS element, and is
+# Ac `RWGSheet` object represents the unit cell triangulation of an FSS/PSS element, and is
 # created by calling a constructor function for a particular style of sheet:
 
 #nb %% A slide [code] {"slideshow": {"slide_type": "fragment"}}
@@ -189,12 +193,13 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # of dimensions 0.5 cm in the x and y directions, lying in a square unit cell of dimension
 # 1 cm.  The triangulation uses 10 edges in the x and y directions (`Nx` and `Ny`).
 #
-# You can get documentation for [`rectstrip`](@ref) by typing `?rectstrip` at the Julia prompt.
+# As with all Julia functions, you can get documentation for [`rectstrip`](@ref) by typing `?rectstrip` at the Julia prompt.
 # [`rectstrip`](@ref) can be used to model dipoles, strip grids, ground planes, rectangular reflectarray elements, and rectangular
 # patch elements.
 # A call to [`rectstrip`](@ref) generates a rectangular strip, which by default (i.e. when `rot=0`) is oriented with its sides parallel 
 # to the x and y axes.  It should be noted that it is permissible for either or both strip side lengths to be equal to
-# the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`).  Currently, this is the only way to model an
+# the corresponding unit cell dimension (i.e. `Lx==Px` and/or `Ly==Py`). In this case currents are allowed to flow
+# continuously across the unit cell boundaries.   Currently, this is the only way to model an
 # imperfectly conducting ground plane (with `real(Zsheet)` > 0) that completely fills the unit cell.
 #
 # Other FSS/PSS element types: [`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref),
@@ -230,6 +235,11 @@ patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 # impedance, using the so-called Gradient Model, as described in D. N. Grujić, “Simple and Accurate Approximation of 
 # Rough Conductor Surface Impedance,” IEEE Trans. Microwave Theory Tech., vol. 70, no. 4, pp. 2053-2059, April 2022. 
 # Obviously, only one of `Zsheet` and `sigma` may be specified as keyword arguments for a given `RWGSheet`.
+
+# #### Perfectly Conducting Walls
+# For modeling a perfectly electric conducting, unperforated ground plane (E-wall) 
+# there is the [`pecsheet`](@ref) function.  Similary,
+# one can use the [`pmcsheet`](@ref) function to model an H-wall.
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ### Plotting Sheets
@@ -323,7 +333,7 @@ steer = (phi=[0,90], theta=[0,15,30,45]) # Can use ASCII names if desired
 #  V(\vec{r} + m\vec{s}_1 + n\vec{s}_2) = e^{-j(m\psi_1 + n\psi_2)} V(\vec{r})
 # ```
 # for all integers ``m`` and ``n``, where ``\vec{s}_1`` and ``\vec{s}_2`` 
-# are the *lattice vectors* of the 2D periodic structure, and
+# are the *primitive lattice vectors* of the 2D periodic structure, and
 # ``\psi_1`` and ``\psi_2`` 
 # are the incremental phase shifts (a pair of real numbers).  Specify
 # the phasings in degrees as a named tuple as in either of the following two examples:
