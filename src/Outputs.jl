@@ -75,17 +75,17 @@ Chapter 8 of the theory documentation.
 end
 
 
-@inline function getsijmn(i::Int, j::Int, m::Integer, n, o::Result)
-    (view(o.gsm[i, j], 1:2, 1:2)*sourcemat(j, n, o))[m, Int(n)]
+@inline function getsijmn(i::Int, j::Int, m::Integer, n::Union{HorV,RorL}, o::Result)
+    (view(o.gsm[i, j], 1:2, 1:2) * sourcemat(j, n, o))[m, Int(n)]
 end
 
 
-@inline function getsijmn(i::Int, j::Int, m, n::Integer, o::Result)
-    (obsmat(i, m, o)*view(o.gsm[i, j], 1:2, 1:2))[Int(m), n]
+@inline function getsijmn(i::Int, j::Int, m::Union{HorV,RorL}, n::Integer, o::Result)
+    (obsmat(i, m, o) * view(o.gsm[i, j], 1:2, 1:2))[Int(m), n]
 end
 
-@inline function getsijmn(i::Int, j::Int, m, n, o::Result)
-    (obsmat(i, m, o)*view(o.gsm[i, j], 1:2, 1:2)*sourcemat(j, n, o))[Int(m), Int(n)]
+@inline function getsijmn(i::Int, j::Int, m::Union{HorV,RorL}, n::Union{HorV,RorL}, o::Result)
+    (obsmat(i, m, o) * view(o.gsm[i, j], 1:2, 1:2) * sourcemat(j, n, o))[Int(m), Int(n)]
 end
 
 
