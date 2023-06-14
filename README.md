@@ -80,7 +80,9 @@ You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first char
   [here](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/notebooks)
 
 ## Citing PSSFSS
-If you use PSSFSS for a scientific publication, please cite the [ACES paper](https://ieeexplore.ieee.org/abstract/document/10114749) in the following way:
+If you use PSSFSS for a scientific publication, please cite the 
+[ACES paper](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/TheoryDocs/simon_pssfss_2023_aces_conf.pdf)
+in the following way:
 
 > P. S. Simon, "PSSFSS-An Open-Source Code for Analysis of Polarization and Frequency Selective Surfaces," 2023 International Applied Computational Electromagnetics Society Symposium (ACES), Monterey/Seaside, CA, USA, 2023, pp. 1-2, doi: 10.23919/ACES57841.2023.10114749.
 
