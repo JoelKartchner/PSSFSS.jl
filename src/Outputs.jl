@@ -457,7 +457,7 @@ Tuple returned by the `@outputs` macro.
 
 ### Example
     ops = @outputs FGHz S11DB(H,H) S11ANG(H,H)
-    data = extract_result_file("pssfss.res", ops)
+    data = extract_result("pssfss.res", ops)
 """
 extract_result(fname::AbstractString, ops::Tuple) = extract_result_file(fname, ops)
 
