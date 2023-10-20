@@ -1,11 +1,11 @@
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/examples.jl"
+EditURL = "../literate/examples.jl"
 ```
 
 # [PSSFSS](https://github.com/simonp0420/PSSFSS) Examples
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/symmetric_strip.jl"
+EditURL = "symmetric_strip.jl"
 ```
 
 ## Symmetric Strip Grating
@@ -254,7 +254,7 @@ in terms of bandwidth, as the ratio of maximum to minimum frequency here
 is ``0.98/0.02 = 49:1``
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/resistive_square_patch.jl"
+EditURL = "resistive_square_patch.jl"
 ```
 
 ## Resistive Square Patch
@@ -323,7 +323,7 @@ savefig("resistive2.png"); nothing  # hide
 PSSFSS results are indistinguishable from those reported in the cited paper.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cross_on_dielectric_substrate.jl"
+EditURL = "cross_on_dielectric_substrate.jl"
 ```
 
 ## Cross on Dielectric Substrate
@@ -417,7 +417,7 @@ accounting for the fact that the reference results are obtained by digitizing a
 scanned figure.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/square_loop_absorber.jl"
+EditURL = "square_loop_absorber.jl"
 ```
 
 ## Square Loop Absorber
@@ -526,7 +526,7 @@ using a slightly different value of `Rs = 37` for this ring results in nearly pe
 with the digitized results.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/flexible_absorber.jl"
+EditURL = "flexible_absorber.jl"
 ```
 
 ## Flexible Absorber
@@ -589,7 +589,7 @@ This PSSFSS run takes about 44 seconds on my machine for 196 frequencies coverin
 PSSFSS results agree well with those of the paper.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/splitringexample.jl"
+EditURL = "splitringexample.jl"
 ```
 
 ## Split-Ring Resonator
@@ -653,7 +653,7 @@ results, possibly because the authors may have included the finite conductivity 
 This detail was not reported in the paper.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/reflectarray_example.jl"
+EditURL = "reflectarray_example.jl"
 ```
 
 ## Reflectarray Element
@@ -852,7 +852,7 @@ both the final requested value of `ntri` and actual number of triangle faces gen
 `L2` value.  The final cases with `ntri=3416` required about 21 seconds each of execution time.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/band_pass_filter.jl"
+EditURL = "band_pass_filter.jl"
 ```
 
 ## Loaded Cross Band Pass Filter
@@ -938,7 +938,7 @@ so the savings from reusing the same sheet definition can be substantial.
 Good agreement is obtained versus CST over a large dynamic range.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss1.jl"
+EditURL = "cpss1.jl"
 ```
 
 ## Meanderline-Based CPSS
@@ -1174,7 +1174,7 @@ required 10 hours for CST and 19 hours for COMSOL on large engineering workstati
 seconds for PSSFSS on my desktop machine.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss_optimization.jl"
+EditURL = "cpss_optimization.jl"
 ```
 
 ## CPSS Optimization
@@ -1341,7 +1341,7 @@ As hoped for, the performance meets the more stringent design goals over a broad
 Sjöberg and Ericsson design, presumably because of the greater design flexibility allowed here.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/cpss2.jl"
+EditURL = "cpss2.jl"
 ```
 
 ## Meanderline/Strip-Based CPSS
@@ -1542,7 +1542,7 @@ Differences between the PSSFSS and CST predictions are attributed to the fact th
 metalization thickness of 18 μm was included in the CST model but cannot be accommodated by PSSFSS.
 
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/splitring_cpss.jl"
+EditURL = "splitring_cpss.jl"
 ```
 
 ## Split Ring-Based CPSS

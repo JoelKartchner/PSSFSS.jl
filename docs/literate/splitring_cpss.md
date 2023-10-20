@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/splitring_cpss.jl"
+EditURL = "splitring_cpss.jl"
 ```
 
 ## Split Ring-Based CPSS

@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/splitringexample.jl"
+EditURL = "splitringexample.jl"
 ```
 
 ## Split-Ring Resonator

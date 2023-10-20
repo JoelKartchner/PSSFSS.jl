@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/square_loop_absorber.jl"
+EditURL = "square_loop_absorber.jl"
 ```
 
 ## Square Loop Absorber

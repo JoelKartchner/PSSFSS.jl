@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/symmetric_strip.jl"
+EditURL = "symmetric_strip.jl"
 ```
 
 ## Symmetric Strip Grating

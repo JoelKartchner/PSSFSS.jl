@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/cpss_optimization.jl"
+EditURL = "cpss_optimization.jl"
 ```
 
 ## CPSS Optimization

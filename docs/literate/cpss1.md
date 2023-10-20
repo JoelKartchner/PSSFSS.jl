@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/cpss1.jl"
+EditURL = "cpss1.jl"
 ```
 
 ## Meanderline-Based CPSS

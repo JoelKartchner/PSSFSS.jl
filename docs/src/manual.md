@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "https://github.com/simonp0420/PSSFSS.jl/tree/main/docs/literate/manual.jl"
+EditURL = "../literate/manual.jl"
 ```
 
 # [PSSFSS](https://github.com/simonp0420/PSSFSS) User Manual

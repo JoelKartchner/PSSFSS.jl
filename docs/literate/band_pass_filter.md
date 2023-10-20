@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/band_pass_filter.jl"
+EditURL = "band_pass_filter.jl"
 ```
 
 ## Loaded Cross Band Pass Filter

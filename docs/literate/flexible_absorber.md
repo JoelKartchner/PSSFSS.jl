@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/flexible_absorber.jl"
+EditURL = "flexible_absorber.jl"
 ```
 
 ## Flexible Absorber

@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/resistive_square_patch.jl"
+EditURL = "resistive_square_patch.jl"
 ```
 
 ## Resistive Square Patch
