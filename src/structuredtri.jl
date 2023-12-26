@@ -335,7 +335,7 @@ function manji(; L1::Real, L2::Real, L3::Real, L4::Real=0.0, a::Real=0.0, w::Rea
     s1::AbstractVector{<:Real}, s2=AbstractVector{<:Real}, CCW::Bool=false, 
     ntri::Int, units::PSSFSSLength, orient::Real=0, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
-    !haskey(kwargs, :fufp) && (kwargs[:fufp] = w2 > 0)
+    haskey(kwargs, :fufp) || (kwargs[:fufp] = true)
     check_optional_kw_arguments!(kwargs)
     @testpos(L1)
     @testpos(L2)
