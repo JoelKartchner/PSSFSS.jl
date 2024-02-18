@@ -4,7 +4,7 @@ export Ring
 """
     Ring(r::Integer)
 
-An iterator of (m,n) pairs comprising the r'th summation ring.
+An iterator of (m,n) pairs comprising the r'th summation ring, r ∈ {0, 1, 2, ...}.
 """
 struct Ring
     r::Int

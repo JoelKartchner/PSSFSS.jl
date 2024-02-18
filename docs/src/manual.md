@@ -217,7 +217,7 @@ either of the keywords `sigma` or `σ` in units of [S/m], while RMS surface roug
 distribution function for roughness is specified by the keyword `disttype` which can be either `:normal` (the
 default value, suitable for the so-called "oxide side" of a planar conductor, or `:rayleigh` (suitable for the
 "foil side" of the conductor, i.e. the side bonded to the dielectric substrate). Together, the conductivity,
-surface conductance, and distribution type are used by PSSFSS internally to compute a frequency-dependent surface
+surface roughness, and roughness distribution type are used by PSSFSS internally to compute a frequency-dependent surface
 impedance, using the so-called Gradient Model, as described in D. N. Grujić, “Simple and Accurate Approximation of
 Rough Conductor Surface Impedance,” IEEE Trans. Microwave Theory Tech., vol. 70, no. 4, pp. 2053-2059, April 2022.
 Obviously, only one of `Zsheet` and `sigma` may be specified as keyword arguments for a given `RWGSheet`.

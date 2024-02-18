@@ -120,3 +120,34 @@ end
                    L2=0.95, w2=0.03, c2=0.12, g=0.04, sides, ntri, units)
     @test facecount(sheet) > 3300 # Different on Apple, and depends on Julia version
 end
+
+@testset "ManjiFull" begin
+    #=
+    Angular Selective Surface 
+    From paper Zhenting Chen, Chao Du, Jie Liu, Di Zhou, and Zhongxiang Shen, 
+    "Design Methodology of Dual-Polarized Angle-Selective Surface Based 
+    on Three-Layer Frequency-Selective Surfaces", IEEE Trans. Antennas Propagat., Vol. 71, No. 11, November 2023, 
+    pp. 8704--8713.
+    =#
+    smat_true, smat_false = map([true, false]) do fufp
+        P_paper = 50 # Unit cell dimension
+        L_paper = 115.0
+        L1_paper = 24.7
+        L2_paper = 42.0
+        L3_paper = 21.5
+        L4_paper = 45.0
+        W1_paper = 7.4
+        W2_paper = 3.0
+        kws = (; units = mm, class = 'J', w2 = 0.0, a = 0.0, s1 = [P_paper, 0], s2 = [0, P_paper], fufp, ntri=10)
+        outer = manji(; L3=W1_paper, w=W1_paper, L1=L1_paper, L2=L2_paper/2-W1_paper, kws...)
+        strata = [Layer(), outer, Layer()]
+        flist = 3.0652
+        steering = (θ=0, ϕ=0)
+        result = analyze(strata, flist, steering; showprogress=false, logfile=devnull, resultfile=devnull)
+        gsm = result[1].gsm
+        smat = [gsm[1,1] gsm[1,2]; gsm[2,1] gsm[2,2]]
+        return smat
+    end
+    @test norm(smat_true - smat_false) < 1e-12
+
+end
