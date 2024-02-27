@@ -10,7 +10,7 @@ cp(benchpath, script)
 commit = get(ENV, "BASELINE_COMMIT", "main")
 
 # start
-j = judge(pkgpath, commit, f=mean, retune=true, script=script)
+j = judge(pkgpath, commit, f=minimum, retune=true, script=script)
 
 println("BASELINE ", commit)
 println(j.baseline_results)
