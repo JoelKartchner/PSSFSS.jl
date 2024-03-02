@@ -107,6 +107,26 @@ const SUITE = @benchmarkset "PSSFSS" begin
 
     end
 
-
+    @benchmarkset "Cascade" begin
+        n1, n2, n3, n4 = 20, 100, 1000, 2000
+        a11 = 0.3 * rand(ComplexF64, n1, n1)
+        a12 = rand(ComplexF64, n1, n2)
+        a22 = 0.3 * rand(ComplexF64, n2, n2)
+        a = GSM(a11, a12, transpose(a12), a22)
+        b11 = 0.3 * rand(ComplexF64, n2, n2)
+        b12 = rand(ComplexF64, n2, n3)
+        b22 = 0.3 * rand(ComplexF64, n3, n3)
+        b = GSM(b11, b12, transpose(b12), b22)
+        ab = cascade(a,b)
+        c11 = 0.3 * rand(ComplexF64, n3, n3)
+        c12 = rand(ComplexF64, n3, n4)
+        c22 = 0.3 * rand(ComplexF64, n4, n4)
+        c = GSM(c11, c12, transpose(c12), c22)
+        bc = cascade(b,c)
+        @case "a ⋆ b" cascade($a, $b);
+        @case "b ⋆ c" cascade($b, $c);
+        @case "(a ⋆ b) ⋆ c" cascade($ab, $c);
+        @case "a ⋆ (b ⋆ c)" cascade($a, $bc);
+    end
 end
 
