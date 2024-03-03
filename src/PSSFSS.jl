@@ -29,7 +29,7 @@ using ProgressMeter
 using PrecompileTools
 
 include("Constants.jl")
-include("ZhatCross.jl")
+include("UnitVectors.jl")
 include("Log.jl")
 include("PSSFSSLen.jl")
 include("Rings.jl")
@@ -46,7 +46,7 @@ include("Modes.jl")
 include("Outputs.jl")
 include("FastSweep.jl")
 
-using .ZhatCross: ẑ
+using .UnitVectors: ẑ
 using .Rings
 @reexport using .Sheets: Sheet, RWGSheet, read_sheet_data, nodecount, facecount, edgecount, 
                          export_sheet, STL_ASCII, STL_BINARY

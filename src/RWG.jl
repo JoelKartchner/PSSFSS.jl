@@ -19,7 +19,7 @@ export RWGData, setup_rwg, edge_current_unit_vector, rwgbfft!
 using ..Sheets: RWGSheet, SV2
 using StaticArrays: SVector, MVector, SArray, @SVector
 using LinearAlgebra: ⋅, norm, ×
-using ..ZhatCross: ẑ
+using ..UnitVectors: ẑ
 using NearestNeighbors: KDTree, inrange
 using OffsetArrays
 using Statistics: mean

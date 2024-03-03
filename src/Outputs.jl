@@ -2,7 +2,7 @@ module Outputs
 export @outputs, Result, append_result_data, read_result_file, extract_result_file, extract_result
 
 using LinearAlgebra: ⋅, norm, ×
-using ..ZhatCross: ẑ
+using ..UnitVectors: ẑ
 using ..Constants: c₀, twopi
 using ..GSMs: GSM
 using ..Layers: TEorTM, TE, TM

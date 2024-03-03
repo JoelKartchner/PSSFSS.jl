@@ -11,7 +11,7 @@ using Printf: @sprintf
 import LibGEOS # difference, readgeom, Polygon, MultiPolygon
 import GeoInterface # nhole, ngeom, coordinates, getexterior, gethole
 import PolygonOps
-using ..ZhatCross: ẑ
+using ..UnitVectors: ẑ
 
 macro testpos(var)
     return :(all($(esc(var)) .> 0) || error($(esc(string(var))) * " must be positive!"))

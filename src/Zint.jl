@@ -6,7 +6,7 @@ using ..Layers: Layer
 using ..RWG: RWGData
 using ..PGF: jksums, jkringmax
 using LinearAlgebra: ⋅, norm, ×
-using ..ZhatCross: ẑ
+using ..UnitVectors: ẑ
 using Statistics: mean
 using OhMyThreads: @tasks, @set, DynamicScheduler, StaticScheduler
 

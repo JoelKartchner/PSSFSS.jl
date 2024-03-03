@@ -4,7 +4,7 @@ using Unitful: ustrip, @u_str
 using LinearAlgebra: norm, ⋅, ×
 using StaticArrays: SVector
 using ..Constants: twopi, η₀, dbmin
-using ..ZhatCross: ẑ
+using ..UnitVectors: ẑ
 using ..Layers: Layer, TEorTM, TE, TM
 using ..Sheets: RWGSheet, find_unique_periods
 using ..GSMs: Gblock
