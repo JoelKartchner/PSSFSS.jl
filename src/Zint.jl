@@ -63,13 +63,23 @@ function filljk!(metal::RWGSheet, rwgdat::RWGData, closed::Bool)
     nface = size(metal.fe, 2) # Number of faces in triangulated sheet.
     nufp = rwgdat.nufp # Number of unique face pairs
     J = nufp == length(metal.J) ? metal.J : zeros(ComplexF64, nufp)
+    J .= zero(ComplexF64)
     J_ξ = nufp == length(metal.J_ξ) ? metal.J_ξ : zeros(ComplexF64, nufp)
+    J_ξ .= zero(ComplexF64)
     J_η = nufp == length(metal.J_η) ? metal.J_η : zeros(ComplexF64, nufp)
+    J_η .= zero(ComplexF64)
     K = nufp == length(metal.K) ? metal.K : zeros(ComplexF64, nufp)
+    K .= zero(ComplexF64)
     K_ξ = nufp == length(metal.K_ξ) ? metal.K_ξ : zeros(ComplexF64, nufp)
+    K_ξ .= zero(ComplexF64)
     K_η = nufp == length(metal.K_η) ? metal.K_η : zeros(ComplexF64, nufp)
+    K_η .= zero(ComplexF64)
     ρ_r = length(metal.ρ_r) == nufp ? metal.ρ_r : zeros(typeof(SV2(0.0, 0.0)), nufp)
+    for k in eachindex(ρ_r)
+        ρ_r[k] = SV2(0.0,0.0)
+    end
     rinv = length(metal.rinv) == nufp ? metal.rinv : zeros(Float64, nufp)
+    rinv .= zero(eltype(rinv))
 
     i2s = CartesianIndices((nface, nface))
 
