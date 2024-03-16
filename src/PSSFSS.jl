@@ -127,7 +127,7 @@ vector can be passed as an input to the [`extract_result`](@refs) function to ob
 performance parameters that are supported by the [`@outputs`](@refs) macro.
 """
 function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log",
-    resultfile="pssfss.res", showprogress::Bool=true, fastsweep::Bool=true)
+    resultfile="pssfss.res", showprogress::Bool=true, fastsweep::Bool=length(flist)≥6)
     tstart = time()
     layers = Layer[deepcopy(s) for s in strata if s isa Layer]
     sheets = RWGSheet[s for s in strata if s isa Sheet]
