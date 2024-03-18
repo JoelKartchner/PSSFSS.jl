@@ -16,7 +16,7 @@ using PSSFSS.PGF: c3_calc, d3_calc
 using PSSFSS.Zint: zint, filljk!, vtxcrd
 using PSSFSS.PGF: electric_modal_sum_funcs, magnetic_modal_sum_funcs
 using PSSFSS.Log: @logfile
-using OhMyThreads: @tasks, @set, @init, DynamicScheduler, StaticScheduler
+using OhMyThreads: @tasks, @set, DynamicScheduler, StaticScheduler
 
 const next = (2, 3, 1)
 const prev = (3, 1, 2)
