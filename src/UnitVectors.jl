@@ -9,8 +9,8 @@ const x̂ = UnitVector{1}()
 const ŷ = UnitVector{2}()
 const ẑ = UnitVector{3}()
 
-dot(::UnitVector{T}, v::AbstractVector) where {T} = v[t]
-dot(v::AbstractVector, ::UnitVector{T}) where {T} = v[t]
+dot(::UnitVector{T}, v::AbstractVector) where {T} = v[T]
+dot(v::AbstractVector, ::UnitVector{T}) where {T} = conj(v[T])
 
 
 ×(::UnitVector{3}, t::SVector{2,T}) where {T} = SVector{2,T}(-t[2], t[1])
