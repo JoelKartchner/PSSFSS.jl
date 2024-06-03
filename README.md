@@ -82,24 +82,26 @@ You can obtain PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first char
   [here](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/notebooks)
 
 ## Citing PSSFSS
-If you use PSSFSS for a scientific publication, please cite the 
-[ACES paper](https://github.com/simonp0420/PSSFSS.jl/blob/main/docs/TheoryDocs/simon_pssfss_2023_aces_conf.pdf)
-in the following way:
+If you use PSSFSS for a scientific publication, please cite the 2024
+[ACES Journal paper](https://journals.riverpublishers.com/index.php/ACES/article/view/22443) in the following way:
 
-> P. S. Simon, "PSSFSS-An Open-Source Code for Analysis of Polarization and Frequency Selective Surfaces," 2023 International Applied Computational Electromagnetics Society Symposium (ACES), Monterey/Seaside, CA, USA, 2023, pp. 1-2, doi: 10.23919/ACES57841.2023.10114749.
+> P. S. Simon, “PSSFSS—An Open-source Code for Analysis of Polarization and Frequency Selective Surfaces”, ACES Journal, vol. 39, no. 02, pp. 139–148, Feb. 2024.
 
 BibTeX entry:
 
 ```bib
-@INPROCEEDINGS{PSSFSS:2023,
+@article{simo:24,
+  title={{PSSFSS}---An Open-source Code for Analysis of Polarization and Frequency Selective Surfaces},
+  volume={39},
+  url={https://journals.riverpublishers.com/index.php/ACES/article/view/22443},
+  DOI={https://doi.org/10.13052/2024.ACES.J.390207},
+  number={02},
+  journal={The Applied Computational Electromagnetics Society Journal (ACES)},
   author={Simon, Peter S.},
-  booktitle={2023 International Applied Computational Electromagnetics Society Symposium (ACES)}, 
-  title={PSSFSS-An Open-Source Code for Analysis of Polarization and Frequency Selective Surfaces}, 
-  year={2023},
-  volume={},
-  number={},
-  pages={1-2},
-  doi={10.23919/ACES57841.2023.10114749}}
+  year={2024},
+  month={feb},
+  pages={139--148}
+}
 ```
 
 ## Community
