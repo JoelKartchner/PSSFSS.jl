@@ -5,8 +5,8 @@
 # ---
 
 # This example uses the `rot` keyword and should be compared to the  
-# [`diagstrip` example](../diagstrip/demo_diagstrip1.html) and the 
-# [`rectstrip` example](./demo_rect5.html) that uses the `orient` keyword.
+# `diagstrip` example and the 
+# `rectstrip` example that uses the `orient` keyword.
 
 
 using Plots, PSSFSS
