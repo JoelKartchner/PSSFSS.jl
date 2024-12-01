@@ -5,8 +5,8 @@
 # ---
 
 # This example uses the `orient` keyword and should be compared to the  
-# [`diagstrip` example](../diagstrip/demo_diagstrip1.html) and the 
-# [`rectstrip` example](./demo_rect4.html) that uses the `rot` keyword.
+# `diagstrip` example and the 
+# `rectstrip` example that uses the `rot` keyword.
 
 using Plots, PSSFSS
 strip = rectstrip(Nx=10, Ny=2, Px=1, Py=1, Lx=0.5, Ly=0.1, orient=45, units=cm)
