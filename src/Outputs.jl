@@ -1,5 +1,5 @@
 module Outputs
-export @outputs, Result, append_result_data, read_result_file, extract_result_file, extract_result
+export @outputs, Result, append_result_data, read_result_file, extract_result_file, extract_result, res2tep
 
 using LinearAlgebra: ⋅, norm, ×
 using ..UnitVectors: ẑ
@@ -11,6 +11,7 @@ using Unitful
 using StaticArrays: @SVector, @SMatrix, SMatrix
 using JLD2: JLD2, jldopen
 using FileIO: load
+using TicraUtilities: TicraUtilities
 
 @enum HorV H = 1 V = 2
 @enum RorL R = 1 L = 2
@@ -461,5 +462,105 @@ Tuple returned by the `@outputs` macro.
     data = extract_result("pssfss.res", ops)
 """
 extract_result(fname::AbstractString, ops::Tuple) = extract_result_file(fname, ops)
+
+
+"""
+    _check_results_for_tep!(results::Vector{Result})
+
+Verify that the input vector of `Result` objects is suitable for conversion to a `TEPperiodic` object.
+
+The following checks are performed:
+1. Ensure that incidence angles rather than incremental phasings are used.
+1. If more than one ϕ value is used, ensure that all ϕ values in the range `0:Δϕ:(360-Δϕ)` are present.
+1. Ensure that the complete Cartesian product of angles and frequencies is present.
+
+Finally, the vector is sorted into the appropriate order for storage into a `TEPperiodic` object.
+"""
+function _check_results_for_tep!(results::Vector{Result})
+    kys = keys(results[1].steering)
+    kys != (:θ, :ϕ) && error("results do not use θ and ϕ for steering")
+    # Rearrange into proper order for storage in a TEPperiodic:
+    sort!(results, by = r -> (r.FGHz, r.steering.ϕ, r.steering.θ)) 
+    freqs = unique!([r.FGHz for r in results])
+    thetas = unique!([r.steering.θ for r in results])
+    phis = unique!([r.steering.ϕ for r in results])
+    nf = length(freqs)
+    nt = length(thetas)
+    np = length(phis)
+    dphi = phis[2] - phis[1]
+    phi_range = 0:dphi:(360-dphi)
+    phis == phi_range || error("ϕ values must be equivalent to 0:Δϕ:(360-Δϕ)")
+    dtheta = thetas[2] - thetas[1]
+    theta_range = 0:dtheta:last(thetas)
+    thetas == theta_range || error("θ values must be equivalent to 0:Δθ:(360-Δθ)")
+    freqs_vec = [f*u"GHz" for f in freqs]
+    # Verify that full cartesian product of angles and frequencies is present:
+    i = 0
+    for f in freqs, p in phis, t in thetas
+        i += 1 
+        r = results[i]
+        if (r.steering.ϕ != p) || (r.steering.θ != t) || (r.FGHz != f)
+            error("Missing case (FGHz, ϕ, θ) = ($f, $p, $t) in input vector")
+        end
+    end
+    return (theta_range, phi_range, freqs_vec)
+end # function
+    
+"""
+    res2tep(results::Vector{Result}; name="tep", class="res2tep") -> t::TEPperiodic
+    res2tep(resultfile::AbstractString; name="tep", class="res2tep") -> t::TEPperiodic
+    res2tep(results::Vector{Result}, tepfile::AbstractString; name="tep", class="res2tep") -> t::TEPperiodic
+    res2tep(resultfile::AbstractString, tepfile::AbstractString; name="tep", class="res2tep") -> t::TEPperiodic
+
+Convert a vector of `Result` elements into a `TEPperiodic` object, as defined in the 
+[TicraUtilities](https://github.com/simonp0420/TicraUtilities.jl) package.  If positional argument
+`tepfile` is provided, the `TEPperiodic` object will be saved to this file name as a TICRA-compatible
+TEP (tabulated electrical properties) file. If the first positional argument is an `AbstractString`, it is 
+assumed to be the name of a PSSFSS results file, from which the vector of results will be read.
+The keyword arguments are used to provide values for the same-named fields in the TEP structure.
+
+`results` (or `resultfile`) must contain the results of a PSSFSS analysis sweep over θ and ϕ (and possibly frequency) such that
+1. Incidence angles θ and ϕ rather than incremental phasings ψ₁ and ψ₂ were used.
+1. If more than one ϕ value is used, then all ϕ values in the range `0:Δϕ:(360-Δϕ)` must be present.
+1. The entire 3-dimensional Cartesian product of all angles and frequencies must be present.
+"""
+function res2tep(results::Vector{Result}, tepfile::AbstractString; name="tep", class="res2tep")
+    t = res2tep(results; name, class)
+    TicraUtilities.write_tepfile(tepfile, t)
+    return t
+end
+
+function res2tep(resultfile::AbstractString, tepfile::AbstractString; name="tep", class="res2tep")
+    results = read_result_file(resultfile)
+    t = res2tep(results; name, class)
+    TicraUtilities.write_tepfile(tepfile, t)
+    return t
+end
+
+function res2tep(resultfile::AbstractString; name="tep", class="res2tep")
+    results = read_result_file(resultfile)
+    return res2tep(results; name, class)
+end
+
+function res2tep(results::Vector{Result}; name="tep", class="res2tep")
+    theta, phi, freqs = _check_results_for_tep!(results)
+    mff = @SMatrix [1 -1; -1 1]
+    nt, np, nf = length.((theta, phi, freqs))
+    sff, sfr, srf, srr = (zeros(ComplexF64, (2,2,nt,np,nf)) for _ in 1:4)
+    i = 0
+    for ifr in 1:nf, ip in 1:np, it in 1:nt
+        i += 1 
+        gsm = results[i].gsm
+        sff[:,:,it,ip,ifr] .= mff .* gsm[1,1]
+        sfr[:,:,it,ip,ifr] .= mff .* gsm[1,2]
+        srf[:,:,it,ip,ifr] .= mff .* gsm[2,1]
+        srr[:,:,it,ip,ifr] .= mff .* gsm[2,2]
+    end
+
+    tep = TicraUtilities.TEPperiodic(; name, class, theta, phi, freqs, sff, sfr, srf, srr)
+    return tep
+end # function
+
+
 
 end # module
