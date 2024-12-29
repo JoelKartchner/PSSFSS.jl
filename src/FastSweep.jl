@@ -25,7 +25,7 @@ Rational function interpolation using a Path II Neville lozenge, as defined in t
 ## Return Values
 
  - `Sinterp`: The rational function interpolation at `x0`.
- - `errest`: An error estimate for `norm(Sinterp - S(x0), Inf)`.
+ - `errest`: An error estimate for `norm(Sinterp - S(x0))`.
 
 ## Reference
 Ma, X., Wan, G. and Wan, W., 2012. "A Multi-Dimensional Adaptive Sampling Method for Analysis 
@@ -86,7 +86,7 @@ function interp_path2(
             Sjk[j] += (x0j[j+k] - x0j[j]) * den1 .* den2 ./ bigden
         end
     end
-    return (Sjk[0], norm(Sjk[0] - Sjkm1[0]), Inf)
+    return (Sjk[0], norm(Sjk[0] - Sjkm1[0]))
 end
 
 fixbigden(x::T) where {T <: Number} = ifelse(iszero(x), one(T), x)

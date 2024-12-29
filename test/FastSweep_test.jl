@@ -18,7 +18,7 @@ using Test
     for (s4x4interp, dr) in zip(smat4x4s, direct_results)
         gsm = dr.gsm
         s4x4direct =  MArray{Tuple{4,4}}([gsm[1,1] gsm[1,2]; gsm[2,1] gsm[2,2]])
-        @test norm(s4x4interp - s4x4direct, Inf) ≤ err_limit
+        @test norm(s4x4interp - s4x4direct) ≤ err_limit
     end
 end
 nothing
