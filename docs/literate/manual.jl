@@ -167,6 +167,10 @@
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ## Strata 
+# The geometry to be analyzed is passed as the first argument of the `analyze` function in the form
+# of a Julia `Vector` (i.e., a one-dimensional array). This vector must contain at least two `Layer` 
+# objects representing dielectric layers, and zero or more `RWGSheet` instances, representing the zero-thickness 
+# PSS or FSS sheets located between the dielectric layers.  These are described below.
 # ### Layer
 # Dielectric layers are created with the [`Layer`](@ref) function:
 using PSSFSS # Brings PSSFSS functions and types into scope
@@ -542,7 +546,8 @@ flist = union(7:0.5:10, 20:0.5:25) # Two frequency bands
 
 # #### Using the `analyze` Function Return Value
 # The variable returned from [`analyze`](@ref) can be used in a similar way to the result file to obtain any quantity 
-# available to the [`@outputs`](@ref) macro, but for this purpose we use the [`extract_result`](@ref) function:
+# available to the [`@outputs`](@ref) macro. For this purpose we pass the return value of the `analyze` function
+# as the first argument to the [`extract_result`](@ref) function:
 #
 # ```julia
 # julia> results = analyze(strata, flist, steering, outlist=outputs);
