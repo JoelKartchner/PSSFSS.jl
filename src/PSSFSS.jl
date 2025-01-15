@@ -75,14 +75,13 @@ Base.isfile(f::Base.DevNull) = false
 Base.open(f::Base.DevNull, ::AbstractString) = f
 
 """
-    result = analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", 
-    showprogress::Bool=true, fastsweep=true)
+    result = analyze(strata, flist, steering; outlist=[], logfile="pssfss.log", resultfile="pssfss.res", showprogress::Bool=true, fastsweep=true)
 
 Analyze a full FSS/PSS structure over a range of frequencies and steering angles/phasings.  
 Generate output files as specified in `outlist`.
 
 ## Positional Arguments
-- `strata`:  A vector of `Layer` and `Sheet` objects. The first and last entries must be of type `Layer`.
+- `strata`:  A vector of `Layer` and `RWGSheet` objects. The first and last entries must be of type `Layer`.
 
 - `flist`: An iterable containing the analysis frequencies in GHz.
 
@@ -93,7 +92,8 @@ Generate output files as specified in `outlist`.
 
     - one of {`:psi1` ,`:ψ₁`} and one of {`:psi2`, `:ψ₂`}.  
 
-  All steering parameters are input in degrees.
+  All steering parameters are input in degrees.  Examples of valid `steering` tuples:
+  `(θ=0, ϕ=0)`, `(theta=0:10:60, phi=[0, 45])`, `(theta=40, ϕ=90)`, `(psi1=0, psi2=90)`, `(ψ₁=0, psi2=34.3)`. 
   
   The program will analyze while iterating over a triple loop over the two steering 
   parameters and frequency, with frequency in the innermost loop (i.e. varying the fastest).
@@ -127,8 +127,8 @@ Generate output files as specified in `outlist`.
 ## Return Value
 
 - `result`: A vector of `Result` objects, one for each scan angle/frequency combination. This 
-vector can be passed as an input to the [`extract_result`](@refs) function to obtain any desired 
-performance parameters that are supported by the [`@outputs`](@refs) macro.
+  vector can be passed as an input to the [`extract_result`](@refs) function to obtain any desired 
+  performance parameters that are supported by the [`@outputs`](@refs) macro.
 """
 function analyze(strata::Vector, flist, steering; outlist=[], logfile="pssfss.log",
     resultfile="pssfss.res", showprogress::Bool=true, fastsweep::Bool=length(flist)≥6)

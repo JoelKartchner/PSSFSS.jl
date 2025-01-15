@@ -17,7 +17,13 @@ const SV2 = SVector{2,Float64}
 
 abstract type Sheet end
 
-
+"""
+    RWGSheet 
+A type that represents a zero-thickness sheet of periodically patterned metalization.  Particular instances 
+are created by calling a constructor function for a specific type of sheet geometry.  These include:
+[`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref), [`manji`](@ref), [`meander`](@ref), 
+[`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), [`rectstrip`](@ref), [`sinuous`](@ref), and [`splitring`](@ref).
+"""
 mutable struct RWGSheet <: Sheet
     style::String
     units::PSSFSSLength # Length unit

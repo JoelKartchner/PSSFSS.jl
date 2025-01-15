@@ -75,7 +75,7 @@
 #
 # ![blackney](./assets/blackney_polarizer_comparison.png)
 # 
-# The PSSFSS run took about 24 seconds on my machine for 4 meanderline PSS sheets 
+# The PSSFSS run took about 14 seconds on my machine for 4 meanderline PSS sheets 
 # analyzed at 61 frequencies.
 #
 # I hope this example whetted your appetite to learn
@@ -167,12 +167,12 @@
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "slide"}}
 # ## Strata 
-# The geometry to be analyzed is passed as the first argument of the `analyze` function in the form
+# The geometry to be analyzed is passed as the first argument of the [`analyze`](@ref) function in the form
 # of a Julia `Vector` (i.e., a one-dimensional array). This vector must contain at least two `Layer` 
 # objects representing dielectric layers, and zero or more `RWGSheet` instances, representing the zero-thickness 
 # PSS or FSS sheets located between the dielectric layers.  These are described below.
-# ### Layer
-# Dielectric layers are created with the [`Layer`](@ref) function:
+# ### Dielectric Layers
+# Dielectric layers are created with the [`Layer`](@ref) constructor function:
 using PSSFSS # Brings PSSFSS functions and types into scope
 Layer() # Defaults to zero-thickness vacuum layer
 #-
@@ -195,7 +195,7 @@ foam = Layer(width=0.25inch, tandel=0.001, epsr=1.05) # You can stick to ASCII i
 patch = rectstrip(Nx=10, Ny=10, Px=1, Py=1, Lx=0.5, Ly=0.5, units=cm)
 
 #nb # %% A slide [markdown] {"slideshow": {"slide_type": "fragment"}}
-# The call to [`rectstrip`](@ref) above creates a `RWGSheet` object for a rectangular strip
+# The call to [`rectstrip`](@ref) above creates an `RWGSheet` object for a rectangular strip
 # of dimensions 0.5 cm in the x and y directions, lying in a square unit cell of dimension
 # 1 cm.  The triangulation uses 10 edges in the x and y directions (`Nx` and `Ny`).
 #
