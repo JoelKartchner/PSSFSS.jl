@@ -21,8 +21,8 @@ abstract type Sheet end
     RWGSheet 
 A type that represents a zero-thickness sheet of periodically patterned metalization.  Particular instances 
 are created by calling a constructor function for a specific type of sheet geometry.  These include:
-[`diagstrip`](@ref), [`jerusalemcross`](@ref), [`loadedcross`](@ref), [`manji`](@ref), [`meander`](@ref), 
-[`pecsheet`](@ref), [`pmcsheet`](@ref), [`polyring`](@ref), [`rectstrip`](@ref), [`sinuous`](@ref), and [`splitring`](@ref).
+`diagstrip`, `jerusalemcross`, `loadedcross`, `manji`, `meander`, `pecsheet`, `pmcsheet`, `polyring`,
+`rectstrip`, `sinuous`, and `splitring`.
 """
 mutable struct RWGSheet <: Sheet
     style::String

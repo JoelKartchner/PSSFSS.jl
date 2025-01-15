@@ -29,6 +29,7 @@ makedocs(;
         size_threshold = nothing,
     ),
     pages=[
+        "Contents" => "contents.md",
         "Home" => "index.md",
         "User Manual" => "manual.md",
         demopage,
