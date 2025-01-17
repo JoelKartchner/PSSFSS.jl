@@ -590,7 +590,7 @@ flist = union(7:0.5:10, 20:0.5:25) # Two frequency bands
 # result file) can be converted to an HFSS SBR+-compatible Fresnel table
 # using the function [`res2fresnel`](@ref).  Fresnel tables contain reflection
 # and transmission coefficients for only "front" surface incidence, and only for co-polarized 
-# (TE → TE and TE → TE) scattering. In addition, coefficients for only one azimuth angle ϕ are 
+# (TE → TE and TM → TM) scattering. In addition, coefficients for only one azimuth angle ϕ are 
 # retained in such a table.  These limitations impose restrictions on the type of structure that
 # can be analyzed for use in generating a valid Fresnel table. For details, see the documentation
 # of [`res2fresnel`](@ref). Sample code for creating a Fresnel table is shown in 
