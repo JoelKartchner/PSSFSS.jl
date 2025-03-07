@@ -1,5 +1,5 @@
 
-# [PSSFSS](https://github.com/simonp0420/PSSFSS) Function Reference
+# [PSSFSS](https://github.com/simonp0420/PSSFSS) Public API Documentation
 
 ```@docs
 analyze
@@ -16,6 +16,7 @@ meander
 nodecount
 @outputs
 pecsheet
+pixels
 pmcsheet
 polyring
 read_sheet_data
@@ -25,5 +26,6 @@ res2tep
 RWGSheet
 sinuous
 splitring
+sympixels
 ```
 

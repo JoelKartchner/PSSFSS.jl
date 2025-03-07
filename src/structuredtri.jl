@@ -1,3 +1,5 @@
+# Note: this file is included by Elements.jl. Thus the definitions herein are part of the Elements module.
+
 function loadedcross_structured(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Real, L2::Real, w::Real,
     ntri::Int, orient::Real=0.0, units::PSSFSSLength, kwarg...)
     kwargs = Dict{Symbol,Any}(kwarg)
@@ -60,7 +62,7 @@ function loadedcross_structured(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::Re
     end
 
     sheet.style = "loadedcross"
-    sheet.ξη_check = false
+    sheet.ξη_check = true
     sheet.units = units
     sheet.s₁ = s1
     sheet.s₂ = s2
@@ -173,7 +175,7 @@ function jerusalemcross_structured(; P::Real, L1::Real, L2::Real, A::Real, B::Re
     end
 
     sheet.style = "jerusalemcross"
-    sheet.ξη_check = false
+    sheet.ξη_check = true
     sheet.units = units
     sheet.s₁ = SV2([P, 0])
     sheet.s₂ = SV2([0, P])
@@ -471,16 +473,20 @@ function manji(; L1::Real, L2::Real, L3::Real, L4::Real=0.0, a::Real=0.0, w::Rea
 end # function manji
 
 """
-    make_plaid_mesh(xr, yr, area, ntri, is_inside) -> sheet::RWGSheet
+    make_plaid_mesh(xr, yr, area, ntri, is_inside, quad=false) -> sheet::RWGSheet
 
 Generate a structured, plaid triangular mesh from list of required coordinates and predicate function
 
-# Input Arguments
+# Positional Input Arguments
 - `xr`, `yr`: Vectors of required x and y coordinates for vertices of the geometry to be meshed.
 - `area`:  The area of the geometry to be meshed.
 - `ntri`:  The desired number of triangles for the area to be meshed.
 - `is_inside`: A predicate function where `is_inside(x,y) -> tf::Bool` determines whether a point (x,y)
   is within the region to be meshed.
+- `quad::Bool=false`:  If `true`, each subpixel (or pixel, if `pdiv` is 1) is divided into four triangles by adding
+  two diagonals.  If `false` (the default), only a single diagonal is added to produce two triangles.
+
+
 
 #  Return value:
 - `sheet`: A variable of type RWGSheet with fields ρ, e1, e2, fe, and fv properly initialized. The
@@ -488,14 +494,13 @@ Generate a structured, plaid triangular mesh from list of required coordinates a
   product of `xr` and `yr`, the latter supplemented with additional points to refine the mesh, and then
   converted to a triangular tesselation by adding a diagonal to each rectangle.
 """
-function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_inside)::RWGSheet
+function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_inside, quad::Bool=false)::RWGSheet
     xr, yr = sort.((xr, yr))
     bigarea = (xr[end] - xr[begin]) * (yr[end] - yr[begin]) # area of circumscribing rectangle
     bignsq = ceil(Int, bigarea / area * ntri/2) # desired number of squares to form in circumscribing rectangle
     s = sqrt(bigarea / bignsq) # ideal side length for squares used to tesselate the big area
 
-    facevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}, Tuple{Int,Int}}[]
-    edgevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}}[]
+    # Add new vertex locations as needed to generate at least desired number of triangles:
     xn = xr[begin:begin]
     yn = yr[begin:begin]
     for (tr, tn) in ((xr, xn), (yr, yn)), i in eachindex(tr)[begin+1:end]
@@ -506,6 +511,14 @@ function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_
     end
     
     # xn and yn now contain the plaid vertex coordinates
+    if quad
+        # Add centerpoint values
+        xnc = [0.5(xn[i] + xn[i+1]) for i in 1:(length(xn)-1)]
+        xn = sort!(append!(xn, xnc))
+        ync = [0.5(yn[i] + yn[i+1]) for i in 1:(length(yn)-1)]
+        yn = sort!(append!(yn, ync))
+    end
+
     # Initialize vectors of face and edge indices into xn and yn:
     facevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}, Tuple{Int,Int}}[]
     edgevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}}[]
@@ -513,19 +526,37 @@ function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_
     # Add triangular faces and edges within the desired geometry.  Assumes that 
     # if the center of the rectangle is inside, then so are both triangles
     # partitioning that rectangle.
-    for i in eachindex(xn)[begin+1:end]
-        xcen = 0.5 * (xn[i] + xn[i-1])
-        for j in eachindex(yn)[begin+1:end]
-            ycen = 0.5 * (yn[j] + yn[j-1])
+    irange = quad ? (3:2:length(xn)) : (2:length(xn))
+    jrange = quad ? (3:2:length(yn)) : (2:length(yn))
+    for i in irange
+        xcen = quad ? xn[i-1] : 0.5 * (xn[i] + xn[i-1])
+        for j in jrange
+            ycen = quad ? yn[j-1] : 0.5 * (yn[j] + yn[j-1])
             is_inside(xcen, ycen) || continue
-            topface = ((i,j-1), (i,j), (i-1,j))
-            botface = ((i,j-1), (i-1,j), (i-1,j-1))
-            push!(facevs, topface, botface)
-            push!(edgevs, ((i-1,j-1), (i,j-1)),
-                          ((i,j-1), (i,j)),
-                          ((i,j), (i-1,j)),
-                          ((i-1,j),(i-1,j-1)),
-                          ((i,j-1), (i-1,j)))
+            if quad
+                leftface = ((i-1, j-1), (i-2, j), (i-2, j-2))
+                rightface = ((i-1, j-1), (i, j-2), (i, j))
+                topface = ((i-1, j-1), (i,j), (i-2,j))
+                botface = ((i-1, j-1), (i-2, j-2), (i, j-2))
+                push!(facevs, leftface, rightface, topface, botface)
+                push!(edgevs, ((i-1, j-1), (i-2, j)),
+                              ((i-2, j), (i-2, j-2)),
+                              ((i-2, j-2), (i-1, j-1)),
+                              ((i-1, j-1), (i, j-2)),
+                              ((i, j-2), (i, j)),
+                              ((i, j), (i-1, j-1)),
+                              ((i-2, j), (i, j)),
+                              ((i-2, j-2), (i, j-2)))
+            else
+                topface = ((i,j-1), (i,j), (i-1,j))
+                botface = ((i,j-1), (i-1,j), (i-1,j-1))
+                push!(facevs, topface, botface)
+                push!(edgevs, ((i-1,j-1), (i,j-1)),
+                              ((i,j-1), (i,j)),
+                              ((i,j), (i-1,j)),
+                              ((i-1,j),(i-1,j-1)),
+                              ((i,j-1), (i-1,j)))
+            end
         end
     end
 
@@ -555,6 +586,8 @@ function make_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_
     sh.fe = fe
     return sh
 end
+
+
 
 _plain_rim_area(P, w) = 4 * (P * w - w^2)
 function _fancy_rim_area(P, w, c)
@@ -631,5 +664,157 @@ function _squarerim(P::Real, w::Real, c::Real, ntri::Integer)
     end
 
     return sheet
+end
+
+
+"""
+    make_sym_plaid_mesh(xr, yr, area, ntri, is_inside) -> sheet::RWGSheet
+
+Generate a structured, symmetrical, plaid triangular mesh from list of required coordinates and predicate function.
+
+
+# Input Arguments
+- `xr`, `yr`: Vectors of required x and y coordinates for vertices of the geometry to be meshed.
+  Both of these must contain points distributed symmetrically about the zero, and must also contain
+  zero.  Therefore, each must contain an odd number of elements.
+- `area`:  The area of the geometry to be meshed.
+- `ntri`:  The desired number of triangles for the area to be meshed.
+- `is_inside`: A predicate function where `is_inside(x,y) -> tf::Bool` determines whether a point (x,y)
+  is within the region to be meshed.
+
+#  Return value:
+- `sheet`: A variable of type RWGSheet with fields ρ, e1, e2, fe, and fv properly initialized. The
+  mesh results from a plaid rectangular tesselation containing at least the vertices in the Cartesian
+  product of `xr` and `yr`, the latter supplemented with additional points to refine the mesh, and then
+  converted to a triangular tesselation by adding a diagonal to each rectangle.
+"""
+function make_sym_plaid_mesh(xr::AbstractVector, yr::AbstractVector, area, ntri, is_inside)::RWGSheet
+    nx = length(xr)
+    ny = length(yr)
+    isodd(nx) || error("xr must contain an odd number of points")
+    isodd(ny) || error("yr must contain an odd number of points")
+    xr, yr = sort.((xr, yr))
+    nxlh = (nx - 1) ÷ 2
+    nylh = (ny - 1) ÷ 2
+    for i in 1:nxlh
+        xr[i] ≈ -xr[nx - i + 1] || error("xr must by symmetrically disposed about 0")
+    end
+    for i in 1:nylh
+        yr[i] ≈ -yr[nx - i + 1] || error("yr must by symmetrically disposed about 0")
+    end
+    iszero(xr[nxlh+1]) || error("xr must contain 0")
+    iszero(yr[nylh+1]) || error("yr must contain 0")
+
+
+    bigarea = (xr[end] - xr[begin]) * (yr[end] - yr[begin]) # area of circumscribing rectangle
+    bignsq = ceil(Int, bigarea / area * ntri/2) # desired number of squares to form in circumscribing rectangle
+    s = sqrt(bigarea / bignsq) # ideal side length for squares used to tesselate the big area
+
+    # Restrict consideration to 1st quadrant for now:
+    xr = xr[nxlh+1:end]
+    yr = yr[nxlh+1:end]
+    # Add new vertex locations in 1st quadrant as needed to generate at least desired number of triangles:
+    xn = xr[begin:begin]
+    yn = yr[begin:begin]
+    for (tr, tn) in ((xr, xn), (yr, yn)), i in eachindex(tr)[begin+1:end]
+        dt = tr[i] - tr[i-1]
+        nt = max(1, round(Int, dt / s))
+        append!(tn, tr[i-1] .+ collect((1:nt) * (dt / nt)))
+        tn[end] = tr[i] # correct rounding errors
+    end
+
+    # xn and yn now contain the plaid vertex coordinates
+    # Initialize vectors of face and edge indices into xn and yn:
+    facevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}, Tuple{Int,Int}}[]
+    edgevs = Tuple{Tuple{Int,Int}, Tuple{Int,Int}}[]
+
+    # Add triangular faces and edges within the desired geometry.  Assumes that 
+    # if the center of the rectangle is inside, then so are both triangles
+    # partitioning that rectangle.
+    for i in eachindex(xn)[begin+1:end]
+        xcen = 0.5 * (xn[i] + xn[i-1])
+        for j in eachindex(yn)[begin+1:end]
+            ycen = 0.5 * (yn[j] + yn[j-1])
+            is_inside(xcen, ycen) || continue
+            topface = ((i,j-1), (i,j), (i-1,j))
+            botface = ((i,j-1), (i-1,j), (i-1,j-1))
+            push!(facevs, topface, botface)
+            push!(edgevs, ((i-1,j-1), (i,j-1)),
+                          ((i,j-1), (i,j)),
+                          ((i,j), (i-1,j)),
+                          ((i-1,j),(i-1,j-1)),
+                          ((i,j-1), (i-1,j)))
+        end
+    end
+
+    nodes = unique!([s[i] for s in facevs for i in 1:3]) # list of node (ix,iy) values
+    nface = length(facevs)
+    inodes = Dict(t => i for (i,t) in pairs(nodes)) # returns linear node index given (ix,iy)
+    edgenodes = unique!([extrema((inodes[e[1]], inodes[e[2]])) for e in edgevs]) # List of edge (m,n) node indices with m < n
+    iedges = Dict(t => i for (i,t) in pairs(edgenodes)) # returns linear edge index given (m,n) node indices with m < n
+    e1 = first.(edgenodes)
+    e2 = last.(edgenodes)
+    fv = [inodes[f[k]] for k in 1:3, f in facevs] # face-vertex matrix
+    fe = zeros(Int, 3, nface)
+    previ = (3, 1, 2)
+    nexti = (2, 3, 1)
+    for (jf, f) in pairs(facevs), i in 1:3
+        edgenodes = (inodes[f[nexti[i]]], inodes[f[previ[i]]])
+        fe[i, jf] = iedges[extrema(edgenodes)]
+    end
+
+    ρ = [SV2([xn[ix], yn[iy]]) for (ix, iy) in nodes]
+
+    sh = RWGSheet()
+    sh.ρ = ρ
+    sh.e1 = e1
+    sh.e2 = e2
+    sh.fv = fv
+    sh.fe = fe
+
+    test_fefv(sh)
+    
+    # Mirror in x:
+    sh2 = deepcopy(sh)
+    for i in eachindex(sh2.ρ)
+        sh2.ρ[i] = sh2.ρ[i] .* @SVector [-1, 1] 
+    end
+    # Reverse order of face edges and nodes to stay CCW:
+    for i in axes(sh2.fv, 2)
+        sh2.fv[1, i] = sh.fv[3, i]
+        sh2.fv[3, i] = sh.fv[1, i]
+    end
+    for i in axes(sh2.fe, 2)
+        sh2.fe[1, i] = sh.fe[3, i]
+        sh2.fe[3, i] = sh.fe[1, i]
+    end
+    test_fefv(sh2)
+
+    sh = combine(sh, sh2, 'x', 0.0)
+    test_fefv(sh)
+
+    # Now mirror in y
+    sh2 = deepcopy(sh)
+    for i in eachindex(sh2.ρ)
+        sh2.ρ[i] = sh2.ρ[i] .* @SVector [1, -1] 
+    end
+    # Reverse order of face edges and nodes to stay CCW:
+    for i in axes(sh2.fv, 2)
+        sh2.fv[1, i] = sh.fv[3, i]
+        sh2.fv[3, i] = sh.fv[1, i]
+    end
+    for i in axes(sh2.fe, 2)
+        sh2.fe[1, i] = sh.fe[3, i]
+        sh2.fe[3, i] = sh.fe[1, i]
+    end
+    test_fefv(sh2)
+
+    sh = combine(sh, sh2, 'y', 0.0)
+    test_fefv(sh)
+
+    # Restore original coordinates:
+    sh.ρ .+= Ref([xr[end], yr[end]])
+    return sh
+
 end
 
