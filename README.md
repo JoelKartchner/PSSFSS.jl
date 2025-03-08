@@ -69,6 +69,7 @@ the user then invokes the `analyze` function to perform the analysis.  Post-proc
 - Version 1.10: New `res2tep` function allows saving results in the form of a TICRA-compatible TEP 
   (tabulated electrical properties) file.
 - Version 1.11: New `res2fresnel` function allows saving results in the form of an HFSS SBR+ Fresnel table.
+- Version 1.12: Added `pixels` and `sympixels` elements.
   
 ## Installation
 You can obtain and install PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character at the command prompt):
