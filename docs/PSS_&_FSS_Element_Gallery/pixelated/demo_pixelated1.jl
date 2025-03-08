@@ -42,7 +42,7 @@ patternvec = Bool[
     0]
 
 sheet = sympixels(; P, units, nrim, halfnint, patternvec, pdiv, class='M')
-plot(sheet, axis=false, xlabel="", ylabel="", xtick=[], ytick=[], linecolor=:orange, size=(400,400), rep=(3,3)) #src
+plot(sheet, axis=false, xlabel="", ylabel="", xtick=[], ytick=[], linecolor=:orange, lw=0.35, size=(400,400), rep=(3,3)) #src
 savefig("assets/demo_pixelated1.png") #src
 p1 = plot(sheet, linecolor = "red", unitcell=true)
 p2 = plot(sheet, linecolor = "blue", lw=0.35, rep = (3,3))

@@ -9,6 +9,7 @@
 # defined below will take a given value of ``δ`` as its input, then perform four distinct analyses based on two 
 # complementary triangulations.  Let's run it first for ``δ = -0.5 \text{mm}`` and look
 # at the resulting triangulations:
+
 using PSSFSS, Plots, PrettyTables
 using Printf: @sprintf
 
@@ -69,6 +70,7 @@ end
 
 pl, _ = compute_and_plot(-0.5)
 pl
+
 # The function creates a "red" triangulation occupying the triangle of side length ``L_0 + δ``, and a "blue" triangulation, 
 # occupying the complementary portion of the unit cell. Since for this case the red square
 # side length is 0.5 mm shorter than the critical length ``L_0``, it lies strictly inside the unit cell.  So if we choose to
@@ -87,37 +89,34 @@ pl
 #-
 # We'll now exercise the function for the set of ``δ`` values ``\{ -0.2, -0.05, 0, 0.05, 0.2 \}``, observing both the plotted
 # triangulations and the resulting scattering parameter predictions for each of the four modeling choices outlined above.
-δs = [-0.2, -0.05, 0, 0.05, 0.2] # Departure in mm from self-complementary square side length 
-s11rj, s21rj, s11rm, s21rm, s11bj, s21bj, s11bm, s21bm = (zeros(ComplexF64, length(δs)) for _ in 1:8)
-pls = [] #hide
-for (i, δ) in pairs(δs)
-    plt, r = compute_and_plot(δ)
-    s11rj[i] = r.s11rj
-    s21rj[i] = r.s21rj
-    s11rm[i] = r.s11rm
-    s21rm[i] = r.s21rm
-    s11bj[i] = r.s11bj
-    s21bj[i] = r.s21bj
-    s11bm[i] = r.s11bm
-    s21bm[i] = r.s21bm
-    push!(pls, plt) #hide
-end
-#-
-i = 1   #hide
-pls[i]   #hide
-#-
-i += 1   #hide
-pls[i]   #hide
-#-
-i += 1   #hide
-pls[i]   #hide
-#-
-i += 1   #hide
-pls[i]   #hide
-#-
-i += 1   #hide
-pls[i]   #hide
-#-
+
+# ```julia
+# δs = [-0.2, -0.05, 0, 0.05, 0.2] # Departure in mm from self-complementary square side length 
+# s11rj, s21rj, s11rm, s21rm, s11bj, s21bj, s11bm, s21bm = (zeros(ComplexF64, length(δs)) for _ in 1:8)
+# for (i, δ) in pairs(δs)
+#     plt, r = compute_and_plot(δ)
+#     s11rj[i] = r.s11rj
+#     s21rj[i] = r.s21rj
+#     s11rm[i] = r.s11rm
+#     s21rm[i] = r.s21rm
+#     s11bj[i] = r.s11bj
+#     s21bj[i] = r.s21bj
+#     s11bm[i] = r.s11bm
+#     s21bm[i] = r.s21bm
+#     display(plt)
+# end
+# ```
+
+# ![](./assets/checkerboard_delta(-0.2).png)
+
+# ![](./assets/checkerboard_delta(-0.05).png)
+
+# ![](./assets/checkerboard_delta(0.0).png)
+
+# ![](./assets/checkerboard_delta(0.05).png)
+
+# ![](./assets/checkerboard_delta(0.2).png)
+
 # Let the letter "J" denote use of a triangulation to represent electric surface current and let "M" denote magnetic surface current.
 # So, e.g. "Blue M" means that the blue triangulation is used to represent magnetic current.  We can make the following observations about
 # the above plots:
@@ -137,22 +136,25 @@ pls[i]   #hide
 #    fact all four of these cases should yield the same values.
 #
 # The following code generates a summary table showing how well these expectations are satisfied:
-mat = hcat(s11rj, s11bm, -s21rm, -s21bj) |> transpose
-row_labels = ["S₁₁: Red J ", "S₁₁: Blue M", "-S₂₁: Red M ", "-S₂₁: Blue J"]
-header = (["δ = $δ mm" for δ in δs], ["islands or holes" for δ in δs])
-header[2][findfirst(iszero, δs)] = "SC (Self-Complementary)"
-formatters = (v,i,j) -> imag(v) > 0 ? @sprintf("%7.4f + %6.4fim", real(v), imag(v)) : 
-                                      @sprintf("%7.4f - %6.4fim", real(v), -imag(v))
-highlighters = Highlighter((data, i, j) -> (j == findfirst(iszero,δs)), crayon"red bold")
-pretty_table(mat; header, row_labels, alignment=:c, formatters, highlighters)
-#-
+
+# ```julia
+# mat = hcat(s11rj, s11bm, -s21rm, -s21bj) |> transpose
+# row_labels = ["S₁₁: Red J ", "S₁₁: Blue M", "-S₂₁: Red M ", "-S₂₁: Blue J"]
+# header = (["δ = $δ mm" for δ in δs], ["islands or holes" for δ in δs])
+# header[2][findfirst(iszero, δs)] = "SC (Self-Complementary)"
+# formatters = (v,i,j) -> imag(v) > 0 ? @sprintf("%7.4f + %6.4fim", real(v), imag(v)) : 
+#                                       @sprintf("%7.4f - %6.4fim", real(v), -imag(v))
+# highlighters = Highlighter((data, i, j) -> (j == findfirst(iszero,δs)), crayon"red bold")
+# pretty_table(mat; header, row_labels, alignment=:c, formatters, highlighters)
+# ```
+for line in eachline("./assets/checkerboard_prettytable.data"); println(line); end #hide
 # For ``δ < 0`` the results seem reasonable.  In this regime of electrically small metal islands (for Red J and Blue M), 
 # one wouldn't expect much reflection, and that is what is observed.  For ``δ > 0``, the geometry (for Red J and Blue M)
 # consists of a metal plate with small holes, so one would expect almost total reflection, as observed.  Now consider 
 # how well our above observations are aligned with the computed results...
 #
 # From observations 1 and 2, the numbers in any one column should all be approximately equal, which they are
-# except for the center ``δ = 0`` column (highlighted in red).  From observation 3 we expect all the entries 
+# except for the center ``δ = 0`` column.  From observation 3 we expect all the entries 
 # in any one row to be nearly equal, but this is not true at all.  In any one row there is a violent jump in 
 # amplitude at or near ``δ = 0``.  Finally, from observation 4 we expect all of the numeric entries for ``δ = 0``
 # to be approximately equal--which they are most definitely not.  What is going on here?
@@ -165,6 +167,6 @@ pretty_table(mat; header, row_labels, alignment=:c, formatters, highlighters)
 # unit cells will intersect all along the thickness of the metal, rather than at a single point, thus destroying the 
 # self-complementary property.  Similarly, finite losses in any real metal preclude self-complementarity.
 #
-# The same problem observed here for an ideal model of a self-coplementary surface arises when analyzing pixelated 
+# The same problem observed here for an ideal model of a self-complementary surface arises when analyzing pixelated 
 # structures such as shown in the next example, where adjacent metal pixels 
 # can intersect at only a single point. In that case, using a "Blue M" approach is known to agree with measurements.

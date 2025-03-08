@@ -21,7 +21,7 @@ patternmat = Bool[1 0 0 1
 sheet = pixels(; P, pdiv, patternmat, units, class='J')
 p1 = plot(sheet, linecolor = :red, unitcell = true)
 p2 = plot(sheet, linecolor = :blue, rep=(3,3))
-plot(sheet, axis=false, xlabel="", ylabel="", xtick=[], ytick=[], linecolor=:green, size=(400,400), rep=(3,3)) #src
+plot(sheet, axis=false, xlabel="", ylabel="", xtick=[], ytick=[], unitcell=true, linecolor=:green, size=(400,400), rep=(3,3)) #src
 savefig("assets/demo_pixelated2.png") #src
 plot(p1, p2, layout = (1,2), size=(800,400))
 

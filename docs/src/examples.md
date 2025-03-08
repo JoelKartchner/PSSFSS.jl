@@ -1875,10 +1875,9 @@ This is exactly what is done in the function `compute_and_plot` above.
 We'll now exercise the function for the set of ``δ`` values ``\{ -0.2, -0.05, 0, 0.05, 0.2 \}``, observing both the plotted
 triangulations and the resulting scattering parameter predictions for each of the four modeling choices outlined above.
 
-````@example checkerboard_example
+```julia
 δs = [-0.2, -0.05, 0, 0.05, 0.2] # Departure in mm from self-complementary square side length
 s11rj, s21rj, s11rm, s21rm, s11bj, s21bj, s11bm, s21bm = (zeros(ComplexF64, length(δs)) for _ in 1:8)
-pls = [] #hide
 for (i, δ) in pairs(δs)
     plt, r = compute_and_plot(δ)
     s11rj[i] = r.s11rj
@@ -1889,34 +1888,19 @@ for (i, δ) in pairs(δs)
     s21bj[i] = r.s21bj
     s11bm[i] = r.s11bm
     s21bm[i] = r.s21bm
-    push!(pls, plt) #hide
+    display(plt)
 end
-````
+```
 
-````@example checkerboard_example
-i = 1   #hide
-pls[i]   #hide
-````
+![](./assets/checkerboard_delta(-0.2).png)
 
-````@example checkerboard_example
-i += 1   #hide
-pls[i]   #hide
-````
+![](./assets/checkerboard_delta(-0.05).png)
 
-````@example checkerboard_example
-i += 1   #hide
-pls[i]   #hide
-````
+![](./assets/checkerboard_delta(0.0).png)
 
-````@example checkerboard_example
-i += 1   #hide
-pls[i]   #hide
-````
+![](./assets/checkerboard_delta(0.05).png)
 
-````@example checkerboard_example
-i += 1   #hide
-pls[i]   #hide
-````
+![](./assets/checkerboard_delta(0.2).png)
 
 Let the letter "J" denote use of a triangulation to represent electric surface current and let "M" denote magnetic surface current.
 So, e.g. "Blue M" means that the blue triangulation is used to represent magnetic current.  We can make the following observations about
@@ -1938,7 +1922,7 @@ the above plots:
 
 The following code generates a summary table showing how well these expectations are satisfied:
 
-````@example checkerboard_example
+```julia
 mat = hcat(s11rj, s11bm, -s21rm, -s21bj) |> transpose
 row_labels = ["S₁₁: Red J ", "S₁₁: Blue M", "-S₂₁: Red M ", "-S₂₁: Blue J"]
 header = (["δ = $δ mm" for δ in δs], ["islands or holes" for δ in δs])
@@ -1947,6 +1931,10 @@ formatters = (v,i,j) -> imag(v) > 0 ? @sprintf("%7.4f + %6.4fim", real(v), imag(
                                       @sprintf("%7.4f - %6.4fim", real(v), -imag(v))
 highlighters = Highlighter((data, i, j) -> (j == findfirst(iszero,δs)), crayon"red bold")
 pretty_table(mat; header, row_labels, alignment=:c, formatters, highlighters)
+```
+
+````@example checkerboard_example
+for line in eachline("./assets/checkerboard_prettytable.data"); println(line); end #hide
 ````
 
 For ``δ < 0`` the results seem reasonable.  In this regime of electrically small metal islands (for Red J and Blue M),
@@ -1955,7 +1943,7 @@ consists of a metal plate with small holes, so one would expect almost total ref
 how well our above observations are aligned with the computed results...
 
 From observations 1 and 2, the numbers in any one column should all be approximately equal, which they are
-except for the center ``δ = 0`` column (highlighted in red).  From observation 3 we expect all the entries
+except for the center ``δ = 0`` column.  From observation 3 we expect all the entries
 in any one row to be nearly equal, but this is not true at all.  In any one row there is a violent jump in
 amplitude at or near ``δ = 0``.  Finally, from observation 4 we expect all of the numeric entries for ``δ = 0``
 to be approximately equal--which they are most definitely not.  What is going on here?
@@ -1968,7 +1956,7 @@ to approximate this ideal surface in the real world one must use finite thicknes
 unit cells will intersect all along the thickness of the metal, rather than at a single point, thus destroying the
 self-complementary property.  Similarly, finite losses in any real metal preclude self-complementarity.
 
-The same problem observed here for an ideal model of a self-coplementary surface arises when analyzing pixelated
+The same problem observed here for an ideal model of a self-complementary surface arises when analyzing pixelated
 structures such as shown in the next example, where adjacent metal pixels
 can intersect at only a single point. In that case, using a "Blue M" approach is known to agree with measurements.
 
