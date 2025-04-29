@@ -25,3 +25,13 @@ using Test
     @test maximum(abs, TU.get_srf(tep_pssfss) - TU.get_srf(tep_ticra)) < 0.001
     @test maximum(abs, TU.get_srr(tep_pssfss) - TU.get_srr(tep_ticra)) < 0.001
 end
+
+@testset "tep, scalar ϕ" begin
+    using PSSFSS
+    FGHz = 3:1:4
+    steering = (θ=0:20:40, ϕ=0)
+    strata = [Layer(), Layer(epsr=3.0, width=0.10mm), Layer()]
+    results = analyze(strata, FGHz, steering; resultfile=devnull, logfile=devnull, showprogress=false)
+    t = res2tep(results; name = "dipole", class = "pssfss")
+    @test t isa PSSFSS.Outputs.TicraUtilities.TEPperiodic
+end

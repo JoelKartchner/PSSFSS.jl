@@ -489,7 +489,7 @@ function _check_results_for_tep!(results::Vector{Result})
     nf = length(freqs)
     nt = length(thetas)
     np = length(phis)
-    dphi = phis[2] - phis[1]
+    dphi = isone(np) ? 360 : phis[2] - phis[1]
     phi_range = 0:dphi:(360-dphi)
     phis == phi_range || error("ϕ values must be equivalent to 0:Δϕ:(360-Δϕ)")
     dtheta = thetas[2] - thetas[1]
