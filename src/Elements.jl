@@ -147,7 +147,10 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
     end
 
     class = kwargs[:class]
-    class ≠ 'J' && class ≠ 'M' && error("Illegal value $class for class")
+    badlen = length(class) ≠ 1 
+    class = first(class) # This converts a string to a char
+    (badlen || (class ≠ 'J' && class ≠ 'M')) && throw(ArgumentError("class must be 'J' or 'M'"))
+    kwargs[:class] = class
 
     for key in [:dx, :dy, :rot]
         kwargs[key] isa Real || error("$key must be a Real")
