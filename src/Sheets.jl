@@ -145,7 +145,7 @@ end
 """
     read_sheet_data(filename::AbstractString)::RWGSheet
     
-Read the sheet geometry data from a `JLD2` file named in `filename`.
+Read the sheet triangulation and unit cell data from a `JLD2` file named in `filename`.
 """
 function read_sheet_data(filename::AbstractString)::RWGSheet
     jldopen(filename, "r") do file
@@ -160,7 +160,7 @@ end # function
 """
     write_sheet_data(filename::AbstractString, sheet::RWGSheet)
 
-Write the sheet geometry data to a `JLD2` file named in `filename`.
+Write the sheet triangulation and unit cell data to a `JLD2` file named in `filename`.
 """
 function write_sheet_data(filename::AbstractString, sheet::RWGSheet)
     jldopen(filename, "w") do file

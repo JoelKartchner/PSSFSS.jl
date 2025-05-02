@@ -134,7 +134,7 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
 
 
     defaults = Dict(:class => 'J', :dx => 0.0, :dy => 0.0, :rot => 0.0, 
-    :Zsheet => 0.0, :σ => -Inf, :Rq => 0.0, :disttype => :normal, :save => "", 
+    :Zsheet => 0.0, :σ => -Inf, :Rq => 0.0, :disttype => :normal, 
     :fufp => false, :structuredtri => true)
     validkws = keys(defaults)
 
@@ -166,8 +166,6 @@ function check_optional_kw_arguments!(kwargs::AbstractDict{Symbol,T} where {T})
 
     Rq = kwargs[:Rq]
     Rq < 0 && error("Rq must be nonnegative")
-
-    kwargs[:save] isa AbstractString || error("save value must be an AbstractString")
 
     disttype = kwargs[:disttype]
     disttype == :normal || disttype == :rayleigh || error("Illegal value $disttype for disttype")
@@ -204,8 +202,6 @@ const optional_kwargs = """
                           is the time needed to identify them.  The default value is `true` for the `strip`, `diagstrip`,  
                           `meander`, `manji`, `loadedcross`, `jerusalemcross`, `pixels`, 4-sided `polyring` styles (those 
                           employing structured meshes), and `sympixels`, and `false` for the remaining styles (those employing unstructured meshes).
-                        - `save::String=""` Specifies a file name to which the sheet triangulation and unit cell data is to be written,
-                          typically to be plotted later.
                                 
                         """
 
