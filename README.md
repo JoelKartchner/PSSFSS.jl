@@ -70,6 +70,7 @@ the user then invokes the `analyze` function to perform the analysis.  Post-proc
   (tabulated electrical properties) file.
 - Version 1.11: New `res2fresnel` function allows saving results in the form of an HFSS SBR+ Fresnel table.
 - Version 1.12: Added `pixels` and `sympixels` elements.
+- Version 1.13: Added `write_sheet_data` function.
   
 ## Installation
 You can obtain and install PSSFSS using Julia's Pkg REPL-mode (hitting `]` as the first character at the command prompt):
