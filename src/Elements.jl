@@ -1,9 +1,11 @@
+# File contains functions to construct each of the various element types. 
+
 module Elements
 
 export diagstrip, jerusalemcross, loadedcross, manji, meander, pecsheet, 
        pixels, pmcsheet, polyring, rectstrip, sinuous, splitring, sympixels
 
-using ..PSSFSSLen: mm, cm, inch, mil, PSSFSSLength
+using ..PSSFSSLen: mm, cm, inch, mil, μm, PSSFSSLength
 using ..Sheets: RWGSheet, rotate!, translate!, combine, recttri, SV2, orient!, test_fefv
 using ..Meshsub: meshsub
 using StaticArrays: SA, @SVector

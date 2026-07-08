@@ -1,3 +1,5 @@
+# File containing code for a FastSweep Algorithm
+
 module FastSweep
 
 using OffsetArrays: Origin
