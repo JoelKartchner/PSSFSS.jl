@@ -1,5 +1,14 @@
-# Defines global constants used throughout the code, such as speed of light, permitivity and permeability of free space, etc. 
-
+"""
+# Constants
+Defines global constants used throughout the code, such as:
+- speed of light
+- permitivity of free space
+- permeability of free space
+- impedance of free space
+- tolerances
+- constants for ease of use
+- various configuration constants 
+"""
 module Constants
 
 export μ₀, ϵ₀, c₀, η₀, twopi, fourpi, tol, dbmin, tdigits

@@ -1,5 +1,7 @@
-# This file contains 2 functions, fillz and filly that are used to fill the MoM matrix for the electric current and magnetic current types respectively. 
-
+"""
+# FillZY 
+Contains two functions, fillz and filly, used to construct matrices for moment method. See individual doctrings for details.
+"""
 module FillZY
 export fillz, filly
 
@@ -265,7 +267,7 @@ end
 """
     filly(k0,u,layers::AbstractVector{Layer},s,ψ₁,ψ₂,apert::RWGSheet,rwgdat::RWGData) -> ymat
 
-Fill the generalized impedance matrix for an FSS of magnetic current type.
+Fill the generalized admittance matrix for an FSS of magnetic current type.
 
 ## Arguments:
 

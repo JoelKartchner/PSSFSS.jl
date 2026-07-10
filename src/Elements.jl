@@ -1,11 +1,13 @@
-# File contains functions to construct each of the various element types. 
-
+"""
+# Elements
+Contains definitions and functions for each element type. A list of element types can be found in the documentation at https://simonp0420.github.io/PSSFSS.jl/
+"""
 module Elements
 
 export diagstrip, jerusalemcross, loadedcross, manji, meander, pecsheet, 
        pixels, pmcsheet, polyring, rectstrip, sinuous, splitring, sympixels
 
-using ..PSSFSSLen: mm, cm, inch, mil, μm, PSSFSSLength
+using ..PSSFSSLen: mm, cm, inch, mil, μm, micron, PSSFSSLength
 using ..Sheets: RWGSheet, rotate!, translate!, combine, recttri, SV2, orient!, test_fefv
 using ..Meshsub: meshsub
 using StaticArrays: SA, @SVector
