@@ -160,7 +160,7 @@ All arguments are keyword arguments which can be entered in any order.
   Within the irreducible zone, pixels corresponding to a value of `1` (or `true`)
   are taken to be areas of metallization, while `0` or `false` values are metal-free (void) areas.  This holds for either 
   `J` or `M` as the `class` value (see the `class` argument below for important limitations).
-- `units`:  Length units for `P` (either `mm`, `cm`, `inch`, or `mil`).
+- `units`:  Length units for `P` (`mm`, `cm`, `inch`, `mil` or `μm`/`micron`).
     
 ## Optional arguments:
 - `pdiv::Int = 1`: The number of "chops" or subdivisions applied to each square pixel side when forming the triangulation.
@@ -215,7 +215,7 @@ All arguments are keyword arguments which can be entered in any order.
   the metallization pattern in the unit cell, with a 1 or `true` value denoting a metallized pixel, and a 0 or `false` value
   indicating no metallization.  The `(i,j)` entry corresponds to the pixel centered at `(x,y) = ((j-1/2)d, P-(i-1/2)d)`, where
   `d = P / size(patternmat, 1)`.
-- `units`:  Length units for `P` (either `mm`, `cm`, `inch`, or `mil`).
+- `units`:  Length units for `P` (`mm`, `cm`, `inch`, `mil` or `μm`/`micron`).
     
 ## Optional arguments:
 - `pdiv::Int = 1`: The number of "chops" or subdivisions applied to each square pixel side when forming the geometry triangulation.
