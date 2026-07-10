@@ -299,6 +299,10 @@ FMHZ = Outfun("FMHZ") do o
     o.FGHz * 1000
 end
 
+FTHZ = Outfun("FTHZ") do o 
+    o.FGHZ / 1000
+end
+
 THETA = Outfun("THETA") do o
     get(o.steering, :θ, NaN)
 end
