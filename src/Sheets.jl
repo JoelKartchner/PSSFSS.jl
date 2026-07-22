@@ -645,6 +645,11 @@ end
         error("Illegal type for rep[2]")
     end
 
+    dxdy = SV2([sh.dx, sh.dy])
+    if dxdy ≠ [0.0, 0.0]
+        sh.ρ .= (dxdy + xy for xy in sh.ρ)
+    end
+
 
     for m in mrange, n in nrange
         x0, y0 = (m - 1) * sh.s₁ + (n - 1) * sh.s₂
