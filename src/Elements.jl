@@ -611,10 +611,6 @@ function jerusalemcross_unstructured(; P::Real, L1::Real, L2::Real, A::Real, B::
     sheet.fufp = kwargs[:fufp]
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
-    #dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -862,10 +858,6 @@ function loadedcross_unstructured(; s1::Vector{<:Real}, s2::Vector{<:Real}, L1::
     sheet.fufp = kwargs[:fufp]
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -1046,10 +1038,6 @@ function meander(; a::Real, b::Real, h::Real, w1::Real, w2::Real, ntri::Int,
     sheet.s₂ = SV2([0.00, b])
     sheet.β₁, sheet.β₂ = s₁s₂2β₁β₂(sheet.s₁, sheet.s₂)
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -1319,10 +1307,6 @@ function polyring_unstructured(; s1::Vector, s2::Vector, a::Vector{<:Real}, b::V
     sheet.fufp = kwargs[:fufp]
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -1394,10 +1378,6 @@ function rectstrip(; Lx::Real, Ly::Real, Nx::Int, Ny::Int, Px::Real, Py::Real, u
     sheet.class = kwargs[:class]
     iszero(orient) || orient!(sheet, orient, 0.5 * SV2(Px,Py))
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -1736,10 +1716,6 @@ function splitring(;
     sheet.fufp = kwargs[:fufp]
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
@@ -1905,10 +1881,6 @@ function sinuous(;
     sheet.fufp = kwargs[:fufp]
     sheet.class = kwargs[:class]
     rotate!(sheet, kwargs[:rot])
-    # dxdy = SV2([kwargs[:dx], kwargs[:dy]])
-    # if dxdy ≠ [0.0, 0.0]
-    #     sheet.ρ .= (dxdy + xy for xy in sheet.ρ)
-    # end
     sheet.dx = kwargs[:dx]
     sheet.dy = kwargs[:dy]
 
