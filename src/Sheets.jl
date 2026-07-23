@@ -647,7 +647,7 @@ end
 
     dxdy = SV2([sh.dx, sh.dy])
     if dxdy ≠ [0.0, 0.0]
-        sh.ρ .= (dxdy + xy for xy in sh.ρ)
+        sh = translate!(deepcopy(sh),sh.dx, sh.dy)
     end
 
 
